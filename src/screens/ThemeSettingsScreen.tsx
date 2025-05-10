@@ -1,0 +1,130 @@
+import React from 'react';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView } from 'react-native';
+import { useTheme } from 'react-native-paper';
+import { useThemeStore } from '../store/themeStore';
+
+const ThemeSettingsScreen = () => {
+  const theme = useTheme();
+  const { isDarkMode, isSystemTheme, toggleDarkMode, setUseSystemTheme } = useThemeStore();
+  
+  const styles = makeStyles(theme.colors);
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Görünüm Ayarları</Text>
+        
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>Sistem temasını kullan</Text>
+          <Switch
+            value={isSystemTheme}
+            onValueChange={setUseSystemTheme}
+            trackColor={{ false: '#767577', true: theme.colors.primary }}
+            thumbColor="#fff"
+          />
+        </View>
+        
+        {!isSystemTheme && (
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>Karanlık tema</Text>
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleDarkMode}
+              trackColor={{ false: '#767577', true: theme.colors.primary }}
+              thumbColor="#fff"
+            />
+          </View>
+        )}
+      </View>
+      
+      <View style={styles.infoSection}>
+        <Text style={styles.infoText}>
+          Sistem temasını kullanırsanız, cihazınızın tema ayarlarına göre otomatik olarak açık/koyu tema geçişi yapılır.
+        </Text>
+      </View>
+      
+      {!isSystemTheme && (
+        <View style={styles.previewSection}>
+          <Text style={styles.previewTitle}>Önizleme</Text>
+          <View style={[styles.previewBox, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.previewText, { color: theme.colors.text }]}>
+              Şu anda {isDarkMode ? 'karanlık' : 'açık'} temayı kullanıyorsunuz.
+            </Text>
+          </View>
+        </View>
+      )}
+    </ScrollView>
+  );
+};
+
+const makeStyles = (colors: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  section: {
+    padding: 16,
+    backgroundColor: colors.surface,
+    marginBottom: 16,
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: colors.text,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider || '#eee',
+  },
+  settingLabel: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  infoSection: {
+    padding: 16,
+    backgroundColor: colors.surfaceVariant || colors.surface,
+    marginBottom: 16,
+    borderRadius: 8,
+    marginHorizontal: 16,
+  },
+  infoText: {
+    fontSize: 14,
+    color: colors.textLight || colors.placeholder,
+    lineHeight: 20,
+  },
+  previewSection: {
+    padding: 16,
+    marginHorizontal: 16,
+  },
+  previewTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    color: colors.text,
+  },
+  previewBox: {
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  previewText: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: colors.text,
+  },
+});
+
+export default ThemeSettingsScreen; 

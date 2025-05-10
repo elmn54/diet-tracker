@@ -1,20 +1,57 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StatusBar, useColorScheme } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { Provider as PaperProvider } from 'react-native-paper';
+import AppNavigator from './src/navigation/AppNavigator';
+import { theme, toggleTheme, LightTheme, DarkTheme } from './src/constants/theme';
+import { useFoodStore } from './src/store/foodStore';
+import { useThemeStore } from './src/store/themeStore';
 
+// Tema uygulanmış ve veri yükleme mantığı içeren uygulama
 export default function App() {
+  // Sistem temasını al
+  const colorScheme = useColorScheme();
+  const [currentTheme, setCurrentTheme] = useState(theme);
+  
+  // Tema tercihleri ve yükleme
+  const { 
+    isDarkMode, 
+    isSystemTheme,
+    loadThemePreference 
+  } = useThemeStore();
+  
+  // Uygulamanın ilk başlatılmasında verileri yükle
+  const loadFoods = useFoodStore(state => state.loadFoods);
+  
+  useEffect(() => {
+    // Verileri ve tercihleri yükleme
+    loadFoods();
+    loadThemePreference();
+  }, [loadFoods, loadThemePreference]);
+
+  // Tema değişikliklerini takip etme
+  useEffect(() => {
+    // Sistem teması kullanılıyorsa
+    if (isSystemTheme) {
+      const newTheme = colorScheme === 'dark' ? DarkTheme : LightTheme;
+      setCurrentTheme(newTheme);
+    }
+    // Kullanıcı tercihi kullanılıyorsa
+    else {
+      const newTheme = isDarkMode ? DarkTheme : LightTheme;
+      setCurrentTheme(newTheme);
+    }
+  }, [isDarkMode, isSystemTheme, colorScheme]);
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <PaperProvider theme={currentTheme}>
+      <NavigationContainer>
+        <AppNavigator />
+        <StatusBar 
+          barStyle={(isSystemTheme ? colorScheme === 'dark' : isDarkMode) ? 'light-content' : 'dark-content'} 
+          backgroundColor={currentTheme.colors.surface} 
+        />
+      </NavigationContainer>
+    </PaperProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
