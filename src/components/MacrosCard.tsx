@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { useTheme, MD3Theme } from 'react-native-paper';
 
 interface MacrosCardProps {
   carbs: {
@@ -20,7 +20,7 @@ interface MacrosCardProps {
 const MacrosCard: React.FC<MacrosCardProps> = ({ carbs, protein, fat }) => {
   const theme = useTheme();
   
-  const styles = makeStyles(theme.colors);
+  const styles = makeStyles(theme);
   
   return (
     <View style={styles.card}>
@@ -61,10 +61,10 @@ const MacrosCard: React.FC<MacrosCardProps> = ({ carbs, protein, fat }) => {
   );
 };
 
-const makeStyles = (colors: any) => StyleSheet.create({
+const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: colors.dark ? '#333333' : '#F8E8F0',
+    backgroundColor: theme.dark ? theme.colors.surfaceVariant : '#F8E8F0',
     borderRadius: 16,
     padding: 15,
     marginLeft: 8,
@@ -83,7 +83,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: colors.text,
+    color: theme.colors.onSurface,
   },
   content: {
     flexDirection: 'row',
@@ -97,22 +97,22 @@ const makeStyles = (colors: any) => StyleSheet.create({
   macroValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.text,
+    color: theme.colors.onSurface,
   },
   macroGoal: {
     fontSize: 14,
-    color: colors.dark ? '#999999' : '#AAAAAA',
+    color: theme.dark ? theme.colors.onSurfaceVariant : '#AAAAAA',
     fontWeight: 'normal',
   },
   macroLabel: {
     fontSize: 12,
-    color: colors.textLight || colors.placeholder,
+    color: theme.colors.onSurfaceVariant,
     marginTop: 4,
   },
   divider: {
     width: 1,
     height: 35,
-    backgroundColor: colors.dark ? '#444444' : '#E0E0E0',
+    backgroundColor: theme.dark ? theme.colors.surfaceDisabled : '#E0E0E0',
     marginHorizontal: 5,
   },
 });

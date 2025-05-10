@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { useTheme, MD3Theme } from 'react-native-paper';
 
 interface CaloriesCardProps {
   food: number;
@@ -11,7 +11,7 @@ interface CaloriesCardProps {
 const CaloriesCard: React.FC<CaloriesCardProps> = ({ food, exercise, remaining }) => {
   const theme = useTheme();
   
-  const styles = makeStyles(theme.colors);
+  const styles = makeStyles(theme);
 
   return (
     <View style={styles.card}>
@@ -46,10 +46,10 @@ const CaloriesCard: React.FC<CaloriesCardProps> = ({ food, exercise, remaining }
   );
 };
 
-const makeStyles = (colors: any) => StyleSheet.create({
+const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: colors.dark ? '#333333' : '#F8E8F0',
+    backgroundColor: theme.dark ? theme.colors.surfaceVariant : '#F8E8F0',
     borderRadius: 16,
     padding: 15,
     marginRight: 8,
@@ -68,7 +68,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: colors.text,
+    color: theme.colors.onSurface,
   },
   content: {
     flexDirection: 'row',
@@ -82,21 +82,21 @@ const makeStyles = (colors: any) => StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.text,
+    color: theme.colors.onSurface,
   },
   remainingValue: {
     fontSize: 22,
-    color: colors.dark ? '#47A0FF' : '#4169E1',
+    color: theme.dark ? '#7C8BFF' : '#4169E1',
   },
   statLabel: {
     fontSize: 12,
-    color: colors.textLight || colors.placeholder,
+    color: theme.colors.onSurfaceVariant,
     marginTop: 4,
   },
   divider: {
     width: 1,
     height: 35,
-    backgroundColor: colors.dark ? '#444444' : '#E0E0E0',
+    backgroundColor: theme.dark ? theme.colors.surfaceDisabled : '#E0E0E0',
     marginHorizontal: 5,
   },
 });

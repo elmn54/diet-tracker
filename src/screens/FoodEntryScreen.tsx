@@ -9,8 +9,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useFoodStore, FoodItem } from '../store/foodStore';
 import Input from '../components/Input';
 import Button from '../components/Button';
-import { RadioButton, Text, ActivityIndicator, Divider } from 'react-native-paper';
-import { colors, spacing, typography, metrics } from '../constants/theme';
+import { RadioButton, Text, ActivityIndicator, Divider, useTheme, MD3Theme } from 'react-native-paper';
+import { spacing, typography, metrics } from '../constants/theme';
 import * as ImagePicker from 'expo-image-picker';
 
 // Yemek formu validasyon şeması
@@ -55,6 +55,9 @@ const FoodEntryScreen = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const theme = useTheme();
+  
+  const styles = makeStyles(theme);
   
   const { control, handleSubmit, formState: { errors }, setValue, reset } = useForm<FoodFormData>({
     resolver: zodResolver(foodSchema),
@@ -223,7 +226,7 @@ const FoodEntryScreen = () => {
         
         {isAnalyzing && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
             <Text style={styles.loadingText}>Yemek Analiz Ediliyor...</Text>
           </View>
         )}
@@ -333,25 +336,25 @@ const FoodEntryScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   container: {
     flex: 1,
     padding: spacing.m,
-    backgroundColor: colors.background,
+    backgroundColor: theme.colors.background,
   },
   title: {
     fontSize: typography.fontSize.xxl,
     fontWeight: 'bold',
     marginBottom: spacing.xl,
     textAlign: 'center',
-    color: colors.text,
+    color: theme.colors.onBackground,
   },
   sectionTitle: {
     fontSize: typography.fontSize.large,
     fontWeight: 'bold',
     marginTop: spacing.m,
     marginBottom: spacing.s,
-    color: colors.text,
+    color: theme.colors.onBackground,
   },
   imageSection: {
     alignItems: 'center',
@@ -367,13 +370,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: metrics.borderRadius.medium,
-    backgroundColor: colors.divider,
+    backgroundColor: theme.colors.surfaceVariant,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.s,
   },
   placeholderText: {
-    color: colors.textLight,
+    color: theme.colors.onSurfaceVariant,
     fontSize: typography.fontSize.medium,
   },
   imageButtons: {
@@ -382,7 +385,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   imageButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: theme.colors.primary,
     paddingVertical: spacing.s,
     paddingHorizontal: spacing.m,
     borderRadius: metrics.borderRadius.medium,
@@ -390,7 +393,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   imageButtonText: {
-    color: colors.surface,
+    color: theme.colors.onPrimary,
     fontWeight: 'bold',
   },
   loadingContainer: {
@@ -399,13 +402,13 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: spacing.s,
-    color: colors.textLight,
+    color: theme.colors.onSurfaceVariant,
     fontSize: typography.fontSize.medium,
   },
   button: {
     marginTop: spacing.xl,
     marginBottom: spacing.xxl,
-    backgroundColor: colors.primary,
+    backgroundColor: theme.colors.primary,
   },
   radioRow: {
     flexDirection: 'row',
@@ -418,7 +421,7 @@ const styles = StyleSheet.create({
   },
   radioLabel: {
     fontSize: typography.fontSize.medium,
-    color: colors.text,
+    color: theme.colors.onBackground,
     marginLeft: spacing.xs,
   },
   divider: {

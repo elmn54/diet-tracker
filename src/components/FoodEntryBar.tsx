@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard } 
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { useTheme } from 'react-native-paper';
+import { useTheme, MD3Theme } from 'react-native-paper';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ana Sayfa'>;
 
@@ -13,7 +13,7 @@ const FoodEntryBar: React.FC = () => {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const theme = useTheme();
   
-  const styles = makeStyles(theme.colors);
+  const styles = makeStyles(theme);
 
   // Gelişmiş yemek eklemeye git
   const handleAdvancedEntry = () => {
@@ -39,7 +39,7 @@ const FoodEntryBar: React.FC = () => {
         <TextInput
           style={styles.input}
           placeholder="What did you eat or exercise?"
-          placeholderTextColor={theme.dark ? '#999' : '#666'}
+          placeholderTextColor={theme.colors.onSurfaceVariant}
           value={inputText}
           onChangeText={setInputText}
           onFocus={() => setIsInputFocused(true)}
@@ -63,6 +63,7 @@ const FoodEntryBar: React.FC = () => {
           <TouchableOpacity 
             style={styles.quickEntryButton}
             onPress={handleQuickEntry}
+            disabled={inputText.trim().length === 0}
           >
             <Text style={styles.quickEntryButtonText}>Hızlı Ekle</Text>
           </TouchableOpacity>
@@ -71,7 +72,7 @@ const FoodEntryBar: React.FC = () => {
             style={styles.advancedEntryButton}
             onPress={handleAdvancedEntry}
           >
-            <Text style={styles.advancedEntryButtonText}>Detaylı Giriş</Text>
+            <Text style={styles.advancedEntryButtonText}>Gelişmiş</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -79,13 +80,13 @@ const FoodEntryBar: React.FC = () => {
   );
 };
 
-const makeStyles = (colors: any) => StyleSheet.create({
+const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   container: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: colors.dark ? '#333333' : '#F8E8F0',
+    backgroundColor: theme.dark ? theme.colors.surfaceVariant : '#F8E8F0',
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
     elevation: 10,
@@ -99,7 +100,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.dark ? '#444444' : '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderRadius: 25,
     paddingHorizontal: 15,
     paddingVertical: 8,
@@ -107,7 +108,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: colors.text,
+    color: theme.colors.onSurface,
   },
   buttonsContainer: {
     flexDirection: 'row',
@@ -128,7 +129,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
   },
   quickEntryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: theme.colors.primary,
     padding: 12,
     borderRadius: 8,
     flex: 1,
@@ -136,11 +137,11 @@ const makeStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   quickEntryButtonText: {
-    color: 'white',
+    color: theme.colors.onPrimary,
     fontWeight: 'bold',
   },
   advancedEntryButton: {
-    backgroundColor: colors.dark ? '#444444' : '#E0E0E0',
+    backgroundColor: theme.dark ? theme.colors.surfaceDisabled : '#E0E0E0',
     padding: 12,
     borderRadius: 8,
     flex: 1,
@@ -148,7 +149,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   advancedEntryButtonText: {
-    color: colors.text,
+    color: theme.colors.onSurface,
     fontWeight: 'bold',
   },
 });

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { format, addDays, startOfWeek, isToday, isSameDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { useTheme } from 'react-native-paper';
+import { useTheme, MD3Theme } from 'react-native-paper';
 
 interface WeeklyCalendarProps {
   selectedDate: Date;
@@ -24,7 +24,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ selectedDate, onSelectD
   const [weekDays, setWeekDays] = useState<Date[]>([]);
   const theme = useTheme();
   
-  const styles = makeStyles(theme.colors);
+  const styles = makeStyles(theme);
 
   useEffect(() => {
     // Haftanın başlangıcını pazar günü olarak al ve 7 günü hesapla
@@ -88,7 +88,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ selectedDate, onSelectD
   );
 };
 
-const makeStyles = (colors: any) => StyleSheet.create({
+const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   calendarContainer: {
     flexDirection: 'row',
     paddingVertical: 10,
@@ -100,31 +100,31 @@ const makeStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 25,
-    backgroundColor: colors.dark ? '#333333' : '#F0F0F0',
+    backgroundColor: theme.dark ? theme.colors.surfaceVariant : '#F0F0F0',
     marginHorizontal: 5,
   },
   selectedDayContainer: {
-    backgroundColor: colors.primary || '#FF9C8C',
+    backgroundColor: theme.colors.primary,
   },
   todayContainer: {
-    backgroundColor: colors.dark ? '#444444' : '#E6E6FA',
+    backgroundColor: theme.dark ? theme.colors.surfaceDisabled : '#E6E6FA',
   },
   dayName: {
     fontSize: 14,
-    color: colors.textLight || '#666',
+    color: theme.dark ? theme.colors.onSurfaceVariant : '#666',
     marginBottom: 5,
     textTransform: 'uppercase',
   },
   dayNumber: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: colors.text || '#333',
+    color: theme.dark ? theme.colors.onSurface : '#333',
   },
   selectedText: {
-    color: colors.dark ? colors.text : '#fff',
+    color: theme.dark ? '#FFFFFF' : '#FFFFFF',
   },
   todayText: {
-    color: colors.dark ? colors.text : colors.primary || '#008566',
+    color: theme.dark ? theme.colors.primary : theme.colors.primary,
   },
 });
 

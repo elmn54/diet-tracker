@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, StyleProp, ViewStyle, TextStyle, KeyboardTypeOptions } from 'react-native';
-import { TextInput, Text, HelperText } from 'react-native-paper';
-import { colors, spacing, typography } from '../constants/theme';
+import { TextInput, Text, HelperText, useTheme, MD3Theme } from 'react-native-paper';
+import { spacing, typography } from '../constants/theme';
 
 interface InputProps {
   label: string;
@@ -39,6 +39,9 @@ const Input: React.FC<InputProps> = ({
   accessibilityLabel,
   accessibilityHint,
 }) => {
+  const theme = useTheme();
+  const styles = makeStyles(theme);
+
   return (
     <View style={[styles.container, style]}>
       <TextInput
@@ -54,9 +57,9 @@ const Input: React.FC<InputProps> = ({
         style={[styles.input, inputStyle]}
         error={!!error}
         disabled={disabled}
-        outlineColor={colors.divider}
-        activeOutlineColor={colors.primary}
-        placeholderTextColor={colors.placeholder}
+        outlineColor={theme.colors.outline}
+        activeOutlineColor={theme.colors.primary}
+        placeholderTextColor={theme.colors.onSurfaceVariant}
         testID="input-field"
         accessibilityLabel={accessibilityLabel || label}
         accessibilityHint={accessibilityHint}
@@ -70,17 +73,17 @@ const Input: React.FC<InputProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   container: {
     marginVertical: spacing.s,
   },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: theme.colors.surface,
     fontSize: typography.fontSize.medium,
   },
   errorText: {
     fontSize: typography.fontSize.small,
-    color: colors.error,
+    color: theme.colors.error,
     marginTop: spacing.xs,
   },
 });
