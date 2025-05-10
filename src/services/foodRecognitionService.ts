@@ -1,6 +1,8 @@
 // @ts-ignore
 import axios from 'axios';
-import { AI_PROVIDERS } from '../store/apiKeyStore';
+import { AI_PROVIDERS, AI_PROVIDER_ENDPOINTS } from '../constants/aiProviders';
+import { post } from '../api/client';
+import { imageToBase64 } from './cameraService';
 
 // API endpoint'leri
 const API_ENDPOINTS = {
@@ -28,6 +30,35 @@ export interface ImageData {
   base64?: string;
 }
 
+// OpenAI API response interfaces
+interface OpenAIResponse {
+  choices: {
+    message: {
+      content: string;
+    };
+    index: number;
+  }[];
+}
+
+// Gemini API response interfaces
+interface GeminiResponse {
+  candidates: {
+    content: {
+      parts: {
+        text: string;
+      }[];
+    };
+  }[];
+}
+
+// Claude API response interfaces
+interface ClaudeResponse {
+  content: {
+    text: string;
+    type: string;
+  }[];
+}
+
 /**
  * Fotoğraftaki yemeği tanımlama servisi
  * @param image - Analiz edilecek görüntü
@@ -38,29 +69,38 @@ export interface ImageData {
 export const identifyFood = async (
   image: ImageData,
   provider: string = AI_PROVIDERS.OPENAI,
-  apiKey?: string
+  apiKey: string
 ): Promise<FoodRecognitionResult> => {
-  if (!apiKey) {
-    throw new Error('API anahtarı belirtilmedi');
+  if (!image.uri) {
+    throw new Error('Image URI is required');
+  }
+
+  // If base64 isn't provided, convert the image to base64
+  const base64 = image.base64 || await imageToBase64(image.uri);
+  if (!base64) {
+    throw new Error('Failed to convert image to base64');
+  }
+
+  // Get the endpoint for the selected provider
+  const endpoint = AI_PROVIDER_ENDPOINTS[provider];
+  if (!endpoint) {
+    throw new Error(`Unsupported provider: ${provider}`);
   }
 
   try {
-    // Görüntü verisi uygun formata dönüştür
-    const imageBase64 = image.base64 || await convertImageToBase64(image.uri);
-    
     switch (provider) {
       case AI_PROVIDERS.OPENAI:
-        return await identifyWithOpenAI(imageBase64, apiKey);
+        return await identifyWithOpenAI(base64, apiKey, endpoint);
       case AI_PROVIDERS.GEMINI:
-        return await identifyWithGemini(imageBase64, apiKey);
+        return await identifyWithGemini(base64, apiKey, endpoint);
       case AI_PROVIDERS.CLAUDE:
-        return await identifyWithClaude(imageBase64, apiKey);
+        return await identifyWithClaude(base64, apiKey, endpoint);
       default:
-        throw new Error('Desteklenmeyen AI sağlayıcısı');
+        throw new Error(`Unsupported provider: ${provider}`);
     }
-  } catch (error) {
-    console.error('Yemek tanıma hatası:', error);
-    throw new Error(`Yemek tanınamadı: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
+  } catch (error: any) {
+    console.error(`Error identifying food with ${provider}:`, error);
+    throw new Error(`Failed to identify food: ${error.message}`);
   }
 };
 
@@ -69,49 +109,51 @@ export const identifyFood = async (
  * @param imageBase64 - Base64 formatında görüntü
  * @param apiKey - OpenAI API anahtarı
  */
-const identifyWithOpenAI = async (imageBase64: string, apiKey: string): Promise<FoodRecognitionResult> => {
-  const response = await axios.post(
-    API_ENDPOINTS[AI_PROVIDERS.OPENAI],
+const identifyWithOpenAI = async (base64: string, apiKey: string, endpoint: string): Promise<FoodRecognitionResult> => {
+  const response = await post<OpenAIResponse>(
+    endpoint,
     {
-      model: 'gpt-4-vision-preview',
+      model: "gpt-4-vision-preview",
       messages: [
         {
-          role: 'system',
-          content: 'Bu fotoğrafta görünen yemeği tanımla ve besin değerlerini tahmin et. JSON formatında cevap ver.',
-        },
-        {
-          role: 'user',
+          role: "user",
           content: [
-            { type: 'text', text: 'Bu yemeği tanımla ve besin değerlerini aşağıdaki formatta tahmin et: {"foodName": "Yemek Adı", "nutritionFacts": {"calories": 000, "protein": 00, "carbs": 00, "fat": 00}}' },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
-          ],
-        },
+            { 
+              type: "text", 
+              text: "Identify this food and provide its nutritional facts in the following JSON format: {\"foodName\": \"name\", \"nutritionFacts\": {\"calories\": number, \"protein\": number, \"carbs\": number, \"fat\": number}}" 
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64}`
+              }
+            }
+          ]
+        }
       ],
-      max_tokens: 500,
+      max_tokens: 300
     },
     {
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-      },
+        'Content-Type': 'application/json'
+      }
     }
   );
 
   try {
-    const content = response.data.choices[0].message.content;
-    // JSON içeriğini ayıkla
+    // Extract JSON from the response
+    const content = response.choices[0].message.content;
+    // Find JSON data in the response
     const jsonMatch = content.match(/\{.*\}/s);
     if (jsonMatch) {
-      const resultData = JSON.parse(jsonMatch[0]);
-      return {
-        foodName: resultData.foodName,
-        nutritionFacts: resultData.nutritionFacts
-      };
+      const jsonData = JSON.parse(jsonMatch[0]);
+      return jsonData;
     }
-    throw new Error('Geçerli JSON yanıtı alınamadı');
-  } catch (error) {
-    console.error('OpenAI yanıtı işlenirken hata:', error);
-    throw new Error('Yemek bilgileri işlenemedi');
+    throw new Error('Could not extract JSON from response');
+  } catch (error: any) {
+    console.error('Error parsing OpenAI response:', error);
+    throw new Error('Failed to parse food recognition results');
   }
 };
 
@@ -120,45 +162,45 @@ const identifyWithOpenAI = async (imageBase64: string, apiKey: string): Promise<
  * @param imageBase64 - Base64 formatında görüntü
  * @param apiKey - Gemini API anahtarı
  */
-const identifyWithGemini = async (imageBase64: string, apiKey: string): Promise<FoodRecognitionResult> => {
-  const response = await axios.post(
-    `${API_ENDPOINTS[AI_PROVIDERS.GEMINI]}?key=${apiKey}`,
+const identifyWithGemini = async (base64: string, apiKey: string, endpoint: string): Promise<FoodRecognitionResult> => {
+  const response = await post<GeminiResponse>(
+    `${endpoint}?key=${apiKey}`,
     {
       contents: [
         {
           parts: [
-            { text: 'Bu fotoğrafta görünen yemeği tanımla ve besin değerlerini aşağıdaki formatta tahmin et: {"foodName": "Yemek Adı", "nutritionFacts": {"calories": 000, "protein": 00, "carbs": 00, "fat": 00}}' },
-            { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } }
+            {
+              text: "Identify this food and provide its nutritional facts in the following JSON format: {\"foodName\": \"name\", \"nutritionFacts\": {\"calories\": number, \"protein\": number, \"carbs\": number, \"fat\": number}}"
+            },
+            {
+              inline_data: {
+                mime_type: "image/jpeg",
+                data: base64
+              }
+            }
           ]
         }
       ],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 500,
+        maxOutputTokens: 300
       }
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-      },
     }
   );
 
   try {
-    const content = response.data.candidates[0].content.parts[0].text;
-    // JSON içeriğini ayıkla
+    // Extract JSON from the response
+    const content = response.candidates[0].content.parts[0].text;
+    // Find JSON data in the response
     const jsonMatch = content.match(/\{.*\}/s);
     if (jsonMatch) {
-      const resultData = JSON.parse(jsonMatch[0]);
-      return {
-        foodName: resultData.foodName,
-        nutritionFacts: resultData.nutritionFacts
-      };
+      const jsonData = JSON.parse(jsonMatch[0]);
+      return jsonData;
     }
-    throw new Error('Geçerli JSON yanıtı alınamadı');
-  } catch (error) {
-    console.error('Gemini yanıtı işlenirken hata:', error);
-    throw new Error('Yemek bilgileri işlenemedi');
+    throw new Error('Could not extract JSON from response');
+  } catch (error: any) {
+    console.error('Error parsing Gemini response:', error);
+    throw new Error('Failed to parse food recognition results');
   }
 };
 
@@ -167,46 +209,54 @@ const identifyWithGemini = async (imageBase64: string, apiKey: string): Promise<
  * @param imageBase64 - Base64 formatında görüntü
  * @param apiKey - Claude API anahtarı
  */
-const identifyWithClaude = async (imageBase64: string, apiKey: string): Promise<FoodRecognitionResult> => {
-  const response = await axios.post(
-    API_ENDPOINTS[AI_PROVIDERS.CLAUDE],
+const identifyWithClaude = async (base64: string, apiKey: string, endpoint: string): Promise<FoodRecognitionResult> => {
+  const response = await post<ClaudeResponse>(
+    endpoint,
     {
-      model: 'claude-3-opus-20240229',
-      max_tokens: 500,
+      model: "claude-3-opus-20240229",
       messages: [
         {
-          role: 'user',
+          role: "user",
           content: [
-            { type: 'text', text: 'Bu fotoğrafta görünen yemeği tanımla ve besin değerlerini aşağıdaki formatta tahmin et: {"foodName": "Yemek Adı", "nutritionFacts": {"calories": 000, "protein": 00, "carbs": 00, "fat": 00}}' },
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } }
+            {
+              type: "text",
+              text: "Identify this food and provide its nutritional facts in the following JSON format: {\"foodName\": \"name\", \"nutritionFacts\": {\"calories\": number, \"protein\": number, \"carbs\": number, \"fat\": number}}"
+            },
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: "image/jpeg",
+                data: base64
+              }
+            }
           ]
         }
-      ]
+      ],
+      max_tokens: 300
     },
     {
       headers: {
-        'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json'
+      }
     }
   );
 
   try {
-    const content = response.data.content[0].text;
-    // JSON içeriğini ayıkla
+    // Extract JSON from the response
+    const content = response.content[0].text;
+    // Find JSON data in the response
     const jsonMatch = content.match(/\{.*\}/s);
     if (jsonMatch) {
-      const resultData = JSON.parse(jsonMatch[0]);
-      return {
-        foodName: resultData.foodName,
-        nutritionFacts: resultData.nutritionFacts
-      };
+      const jsonData = JSON.parse(jsonMatch[0]);
+      return jsonData;
     }
-    throw new Error('Geçerli JSON yanıtı alınamadı');
-  } catch (error) {
-    console.error('Claude yanıtı işlenirken hata:', error);
-    throw new Error('Yemek bilgileri işlenemedi');
+    throw new Error('Could not extract JSON from response');
+  } catch (error: any) {
+    console.error('Error parsing Claude response:', error);
+    throw new Error('Failed to parse food recognition results');
   }
 };
 

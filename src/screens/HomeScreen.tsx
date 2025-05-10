@@ -39,6 +39,11 @@ const HomeScreen = () => {
     navigation.navigate('ThemeSettings');
   };
 
+  // İstatistikler sayfasına git
+  const handleOpenStats = () => {
+    navigation.navigate('Stats');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
@@ -51,12 +56,20 @@ const HomeScreen = () => {
       
       <View style={styles.todayContainer}>
         <Text style={styles.todayText}>Today</Text>
-        <TouchableOpacity 
-          style={styles.themeIconContainer}
-          onPress={handleOpenThemeSettings}
-        >
-          <Text style={styles.themeIcon}>{theme.dark ? '🌙' : '☀️'}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={handleOpenStats}
+          >
+            <Text style={styles.themeIcon}>📊</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={handleOpenThemeSettings}
+          >
+            <Text style={styles.themeIcon}>{theme.dark ? '🌙' : '☀️'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       
       <WeeklyCalendar 
@@ -122,12 +135,17 @@ const makeStyles = (colors: any) => StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
-  themeIconContainer: {
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 20,
+    marginLeft: 8,
   },
   themeIcon: {
     fontSize: 24,

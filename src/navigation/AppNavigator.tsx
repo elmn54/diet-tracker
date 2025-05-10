@@ -9,6 +9,7 @@ import FoodEntryScreen from '../screens/FoodEntryScreen';
 import DailySummaryScreen from '../screens/DailySummaryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ThemeSettingsScreen from '../screens/ThemeSettingsScreen';
+import StatsScreen from '../screens/StatsScreen';
 
 // Stack navigator tipini tanımlıyoruz
 export type RootStackParamList = {
@@ -19,6 +20,7 @@ export type RootStackParamList = {
   'DailySummary': undefined;
   'Profile': undefined;
   'ThemeSettings': undefined;
+  'Stats': undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -105,6 +107,14 @@ const AppNavigator = () => {
         options={{
           ...screenOptions,
           title: 'Tema Ayarları'
+        }}
+      />
+      <Stack.Screen 
+        name="Stats" 
+        component={StatsScreen}
+        options={{
+          ...screenOptions,
+          title: 'İstatistikler'
         }}
       />
     </Stack.Navigator>
