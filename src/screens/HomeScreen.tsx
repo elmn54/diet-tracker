@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useFoodStore } from '../store/foodStore';
-import { useTheme } from 'react-native-paper';
+import { useTheme, Menu, Divider, IconButton } from 'react-native-paper';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import CaloriesCard from '../components/CaloriesCard';
 import MacrosCard from '../components/MacrosCard';
@@ -15,6 +15,7 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'A
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [menuVisible, setMenuVisible] = useState(false);
   const theme = useTheme();
   
   const styles = makeStyles(theme.colors);
@@ -43,6 +44,27 @@ const HomeScreen = () => {
   const handleOpenStats = () => {
     navigation.navigate('Stats');
   };
+  
+  // API ayarları sayfasına git
+  const handleOpenApiSettings = () => {
+    navigation.navigate('ApiSettings');
+    setMenuVisible(false);
+  };
+  
+  // Fiyatlandırma sayfasına git
+  const handleOpenPricingScreen = () => {
+    navigation.navigate('Pricing');
+    setMenuVisible(false);
+  };
+  
+  // Kalori hedefi sayfasına git
+  const handleOpenCalorieGoalScreen = () => {
+    navigation.navigate('CalorieGoal');
+    setMenuVisible(false);
+  };
+  
+  // Menüyü aç/kapa
+  const toggleMenu = () => setMenuVisible(!menuVisible);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -69,6 +91,41 @@ const HomeScreen = () => {
           >
             <Text style={styles.themeIcon}>{theme.dark ? '🌙' : '☀️'}</Text>
           </TouchableOpacity>
+          
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
+                <Text style={styles.themeIcon}>⚙️</Text>
+              </TouchableOpacity>
+            }
+          >
+            <Menu.Item 
+              onPress={handleOpenCalorieGoalScreen} 
+              title="Kalori Hedefi" 
+              leadingIcon="target"
+            />
+            <Menu.Item 
+              onPress={handleOpenApiSettings} 
+              title="API Ayarları" 
+              leadingIcon="api"
+            />
+            <Menu.Item 
+              onPress={handleOpenPricingScreen}
+              title="Abonelik Planları" 
+              leadingIcon="cash" 
+            />
+            <Divider />
+            <Menu.Item 
+              onPress={() => {
+                navigation.navigate('Profile');
+                setMenuVisible(false);
+              }}
+              title="Profil" 
+              leadingIcon="account" 
+            />
+          </Menu>
         </View>
       </View>
       

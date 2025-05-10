@@ -817,7 +817,9 @@ describe('API Settings Screen', () => {
   beforeEach(() => {
     // Store Mock
     const mockStore = {
-      apiKeys: {},
+      apiKeys: {
+        [AI_PROVIDERS.OPENAI]: 'test-openai-key',
+      },
       preferredProvider: AI_PROVIDERS.OPENAI,
       setApiKey: jest.fn(),
       setPreferredProvider: jest.fn(),
@@ -827,22 +829,28 @@ describe('API Settings Screen', () => {
   
   it('renders provider selection options', () => {
     const { getByText } = render(<ApiSettingsScreen />);
+    
     expect(getByText('OpenAI')).toBeTruthy();
     expect(getByText('Google Gemini')).toBeTruthy();
     expect(getByText('Claude')).toBeTruthy();
   });
   
-  it('allows entering API key', () => {
+  it('shows saved API key', () => {
     const { getByTestId } = render(<ApiSettingsScreen />);
-    const input = getByTestId('api-key-input');
     
-    fireEvent.changeText(input, 'test-api-key');
-    fireEvent.press(getByTestId('save-api-key'));
+    expect(getByTestId('api-key-input').props.value).toBe('test-openai-key');
+  });
+  
+  it('allows entering API key', () => {
+    const { getByTestId, getByText } = render(<ApiSettingsScreen />);
+    
+    fireEvent.changeText(getByTestId('api-key-input'), 'new-test-api-key');
+    fireEvent.press(getByText('Kaydet'));
     
     const store = useApiKeyStore();
     expect(store.setApiKey).toHaveBeenCalledWith(
       AI_PROVIDERS.OPENAI, 
-      'test-api-key'
+      'new-test-api-key'
     );
   });
   
@@ -1005,4 +1013,499 @@ Başarılı derleme ve sürüm kontrolünü doğrulayın.
 ### 11.3 Dağıtım Stratejisi
 - Alpha testi (iç ekip)
 - Beta testi (sınırlı kullanıcı grubu)
-- Üretim sürümü (tüm kullanıcılar) 
+- Üretim sürümü (tüm kullanıcılar)
+
+## 12. İlave Özellikler ve Ekranlar
+
+### 12.1 Kalori Hedefi Belirleme
+
+#### Kalori Hedefi Store'u
+```tsx
+// __tests__/store/calorieGoalStore.test.ts
+import { renderHook, act } from '@testing-library/react-hooks';
+import { useCalorieGoalStore } from '../../src/store/calorieGoalStore';
+
+describe('Calorie Goal Store', () => {
+  beforeEach(() => {
+    // Store'u sıfırla
+    const { result } = renderHook(() => useCalorieGoalStore());
+    act(() => {
+      result.current.reset();
+    });
+  });
+  
+  it('should set calorie goals', () => {
+    const { result } = renderHook(() => useCalorieGoalStore());
+    
+    act(() => {
+      result.current.setCalorieGoal(2000);
+    });
+    
+    expect(result.current.calorieGoal).toBe(2000);
+  });
+  
+  it('should set macro nutrient goals', () => {
+    const { result } = renderHook(() => useCalorieGoalStore());
+    
+    act(() => {
+      result.current.setNutrientGoals({
+        protein: 150,
+        carbs: 200,
+        fat: 70
+      });
+    });
+    
+    expect(result.current.nutrientGoals.protein).toBe(150);
+    expect(result.current.nutrientGoals.carbs).toBe(200);
+    expect(result.current.nutrientGoals.fat).toBe(70);
+  });
+  
+  it('should calculate remaining calories', () => {
+    const { result } = renderHook(() => useCalorieGoalStore());
+    
+    act(() => {
+      result.current.setCalorieGoal(2000);
+      result.current.setConsumedCalories(1200);
+    });
+    
+    expect(result.current.remainingCalories).toBe(800);
+  });
+});
+```
+
+#### Kalori Hedefi Ekranı Testi
+```tsx
+// __tests__/screens/CalorieGoalScreen.test.tsx
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react-native';
+import CalorieGoalScreen from '../../src/screens/CalorieGoalScreen';
+import { useCalorieGoalStore } from '../../src/store/calorieGoalStore';
+
+// Mock Calorie Goal Store
+jest.mock('../../src/store/calorieGoalStore', () => ({
+  useCalorieGoalStore: jest.fn(),
+}));
+
+describe('Calorie Goal Screen', () => {
+  beforeEach(() => {
+    // Store Mock
+    const mockStore = {
+      calorieGoal: 2000,
+      nutrientGoals: {
+        protein: 150,
+        carbs: 200,
+        fat: 70
+      },
+      setCalorieGoal: jest.fn(),
+      setNutrientGoals: jest.fn(),
+    };
+    (useCalorieGoalStore as jest.Mock).mockReturnValue(mockStore);
+  });
+  
+  it('renders current goals correctly', () => {
+    const { getByText, getByTestId } = render(<CalorieGoalScreen />);
+    
+    expect(getByText('2000')).toBeTruthy();
+    expect(getByTestId('protein-goal')).toHaveTextContent('150');
+    expect(getByTestId('carbs-goal')).toHaveTextContent('200');
+    expect(getByTestId('fat-goal')).toHaveTextContent('70');
+  });
+  
+  it('allows updating calorie goal', () => {
+    const { getByTestId, getByText } = render(<CalorieGoalScreen />);
+    
+    fireEvent.changeText(getByTestId('calorie-input'), '2200');
+    fireEvent.press(getByText('Kaydet'));
+    
+    const store = useCalorieGoalStore();
+    expect(store.setCalorieGoal).toHaveBeenCalledWith(2200);
+  });
+  
+  it('allows updating macronutrient goals', () => {
+    const { getByTestId, getByText } = render(<CalorieGoalScreen />);
+    
+    fireEvent.changeText(getByTestId('protein-input'), '160');
+    fireEvent.changeText(getByTestId('carbs-input'), '220');
+    fireEvent.changeText(getByTestId('fat-input'), '60');
+    fireEvent.press(getByText('Kaydet'));
+    
+    const store = useCalorieGoalStore();
+    expect(store.setNutrientGoals).toHaveBeenCalledWith({
+      protein: 160,
+      carbs: 220,
+      fat: 60
+    });
+  });
+});
+```
+
+### 12.2 API Ayarları Ekranı
+
+#### API Ayarları Ekranı Testi
+```tsx
+// __tests__/screens/ApiSettingsScreen.test.tsx
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react-native';
+import ApiSettingsScreen from '../../src/screens/ApiSettingsScreen';
+import { useApiKeyStore } from '../../src/store/apiKeyStore';
+import { AI_PROVIDERS } from '../../src/constants/aiProviders';
+
+// Mock API Key Store
+jest.mock('../../src/store/apiKeyStore', () => ({
+  useApiKeyStore: jest.fn(),
+}));
+
+describe('API Settings Screen', () => {
+  beforeEach(() => {
+    // Store Mock
+    const mockStore = {
+      apiKeys: {
+        [AI_PROVIDERS.OPENAI]: 'test-openai-key',
+      },
+      preferredProvider: AI_PROVIDERS.OPENAI,
+      setApiKey: jest.fn(),
+      setPreferredProvider: jest.fn(),
+    };
+    (useApiKeyStore as jest.Mock).mockReturnValue(mockStore);
+  });
+  
+  it('renders provider selection options', () => {
+    const { getByText } = render(<ApiSettingsScreen />);
+    
+    expect(getByText('OpenAI')).toBeTruthy();
+    expect(getByText('Google Gemini')).toBeTruthy();
+    expect(getByText('Claude')).toBeTruthy();
+  });
+  
+  it('shows saved API key', () => {
+    const { getByTestId } = render(<ApiSettingsScreen />);
+    
+    expect(getByTestId('api-key-input').props.value).toBe('test-openai-key');
+  });
+  
+  it('allows entering API key', () => {
+    const { getByTestId, getByText } = render(<ApiSettingsScreen />);
+    
+    fireEvent.changeText(getByTestId('api-key-input'), 'new-test-api-key');
+    fireEvent.press(getByText('Kaydet'));
+    
+    const store = useApiKeyStore();
+    expect(store.setApiKey).toHaveBeenCalledWith(
+      AI_PROVIDERS.OPENAI, 
+      'new-test-api-key'
+    );
+  });
+  
+  it('changes preferred provider', () => {
+    const { getByTestId } = render(<ApiSettingsScreen />);
+    
+    // Claude'u seç
+    fireEvent.press(getByTestId(`provider-${AI_PROVIDERS.CLAUDE}`));
+    
+    const store = useApiKeyStore();
+    expect(store.setPreferredProvider).toHaveBeenCalledWith(AI_PROVIDERS.CLAUDE);
+  });
+});
+```
+
+### 12.3 Ödeme Planları Sayfası
+
+#### Ödeme Planları Mağazası
+```tsx
+// __tests__/store/subscriptionStore.test.ts
+import { renderHook, act } from '@testing-library/react-hooks';
+import { useSubscriptionStore } from '../../src/store/subscriptionStore';
+
+describe('Subscription Store', () => {
+  beforeEach(() => {
+    // Store'u sıfırla
+    const { result } = renderHook(() => useSubscriptionStore());
+    act(() => {
+      result.current.reset();
+    });
+  });
+  
+  it('should have default subscription plans', () => {
+    const { result } = renderHook(() => useSubscriptionStore());
+    
+    expect(result.current.plans.length).toBeGreaterThan(0);
+    expect(result.current.plans[0].name).toBeTruthy();
+    expect(result.current.plans[0].price).toBeDefined();
+  });
+  
+  it('should select a subscription plan', () => {
+    const { result } = renderHook(() => useSubscriptionStore());
+    const planId = result.current.plans[1].id;
+    
+    act(() => {
+      result.current.selectPlan(planId);
+    });
+    
+    expect(result.current.selectedPlan).toBe(planId);
+  });
+  
+  it('should check if user is subscribed', () => {
+    const { result } = renderHook(() => useSubscriptionStore());
+    
+    // Başlangıçta abone değil
+    expect(result.current.isSubscribed).toBe(false);
+    
+    // Abonelik başlat
+    act(() => {
+      result.current.setSubscribed(true);
+    });
+    
+    // Artık abone
+    expect(result.current.isSubscribed).toBe(true);
+  });
+});
+```
+
+#### Ödeme Planları Ekranı Testi
+```tsx
+// __tests__/screens/PricingScreen.test.tsx
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react-native';
+import PricingScreen from '../../src/screens/PricingScreen';
+import { useSubscriptionStore } from '../../src/store/subscriptionStore';
+
+// Mock Subscription Store
+jest.mock('../../src/store/subscriptionStore', () => ({
+  useSubscriptionStore: jest.fn(),
+}));
+
+describe('Pricing Screen', () => {
+  beforeEach(() => {
+    // Store Mock
+    const mockStore = {
+      plans: [
+        { id: 'free', name: 'Ücretsiz', price: 0, features: ['Günlük kalori takibi', 'Temel besin değerleri'] },
+        { id: 'premium', name: 'Premium', price: 9.99, features: ['Sınırsız yemek tanıma', 'Detaylı analizler'] },
+        { id: 'pro', name: 'Profesyonel', price: 19.99, features: ['Kişisel beslenme tavsiyeleri', 'Öncelikli destek'] }
+      ],
+      selectedPlan: 'free',
+      selectPlan: jest.fn(),
+      isSubscribed: false,
+      subscribe: jest.fn(),
+    };
+    (useSubscriptionStore as jest.Mock).mockReturnValue(mockStore);
+  });
+  
+  it('renders subscription plans', () => {
+    const { getByText } = render(<PricingScreen />);
+    
+    expect(getByText('Ücretsiz')).toBeTruthy();
+    expect(getByText('Premium')).toBeTruthy();
+    expect(getByText('Profesyonel')).toBeTruthy();
+  });
+  
+  it('displays plan prices correctly', () => {
+    const { getByText } = render(<PricingScreen />);
+    
+    expect(getByText('0 TL')).toBeTruthy();
+    expect(getByText('9.99 TL')).toBeTruthy();
+    expect(getByText('19.99 TL')).toBeTruthy();
+  });
+  
+  it('allows selecting a plan', () => {
+    const { getByTestId } = render(<PricingScreen />);
+    
+    fireEvent.press(getByTestId('plan-premium'));
+    
+    const store = useSubscriptionStore();
+    expect(store.selectPlan).toHaveBeenCalledWith('premium');
+  });
+  
+  it('shows subscribe button', () => {
+    const { getByText } = render(<PricingScreen />);
+    
+    expect(getByText('Abone Ol')).toBeTruthy();
+  });
+  
+  it('initiates subscription when button is pressed', () => {
+    const { getByText } = render(<PricingScreen />);
+    
+    fireEvent.press(getByText('Abone Ol'));
+    
+    const store = useSubscriptionStore();
+    expect(store.subscribe).toHaveBeenCalled();
+  });
+});
+```
+
+### 12.4 API İstek İşleme Geliştirmeleri
+
+#### API İstek Hata Yönetimi
+```tsx
+// src/api/errorHandler.ts
+export interface ApiError {
+  code: string;
+  message: string;
+  isRetryable: boolean;
+}
+
+export const parseApiError = (error: any): ApiError => {
+  // API'ye özgü hata yanıtlarını işleme
+  if (error.response) {
+    const { status, data } = error.response;
+    
+    // Yaygın HTTP durum kodlarını işleme
+    switch (status) {
+      case 400:
+        return {
+          code: 'BAD_REQUEST',
+          message: 'Geçersiz istek. Lütfen girdiğiniz bilgileri kontrol edin.',
+          isRetryable: false
+        };
+      case 401:
+        return {
+          code: 'UNAUTHORIZED',
+          message: 'API anahtarı geçersiz veya süresi dolmuş.',
+          isRetryable: false
+        };
+      case 403:
+        return {
+          code: 'FORBIDDEN',
+          message: 'Bu işlemi gerçekleştirme izniniz yok.',
+          isRetryable: false
+        };
+      case 404:
+        return {
+          code: 'NOT_FOUND',
+          message: 'İstenen kaynak bulunamadı.',
+          isRetryable: false
+        };
+      case 429:
+        return {
+          code: 'RATE_LIMITED',
+          message: 'Çok fazla istek gönderdiniz. Lütfen daha sonra tekrar deneyin.',
+          isRetryable: true
+        };
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return {
+          code: 'SERVER_ERROR',
+          message: 'Sunucu hatası. Lütfen daha sonra tekrar deneyin.',
+          isRetryable: true
+        };
+    }
+    
+    // API'ye özgü hata mesajlarını işleme
+    if (data && data.error) {
+      return {
+        code: data.error.type || 'API_ERROR',
+        message: data.error.message || 'Bir API hatası oluştu.',
+        isRetryable: status >= 500 // 5xx hatalarında yeniden deneme
+      };
+    }
+  }
+  
+  // Ağ hatalarını işleme
+  if (error.request) {
+    return {
+      code: 'NETWORK_ERROR',
+      message: 'Sunucuyla bağlantı kurulamadı. İnternet bağlantınızı kontrol edin.',
+      isRetryable: true
+    };
+  }
+  
+  // Diğer hatalar
+  return {
+    code: 'UNKNOWN_ERROR',
+    message: error.message || 'Bilinmeyen bir hata oluştu.',
+    isRetryable: false
+  };
+};
+
+export const formatUserFriendlyError = (apiError: ApiError): string => {
+  // API hata mesajını kullanıcı dostu bir mesaja dönüştür
+  return apiError.message;
+};
+```
+
+#### API Retry Mekanizması
+```tsx
+// src/api/retryClient.ts
+import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import { parseApiError } from './errorHandler';
+
+interface RetryConfig extends AxiosRequestConfig {
+  maxRetries?: number;
+  retryDelay?: number;
+}
+
+/**
+ * Yeniden deneme mekanizmasına sahip HTTP istemcisi
+ */
+export const createRetryClient = (baseConfig: RetryConfig = {}) => {
+  const client = axios.create(baseConfig);
+  
+  // Varsayılan yeniden deneme yapılandırması
+  const defaultRetryConfig = {
+    maxRetries: 3,
+    retryDelay: 1000,
+  };
+  
+  // İsteği yeniden deneme
+  const retryRequest = async (
+    config: RetryConfig,
+    error: AxiosError,
+    retryCount: number
+  ): Promise<AxiosResponse> => {
+    const maxRetries = config.maxRetries || defaultRetryConfig.maxRetries;
+    const retryDelay = config.retryDelay || defaultRetryConfig.retryDelay;
+    
+    // Maksimum yeniden deneme sayısını aşıldıysa hata fırlat
+    if (retryCount >= maxRetries) {
+      throw error;
+    }
+    
+    // Hatanın yeniden denenebilir olup olmadığını kontrol et
+    const apiError = parseApiError(error);
+    if (!apiError.isRetryable) {
+      throw error;
+    }
+    
+    // Yeniden denemeden önce bekle (artan gecikme)
+    const delay = retryDelay * Math.pow(2, retryCount);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    // İsteği yeniden dene
+    try {
+      return await client(config);
+    } catch (retryError) {
+      return retryRequest(config, retryError as AxiosError, retryCount + 1);
+    }
+  };
+  
+  // Hata yakalayıcı ara yazılım
+  client.interceptors.response.use(
+    response => response,
+    async (error: AxiosError) => {
+      const config = error.config as RetryConfig;
+      
+      // Yeniden deneme yapılandırması yoksa hata fırlat
+      if (!config) {
+        throw error;
+      }
+      
+      return retryRequest(config, error, 0);
+    }
+  );
+  
+  return client;
+};
+
+export default createRetryClient();
+```
+
+### 12.5 Uygulama ve Kodlama
+
+1. calorieGoalStore.ts oluştur
+2. ApiSettingsScreen.tsx oluştur
+3. PricingScreen.tsx oluştur
+4. CalorieGoalScreen.tsx oluştur
+5. API hata işleme ve yeniden deneme mekanizmasını ekle
+6. Testleri çalıştır ve hataları düzelt 

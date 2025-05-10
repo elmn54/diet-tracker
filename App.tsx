@@ -6,6 +6,9 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { toggleTheme, LightTheme, DarkTheme } from './src/constants/theme';
 import { useFoodStore } from './src/store/foodStore';
 import { useThemeStore } from './src/store/themeStore';
+import { useApiKeyStore } from './src/store/apiKeyStore';
+import { useSubscriptionStore } from './src/store/subscriptionStore';
+import { useCalorieGoalStore } from './src/store/calorieGoalStore';
 
 // Tema uygulanmış ve veri yükleme mantığı içeren uygulama
 export default function App() {
@@ -23,6 +26,8 @@ export default function App() {
   
   // Uygulamanın ilk başlatılmasında verileri yükle
   const loadFoods = useFoodStore(state => state.loadFoods);
+  const loadApiKeys = useApiKeyStore(state => state.loadApiKeys);
+  const loadGoals = useCalorieGoalStore(state => state.loadGoals);
   
   // AppState değişikliklerini izlemek için
   useEffect(() => {
@@ -48,7 +53,9 @@ export default function App() {
   useEffect(() => {
     loadFoods();
     loadThemePreference();
-  }, [loadFoods, loadThemePreference]);
+    loadApiKeys();
+    loadGoals();
+  }, [loadFoods, loadThemePreference, loadApiKeys, loadGoals]);
 
   // Tema değişikliklerini takip etme
   useEffect(() => {

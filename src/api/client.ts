@@ -8,6 +8,59 @@ const client = axios.create({
   },
 });
 
+// Basit hata işleme yardımcı fonksiyonu
+export const handleApiError = (error: any): { message: string; retryable: boolean } => {
+  // HTTP yanıtı varsa
+  if (error.response) {
+    const { status } = error.response;
+    
+    // 429 (Rate Limiting) veya 5xx (Sunucu Hatası) hatalarını yeniden deneyebiliriz
+    const isRetryable = status === 429 || status >= 500;
+    
+    // Durum koduna göre kullanıcı dostu mesaj
+    let message;
+    
+    switch (status) {
+      case 401:
+        message = 'API anahtarı geçersiz. Lütfen ayarlar sayfasından API anahtarınızı kontrol edin.';
+        break;
+      case 403:
+        message = 'Bu işlemi gerçekleştirme izniniz yok.';
+        break;
+      case 404:
+        message = 'İstenen kaynak bulunamadı.';
+        break;
+      case 429:
+        message = 'Çok fazla istek gönderdiniz. Lütfen daha sonra tekrar deneyin.';
+        break;
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        message = 'Sunucu hatası. Lütfen daha sonra tekrar deneyin.';
+        break;
+      default:
+        message = `HTTP Hatası: ${status}`;
+    }
+    
+    return { message, retryable: isRetryable };
+  }
+  
+  // Ağ hatası
+  if (error.request) {
+    return {
+      message: 'Sunucuyla bağlantı kurulamadı. İnternet bağlantınızı kontrol edin.',
+      retryable: true
+    };
+  }
+  
+  // Diğer hatalar
+  return {
+    message: error.message || 'Bilinmeyen bir hata oluştu.',
+    retryable: false
+  };
+};
+
 /**
  * Make a GET request
  * @param url The URL to fetch from
@@ -19,7 +72,8 @@ export const get = async <T>(url: string, config?: any): Promise<T> => {
     const response = await client.get<T>(url, config);
     return response.data;
   } catch (error) {
-    console.error('GET request failed:', error);
+    const { message, retryable } = handleApiError(error);
+    console.error('GET request failed:', message, 'Retryable:', retryable);
     throw error;
   }
 };
@@ -36,7 +90,8 @@ export const post = async <T>(url: string, data?: any, config?: any): Promise<T>
     const response = await client.post<T>(url, data, config);
     return response.data;
   } catch (error) {
-    console.error('POST request failed:', error);
+    const { message, retryable } = handleApiError(error);
+    console.error('POST request failed:', message, 'Retryable:', retryable);
     throw error;
   }
 };
@@ -53,7 +108,8 @@ export const put = async <T>(url: string, data?: any, config?: any): Promise<T> 
     const response = await client.put<T>(url, data, config);
     return response.data;
   } catch (error) {
-    console.error('PUT request failed:', error);
+    const { message, retryable } = handleApiError(error);
+    console.error('PUT request failed:', message, 'Retryable:', retryable);
     throw error;
   }
 };
@@ -69,7 +125,8 @@ export const del = async <T>(url: string, config?: any): Promise<T> => {
     const response = await client.delete<T>(url, config);
     return response.data;
   } catch (error) {
-    console.error('DELETE request failed:', error);
+    const { message, retryable } = handleApiError(error);
+    console.error('DELETE request failed:', message, 'Retryable:', retryable);
     throw error;
   }
 };

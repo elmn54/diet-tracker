@@ -18,6 +18,7 @@ interface InputProps {
   disabled?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
+  testID?: string;
 }
 
 /**
@@ -38,6 +39,7 @@ const Input: React.FC<InputProps> = ({
   disabled = false,
   accessibilityLabel,
   accessibilityHint,
+  testID,
 }) => {
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -60,7 +62,7 @@ const Input: React.FC<InputProps> = ({
         outlineColor={theme.colors.outline}
         activeOutlineColor={theme.colors.primary}
         placeholderTextColor={theme.colors.onSurfaceVariant}
-        testID="input-field"
+        testID={testID || "input-field"}
         accessibilityLabel={accessibilityLabel || label}
         accessibilityHint={accessibilityHint}
       />

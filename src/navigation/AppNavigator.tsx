@@ -10,6 +10,9 @@ import DailySummaryScreen from '../screens/DailySummaryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ThemeSettingsScreen from '../screens/ThemeSettingsScreen';
 import StatsScreen from '../screens/StatsScreen';
+import ApiSettingsScreen from '../screens/ApiSettingsScreen';
+import PricingScreen from '../screens/PricingScreen';
+import CalorieGoalScreen from '../screens/CalorieGoalScreen';
 
 // Stack navigator tipini tanımlıyoruz
 export type RootStackParamList = {
@@ -21,6 +24,9 @@ export type RootStackParamList = {
   'Profile': undefined;
   'ThemeSettings': undefined;
   'Stats': undefined;
+  'ApiSettings': undefined;
+  'Pricing': undefined;
+  'CalorieGoal': undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -115,6 +121,30 @@ const AppNavigator = () => {
         options={{
           ...screenOptions,
           title: 'İstatistikler'
+        }}
+      />
+      <Stack.Screen 
+        name="ApiSettings" 
+        component={ApiSettingsScreen}
+        options={{
+          ...screenOptions,
+          title: 'API Ayarları'
+        }}
+      />
+      <Stack.Screen 
+        name="Pricing" 
+        component={PricingScreen}
+        options={{
+          ...screenOptions,
+          title: 'Abonelik Planları'
+        }}
+      />
+      <Stack.Screen 
+        name="CalorieGoal" 
+        component={CalorieGoalScreen}
+        options={{
+          ...screenOptions,
+          title: 'Kalori Hedefi'
         }}
       />
     </Stack.Navigator>
