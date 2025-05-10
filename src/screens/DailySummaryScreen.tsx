@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Text, Divider, IconButton } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { Text, Divider, IconButton, FAB, useTheme, MD3Theme } from 'react-native-paper';
 import { useFoodStore, FoodItem } from '../store/foodStore';
+import { useCalorieGoalStore } from '../store/calorieGoalStore';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import Card from '../components/Card';
-import { colors, spacing, metrics, typography } from '../constants/theme';
+import { format, addDays, subDays, isSameDay } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 type DailySummaryScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'DailySummary'>;
 
@@ -14,6 +16,8 @@ const DailySummaryScreen = () => {
   const navigation = useNavigation<DailySummaryScreenNavigationProp>();
   const [date, setDate] = useState(new Date());
   const [formattedDate, setFormattedDate] = useState('');
+  const theme = useTheme();
+  const styles = makeStyles(theme);
   
   const { 
     foods,
@@ -31,6 +35,8 @@ const DailySummaryScreen = () => {
     isLoading: state.isLoading
   }));
 
+  const { calorieGoal, nutrientGoals } = useCalorieGoalStore();
+
   // İlk yüklemede verileri getir
   useEffect(() => {
     loadFoods();
@@ -38,36 +44,43 @@ const DailySummaryScreen = () => {
 
   // Tarih formatını ayarla
   useEffect(() => {
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    setFormattedDate(date.toLocaleDateString('tr-TR', options));
+    setFormattedDate(format(date, 'EEEE, d MMMM yyyy', { locale: tr }));
   }, [date]);
 
   // Günlük toplam değerleri hesapla
   const dailyCalories = calculateDailyCalories(date.toISOString());
   const dailyNutrients = calculateDailyNutrients(date.toISOString());
 
-  // Sabit günlük hedefler (ileride kullanıcı profilinden gelebilir)
-  const calorieGoal = 2000;
-  const proteinGoal = 100;
-  const carbsGoal = 250;
-  const fatGoal = 70;
+  // Kalan kalori hesapla
+  const remainingCalories = Math.max(0, calorieGoal - dailyCalories);
+  
+  // Kalori hedefi durumu
+  const getCalorieStatus = () => {
+    const percentage = (dailyCalories / calorieGoal) * 100;
+    if (percentage < 80) {
+      return { message: "Hedefe ulaşmak için daha fazla kalori almalısınız", color: theme.colors.primary };
+    } else if (percentage <= 100) {
+      return { message: "Hedefinize yaklaşıyorsunuz, iyi iş!", color: theme.colors.primary };
+    } else if (percentage <= 110) {
+      return { message: "Hedefinize ulaştınız", color: theme.colors.tertiary };
+    } else {
+      return { message: "Kalori hedefinizi aştınız", color: theme.colors.error };
+    }
+  };
+  
+  const calorieStatus = getCalorieStatus();
 
   // Bugünün yemeklerini filtrele
-  const isSameDay = (dateString: string) => {
+  const isSameDayFn = (dateString: string, targetDate: Date) => {
     const foodDate = new Date(dateString);
     return (
-      foodDate.getFullYear() === date.getFullYear() &&
-      foodDate.getMonth() === date.getMonth() &&
-      foodDate.getDate() === date.getDate()
+      foodDate.getFullYear() === targetDate.getFullYear() &&
+      foodDate.getMonth() === targetDate.getMonth() &&
+      foodDate.getDate() === targetDate.getDate()
     );
   };
 
-  const todaysFoods = foods.filter(food => isSameDay(food.date));
+  const todaysFoods = foods.filter(food => isSameDayFn(food.date, date));
   
   // Öğüne göre yemekleri grupla
   const foodsByMeal = {
@@ -77,24 +90,54 @@ const DailySummaryScreen = () => {
     snack: todaysFoods.filter(food => food.mealType === 'snack'),
   };
 
+  // Öğün başına toplam kalorileri hesapla
+  const mealCalories = {
+    breakfast: foodsByMeal.breakfast.reduce((total, food) => total + food.calories, 0),
+    lunch: foodsByMeal.lunch.reduce((total, food) => total + food.calories, 0),
+    dinner: foodsByMeal.dinner.reduce((total, food) => total + food.calories, 0),
+    snack: foodsByMeal.snack.reduce((total, food) => total + food.calories, 0),
+  };
+
   // Önceki güne git
   const goToPreviousDay = () => {
-    const newDate = new Date(date);
-    newDate.setDate(newDate.getDate() - 1);
-    setDate(newDate);
+    setDate(subDays(date, 1));
   };
 
   // Sonraki güne git
   const goToNextDay = () => {
-    const newDate = new Date(date);
-    newDate.setDate(newDate.getDate() + 1);
-    setDate(newDate);
+    const nextDate = addDays(date, 1);
+    // Gelecekteki tarihlere gitmeyi engelle
+    if (isSameDay(nextDate, new Date()) || nextDate < new Date()) {
+      setDate(nextDate);
+    }
+  };
+
+  // Bugüne git
+  const goToToday = () => {
+    setDate(new Date());
   };
 
   // Yemek silme işlemi
   const handleDeleteFood = async (id: string) => {
     try {
-      await removeFood(id);
+      Alert.alert(
+        'Yemeği Sil',
+        'Bu yemeği silmek istediğinizden emin misiniz?',
+        [
+          {
+            text: 'İptal',
+            style: 'cancel',
+          },
+          {
+            text: 'Sil',
+            onPress: async () => {
+              await removeFood(id);
+            },
+            style: 'destructive',
+          },
+        ],
+        { cancelable: true }
+      );
     } catch (error) {
       console.error('Yemek silinirken hata oluştu:', error);
     }
@@ -108,13 +151,21 @@ const DailySummaryScreen = () => {
     snack: 'Atıştırmalık',
   };
 
+  // Öğün emoji'leri
+  const mealTypeEmojis = {
+    breakfast: '🍳',
+    lunch: '🍲',
+    dinner: '🍽️',
+    snack: '🍌',
+  };
+
   // Yemek kartı render fonksiyonu
   const renderFoodCard = (food: FoodItem) => (
     <Card key={food.id} style={styles.foodCard}>
       <Card.Content style={styles.foodCardContent}>
         <View style={styles.foodInfo}>
           <Text style={styles.foodName}>{food.name}</Text>
-          <Text>{food.calories} kcal</Text>
+          <Text style={styles.calorieText}>{food.calories} kcal</Text>
         </View>
         <View style={styles.foodNutrients}>
           <Text style={styles.nutrientText}>P: {food.protein}g</Text>
@@ -123,6 +174,7 @@ const DailySummaryScreen = () => {
         </View>
         <IconButton
           icon="delete"
+          iconColor={theme.colors.error}
           size={20}
           onPress={() => handleDeleteFood(food.id)}
           style={styles.deleteButton}
@@ -133,12 +185,35 @@ const DailySummaryScreen = () => {
 
   // Öğün bölümü render fonksiyonu
   const renderMealSection = (mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack') => (
-    <View style={styles.mealSection}>
-      <Text style={styles.mealTitle}>{mealTypeNames[mealType]}</Text>
+    <View style={styles.mealSection} key={mealType}>
+      <View style={styles.mealHeaderRow}>
+        <View style={styles.mealTitleContainer}>
+          <Text style={styles.mealEmoji}>{mealTypeEmojis[mealType]}</Text>
+          <Text style={styles.mealTitle}>{mealTypeNames[mealType]}</Text>
+        </View>
+        <View style={styles.mealCalorieContainer}>
+          <Text style={styles.mealCalorie}>{mealCalories[mealType]} kcal</Text>
+          <TouchableOpacity 
+            style={styles.addFoodButton}
+            onPress={() => navigation.navigate('FoodEntry')}
+          >
+            <Text style={styles.addFoodButtonText}>+ Ekle</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      
       {foodsByMeal[mealType].length > 0 ? (
         foodsByMeal[mealType].map(renderFoodCard)
       ) : (
-        <Text style={styles.emptyMealText}>Bu öğünde henüz yemek kaydı yok</Text>
+        <View style={styles.emptyMealContainer}>
+          <Text style={styles.emptyMealText}>Bu öğünde henüz yemek kaydı yok</Text>
+          <TouchableOpacity 
+            style={styles.emptyAddButton}
+            onPress={() => navigation.navigate('FoodEntry')}
+          >
+            <Text style={styles.emptyAddButtonText}>Yemek Ekle</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
@@ -146,235 +221,360 @@ const DailySummaryScreen = () => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0066cc" />
-        <Text style={styles.loadingText}>Yükeniyor...</Text>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Yükleniyor...</Text>
       </View>
     );
   }
 
+  const isToday = isSameDay(date, new Date());
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.dateSelector}>
-        <IconButton icon="chevron-left" size={24} onPress={goToPreviousDay} />
-        <Text style={styles.dateText}>{formattedDate}</Text>
-        <IconButton icon="chevron-right" size={24} onPress={goToNextDay} />
-      </View>
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollContainer}>
+        <View style={styles.dateSelector}>
+          <IconButton 
+            icon="chevron-left" 
+            size={24} 
+            onPress={goToPreviousDay}
+            iconColor={theme.colors.primary}
+          />
+          <TouchableOpacity onPress={goToToday}>
+            <Text style={[styles.dateText, isToday && styles.todayText]}>{formattedDate}</Text>
+          </TouchableOpacity>
+          <IconButton 
+            icon="chevron-right" 
+            size={24} 
+            onPress={goToNextDay}
+            iconColor={isToday ? theme.colors.outline : theme.colors.primary}
+            disabled={isToday}
+          />
+        </View>
 
-      <Card style={styles.summaryCard}>
-        <Card.Content>
-          <Text style={styles.summaryTitle}>Günlük Özet</Text>
-          <View style={styles.nutrientRow}>
-            <View style={styles.nutrientItem}>
-              <Text style={styles.nutrientLabel}>Kalori</Text>
-              <Text style={styles.nutrientValue}>{dailyCalories} / {calorieGoal} kcal</Text>
-              <View style={styles.progressBar}>
-                <View 
-                  style={[
-                    styles.progressFill, 
-                    { width: `${Math.min(100, (dailyCalories / calorieGoal) * 100)}%` }
-                  ]} 
-                />
+        <Card style={styles.summaryCard}>
+          <Card.Content>
+            <Text style={styles.summaryTitle}>Günlük Özet</Text>
+            
+            <View style={styles.calorieRow}>
+              <View style={styles.calorieInfo}>
+                <Text style={styles.calorieValue}>{dailyCalories}</Text>
+                <Text style={styles.calorieLabel}>Alınan</Text>
+              </View>
+              <View style={styles.calorieInfo}>
+                <Text style={styles.calorieValue}>{remainingCalories}</Text>
+                <Text style={styles.calorieLabel}>Kalan</Text>
+              </View>
+              <View style={styles.calorieInfo}>
+                <Text style={styles.calorieValue}>{calorieGoal}</Text>
+                <Text style={styles.calorieLabel}>Hedef</Text>
               </View>
             </View>
-          </View>
-          
-          <View style={styles.nutrientRow}>
-            <View style={styles.nutrientItem}>
-              <Text style={styles.nutrientLabel}>Protein</Text>
-              <Text style={styles.nutrientValue}>{dailyNutrients.protein} / {proteinGoal} g</Text>
-              <View style={styles.progressBar}>
-                <View 
-                  style={[
-                    styles.progressFill, 
-                    { width: `${Math.min(100, (dailyNutrients.protein / proteinGoal) * 100)}%` }
-                  ]} 
-                />
+            
+            <Text style={[styles.calorieStatus, { color: calorieStatus.color }]}>
+              {calorieStatus.message}
+            </Text>
+            
+            <View style={styles.nutrientRow}>
+              <View style={styles.nutrientItem}>
+                <Text style={styles.nutrientLabel}>Kalori</Text>
+                <Text style={styles.nutrientValue}>{dailyCalories} / {calorieGoal} kcal</Text>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressFill, 
+                      { 
+                        width: `${Math.min(100, (dailyCalories / calorieGoal) * 100)}%`,
+                        backgroundColor: (dailyCalories / calorieGoal) > 1 ? theme.colors.error : theme.colors.primary
+                      }
+                    ]} 
+                  />
+                </View>
               </View>
             </View>
-          </View>
-          
-          <View style={styles.nutrientRow}>
-            <View style={styles.nutrientItem}>
-              <Text style={styles.nutrientLabel}>Karbonhidrat</Text>
-              <Text style={styles.nutrientValue}>{dailyNutrients.carbs} / {carbsGoal} g</Text>
-              <View style={styles.progressBar}>
-                <View 
-                  style={[
-                    styles.progressFill, 
-                    { width: `${Math.min(100, (dailyNutrients.carbs / carbsGoal) * 100)}%` }
-                  ]} 
-                />
+            
+            <View style={styles.nutrientRow}>
+              <View style={styles.nutrientItem}>
+                <Text style={styles.nutrientLabel}>Protein</Text>
+                <Text style={styles.nutrientValue}>{dailyNutrients.protein.toFixed(1)} / {nutrientGoals.protein} g</Text>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressFill, 
+                      { 
+                        width: `${Math.min(100, (dailyNutrients.protein / nutrientGoals.protein) * 100)}%`,
+                        backgroundColor: theme.colors.tertiary
+                      }
+                    ]} 
+                  />
+                </View>
               </View>
             </View>
-          </View>
-          
-          <View style={styles.nutrientRow}>
-            <View style={styles.nutrientItem}>
-              <Text style={styles.nutrientLabel}>Yağ</Text>
-              <Text style={styles.nutrientValue}>{dailyNutrients.fat} / {fatGoal} g</Text>
-              <View style={styles.progressBar}>
-                <View 
-                  style={[
-                    styles.progressFill, 
-                    { width: `${Math.min(100, (dailyNutrients.fat / fatGoal) * 100)}%` }
-                  ]} 
-                />
+            
+            <View style={styles.nutrientRow}>
+              <View style={styles.nutrientItem}>
+                <Text style={styles.nutrientLabel}>Karbonhidrat</Text>
+                <Text style={styles.nutrientValue}>{dailyNutrients.carbs.toFixed(1)} / {nutrientGoals.carbs} g</Text>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressFill, 
+                      { 
+                        width: `${Math.min(100, (dailyNutrients.carbs / nutrientGoals.carbs) * 100)}%`,
+                        backgroundColor: theme.colors.secondary
+                      }
+                    ]} 
+                  />
+                </View>
               </View>
             </View>
-          </View>
-        </Card.Content>
-      </Card>
+            
+            <View style={styles.nutrientRow}>
+              <View style={styles.nutrientItem}>
+                <Text style={styles.nutrientLabel}>Yağ</Text>
+                <Text style={styles.nutrientValue}>{dailyNutrients.fat.toFixed(1)} / {nutrientGoals.fat} g</Text>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressFill, 
+                      { 
+                        width: `${Math.min(100, (dailyNutrients.fat / nutrientGoals.fat) * 100)}%`
+                      }
+                    ]} 
+                  />
+                </View>
+              </View>
+            </View>
+          </Card.Content>
+        </Card>
 
-      <TouchableOpacity 
-        style={styles.addButton}
-        onPress={() => navigation.navigate('FoodEntry')}
-      >
-        <Text style={styles.addButtonText}>Yemek Ekle</Text>
-      </TouchableOpacity>
+        <Divider style={styles.divider} />
+
+        <Text style={styles.sectionTitle}>Öğünlerim</Text>
+
+        {renderMealSection('breakfast')}
+        {renderMealSection('lunch')}
+        {renderMealSection('dinner')}
+        {renderMealSection('snack')}
+      </ScrollView>
       
-      <Divider style={styles.divider} />
-      
-      {renderMealSection('breakfast')}
-      {renderMealSection('lunch')}
-      {renderMealSection('dinner')}
-      {renderMealSection('snack')}
-    </ScrollView>
+      {isToday && (
+        <FAB
+          icon="plus"
+          style={styles.fab}
+          onPress={() => navigation.navigate('FoodEntry')}
+          color={theme.colors.onPrimary}
+        />
+      )}
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.m,
+    backgroundColor: theme.colors.background,
   },
-  dateSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: spacing.s,
-  },
-  dateText: {
-    fontSize: typography.fontSize.large,
-    fontWeight: 'bold',
-    marginHorizontal: spacing.m,
-    color: colors.text,
-  },
-  summaryCard: {
-    marginVertical: spacing.m,
-    elevation: 2, 
-    backgroundColor: colors.surface,
-    borderRadius: metrics.borderRadius.medium,
-  },
-  summaryTitle: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: 'bold',
-    marginBottom: spacing.m,
-    color: colors.text,
-  },
-  nutrientRow: {
-    marginVertical: spacing.s,
-  },
-  nutrientItem: {
-    marginVertical: spacing.xs,
-  },
-  nutrientLabel: {
-    fontSize: typography.fontSize.medium,
-    color: colors.textLight,
-  },
-  nutrientValue: {
-    fontSize: typography.fontSize.medium,
-    fontWeight: 'bold',
-    marginTop: spacing.xs,
-    color: colors.text,
-  },
-  progressBar: {
-    height: 10,
-    backgroundColor: colors.divider,
-    borderRadius: metrics.borderRadius.small,
-    marginTop: spacing.xs,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.protein,
-  },
-  addButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.m,
-    borderRadius: metrics.borderRadius.medium,
-    alignItems: 'center',
-    marginVertical: spacing.m,
-  },
-  addButtonText: {
-    color: colors.surface,
-    fontSize: typography.fontSize.medium,
-    fontWeight: 'bold',
-  },
-  divider: {
-    marginVertical: spacing.s,
-    backgroundColor: colors.divider,
-  },
-  mealSection: {
-    marginVertical: spacing.m,
-  },
-  mealTitle: {
-    fontSize: typography.fontSize.large,
-    fontWeight: 'bold',
-    marginBottom: spacing.s,
-    color: colors.text,
-  },
-  foodCard: {
-    marginVertical: spacing.xs,
-    elevation: 1,
-    backgroundColor: colors.surface,
-    borderRadius: metrics.borderRadius.medium,
-    borderColor: colors.divider,
-    borderWidth: 0.5,
-  },
-  foodCardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  foodInfo: {
-    flex: 2,
-  },
-  foodName: {
-    fontSize: typography.fontSize.medium,
-    fontWeight: 'bold',
-    marginBottom: spacing.xs,
-    color: colors.text,
-  },
-  foodNutrients: {
-    flex: 2,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  nutrientText: {
-    color: colors.textLight,
-    fontSize: typography.fontSize.small,
-  },
-  deleteButton: {
-    margin: 0,
-  },
-  emptyMealText: {
-    color: colors.textLight,
-    fontStyle: 'italic',
-    marginTop: spacing.xs,
-    marginLeft: spacing.s,
+  scrollContainer: {
+    flex: 1,
+    padding: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.m,
-    backgroundColor: colors.background,
+    backgroundColor: theme.colors.background,
   },
   loadingText: {
-    marginTop: spacing.m,
-    fontSize: typography.fontSize.medium,
-    color: colors.textLight,
+    marginTop: 16,
+    fontSize: 16,
+    color: theme.colors.onBackground,
+  },
+  dateSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dateText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.onBackground,
+  },
+  todayText: {
+    color: theme.colors.primary,
+  },
+  summaryCard: {
+    marginBottom: 16,
+    elevation: 2,
+    backgroundColor: theme.colors.surface,
+  },
+  summaryTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: theme.colors.onSurface,
+  },
+  calorieRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  calorieInfo: {
+    alignItems: 'center',
+  },
+  calorieValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+  },
+  calorieLabel: {
+    fontSize: 14,
+    color: theme.colors.onSurfaceVariant,
+  },
+  calorieStatus: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
+    fontWeight: 'bold',
+  },
+  nutrientRow: {
+    marginBottom: 12,
+  },
+  nutrientItem: {
+    marginBottom: 8,
+  },
+  nutrientLabel: {
+    fontSize: 14,
+    marginBottom: 4,
+    color: theme.colors.onSurfaceVariant,
+  },
+  nutrientValue: {
+    fontSize: 14,
+    marginBottom: 4,
+    color: theme.colors.onSurface,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 4,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 4,
+  },
+  divider: {
+    marginVertical: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: theme.colors.onBackground,
+  },
+  mealSection: {
+    marginBottom: 24,
+  },
+  mealHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  mealTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mealEmoji: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  mealTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.onBackground,
+  },
+  mealCalorieContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mealCalorie: {
+    fontSize: 16,
+    color: theme.colors.onSurfaceVariant,
+    marginRight: 12,
+  },
+  addFoodButton: {
+    backgroundColor: theme.colors.primaryContainer,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  addFoodButtonText: {
+    color: theme.colors.onPrimaryContainer,
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  foodCard: {
+    marginBottom: 8,
+    backgroundColor: theme.colors.surface,
+  },
+  foodCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+  },
+  foodInfo: {
+    flex: 1,
+  },
+  foodName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.onSurface,
+  },
+  calorieText: {
+    fontSize: 14,
+    color: theme.colors.onSurfaceVariant,
+  },
+  foodNutrients: {
+    flexDirection: 'row',
+    marginRight: 16,
+  },
+  nutrientText: {
+    fontSize: 12,
+    color: theme.colors.onSurfaceVariant,
+    marginRight: 8,
+  },
+  deleteButton: {
+    margin: 0,
+  },
+  emptyMealContainer: {
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 8,
+  },
+  emptyMealText: {
+    fontSize: 14,
+    color: theme.colors.onSurfaceVariant,
+    marginBottom: 8,
+  },
+  emptyAddButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  emptyAddButtonText: {
+    color: theme.colors.onPrimary,
+    fontWeight: 'bold',
+  },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
+    backgroundColor: theme.colors.primary,
   },
 });
 

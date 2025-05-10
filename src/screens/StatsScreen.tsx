@@ -1,20 +1,43 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, Divider, SegmentedButtons, useTheme, MD3Theme } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { Text, Divider, SegmentedButtons, useTheme, MD3Theme, Card } from 'react-native-paper';
 import { useFoodStore } from '../store/foodStore';
+import { useCalorieGoalStore } from '../store/calorieGoalStore';
 import NutritionChart from '../components/NutritionChart';
-import { format, subDays, isSameDay, startOfWeek, addDays } from 'date-fns';
+import { LineChart, BarChart } from 'react-native-chart-kit';
+import { format, subDays, isSameDay, startOfWeek, addDays, eachDayOfInterval, endOfWeek } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 type TimeRange = 'day' | 'week' | 'month';
+
+// Custom interfaces for chart data
+interface Dataset {
+  data: number[];
+  color?: (opacity?: number) => string;
+  withDots?: boolean;
+}
+
+interface ChartData {
+  labels: string[];
+  datasets: Dataset[];
+}
 
 const StatsScreen = () => {
   const theme = useTheme();
   const styles = makeStyles(theme);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('day');
+  const [weeklyData, setWeeklyData] = useState<ChartData>({ 
+    labels: [], 
+    datasets: [{ data: [] }] 
+  });
+  const [monthlyData, setMonthlyData] = useState<ChartData>({ 
+    labels: [], 
+    datasets: [{ data: [] }] 
+  });
   
   const { calculateDailyNutrients, calculateDailyCalories, foods } = useFoodStore();
+  const { calorieGoal, nutrientGoals } = useCalorieGoalStore();
   
   // Günlük besin değerlerini hesapla
   const dailyNutrients = calculateDailyNutrients(selectedDate.toISOString());
@@ -74,6 +97,68 @@ const StatsScreen = () => {
     };
   };
   
+  // Seçili haftanın günlük kalori verilerini hazırla
+  useEffect(() => {
+    // Haftalık veri
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+    
+    const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+    const weekCalories = daysInWeek.map(day => {
+      return calculateDailyCalories(day.toISOString());
+    });
+    
+    const weekDays = daysInWeek.map(day => format(day, 'EEE', { locale: tr }));
+    
+    setWeeklyData({
+      labels: weekDays,
+      datasets: [
+        {
+          data: weekCalories,
+          color: (opacity = 1) => theme.colors.primary,
+        },
+        {
+          data: Array(7).fill(calorieGoal),
+          color: (opacity = 1) => `rgba(${theme.colors.error.replace(/[^\d,]/g, '')}, ${opacity})`,
+          withDots: false
+        }
+      ]
+    });
+    
+    // Aylık veri (son 4 hafta)
+    const monthData = [];
+    const monthLabels = [];
+    for (let i = 0; i < 4; i++) {
+      const weekStartDate = subDays(weekStart, i * 7);
+      const weekEndDate = subDays(weekEnd, i * 7);
+      const daysInThisWeek = eachDayOfInterval({ start: weekStartDate, end: weekEndDate });
+      
+      const weekTotalCalories = daysInThisWeek.reduce((total, day) => {
+        return total + calculateDailyCalories(day.toISOString());
+      }, 0);
+      
+      const weekAvgCalories = weekTotalCalories / 7;
+      
+      monthData.unshift(weekAvgCalories);
+      monthLabels.unshift(`H${i+1}`);
+    }
+    
+    setMonthlyData({
+      labels: monthLabels,
+      datasets: [
+        {
+          data: monthData,
+          color: (opacity = 1) => theme.colors.primary
+        },
+        {
+          data: Array(4).fill(calorieGoal),
+          color: (opacity = 1) => `rgba(${theme.colors.error.replace(/[^\d,]/g, '')}, ${opacity})`,
+          withDots: false
+        }
+      ]
+    });
+  }, [selectedDate, timeRange, foods, calorieGoal, theme.colors.primary, theme.colors.error]);
+  
   // Seçilen zaman aralığına göre besin değerlerini getir
   const getNutrients = () => {
     switch (timeRange) {
@@ -126,6 +211,49 @@ const StatsScreen = () => {
         return format(selectedDate, 'd MMMM yyyy', { locale: tr });
     }
   };
+
+  // Hedef yüzdesini hesapla
+  const calculateGoalPercentage = () => {
+    if (calorieGoal === 0) return 0;
+    const percentage = (calories / (timeRange === 'day' ? calorieGoal : timeRange === 'week' ? calorieGoal * 7 : calorieGoal * 30)) * 100;
+    return Math.min(percentage, 100);
+  };
+
+  // Hedef durumunu metin olarak göster
+  const getGoalStatus = () => {
+    const percentage = calculateGoalPercentage();
+    if (percentage >= 90 && percentage <= 110) {
+      return { text: 'Hedef içinde', color: theme.colors.primary };
+    } else if (percentage < 90) {
+      return { text: 'Hedefin altında', color: theme.colors.error };
+    } else {
+      return { text: 'Hedefin üstünde', color: theme.colors.error };
+    }
+  };
+  
+  const goalStatus = getGoalStatus();
+
+  // Chart kit config
+  const chartConfig = {
+    backgroundGradientFrom: theme.colors.surface,
+    backgroundGradientTo: theme.colors.surface,
+    color: (opacity = 1) => theme.colors.onSurface + opacity,
+    labelColor: (opacity = 1) => theme.colors.onSurface + opacity,
+    strokeWidth: 2,
+    barPercentage: 0.5,
+    decimalPlaces: 0,
+    style: {
+      borderRadius: 16
+    },
+    propsForDots: {
+      r: "6",
+      strokeWidth: "2",
+      stroke: theme.colors.primary
+    }
+  };
+  
+  const chartWidth = Dimensions.get('window').width - 40;
+  const chartHeight = 220;
   
   return (
     <ScrollView style={styles.container}>
@@ -154,31 +282,96 @@ const StatsScreen = () => {
         </View>
       )}
       
-      <View style={styles.summaryContainer}>
-        <Text style={styles.summaryTitle}>Toplam Kalori</Text>
-        <Text style={styles.calorieCount}>{Math.round(calories)} kcal</Text>
-      </View>
+      <Card style={styles.summaryContainer}>
+        <View style={styles.summaryContent}>
+          <View>
+            <Text style={styles.summaryTitle}>Toplam Kalori</Text>
+            <Text style={styles.calorieCount}>{Math.round(calories)} kcal</Text>
+          </View>
+          
+          <View style={styles.goalStatusContainer}>
+            <Text style={styles.goalLabel}>Hedef: {timeRange === 'day' ? calorieGoal : timeRange === 'week' ? calorieGoal * 7 : calorieGoal * 30} kcal</Text>
+            <Text style={[styles.goalStatus, { color: goalStatus.color }]}>
+              {goalStatus.text}
+            </Text>
+          </View>
+        </View>
+      </Card>
       
       <Divider style={styles.divider} />
       
-      <NutritionChart data={nutrients} />
+      <Card style={styles.chartCard}>
+        <Text style={styles.chartTitle}>Besin Dağılımı</Text>
+        <NutritionChart data={nutrients} />
+      </Card>
+      
+      {timeRange === 'week' && (
+        <Card style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Haftalık Kalori Takibi</Text>
+          <LineChart
+            data={weeklyData}
+            width={chartWidth}
+            height={chartHeight}
+            chartConfig={chartConfig}
+            bezier
+            style={styles.chart}
+          />
+        </Card>
+      )}
+      
+      {timeRange === 'month' && (
+        <Card style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Aylık Ortalama Kalori Değişimi</Text>
+          <BarChart
+            data={monthlyData}
+            width={chartWidth}
+            height={chartHeight}
+            chartConfig={chartConfig}
+            style={styles.chart}
+            showValuesOnTopOfBars
+            yAxisLabel=""
+            yAxisSuffix=""
+          />
+        </Card>
+      )}
       
       <View style={styles.statsDetail}>
         <Text style={styles.statsTitle}>Detaylı İstatistikler</Text>
         
         <View style={styles.statsItem}>
           <Text style={styles.statsLabel}>Toplam Protein:</Text>
-          <Text style={styles.statsValue}>{nutrients.protein.toFixed(1)}g</Text>
+          <View style={styles.statsValueContainer}>
+            <Text style={styles.statsValue}>{nutrients.protein.toFixed(1)}g</Text>
+            <Text style={styles.statsGoal}>
+              (Hedef: {timeRange === 'day' ? nutrientGoals.protein : 
+                      timeRange === 'week' ? nutrientGoals.protein * 7 : 
+                      nutrientGoals.protein * 30}g)
+            </Text>
+          </View>
         </View>
         
         <View style={styles.statsItem}>
           <Text style={styles.statsLabel}>Toplam Karbonhidrat:</Text>
-          <Text style={styles.statsValue}>{nutrients.carbs.toFixed(1)}g</Text>
+          <View style={styles.statsValueContainer}>
+            <Text style={styles.statsValue}>{nutrients.carbs.toFixed(1)}g</Text>
+            <Text style={styles.statsGoal}>
+              (Hedef: {timeRange === 'day' ? nutrientGoals.carbs : 
+                      timeRange === 'week' ? nutrientGoals.carbs * 7 : 
+                      nutrientGoals.carbs * 30}g)
+            </Text>
+          </View>
         </View>
         
         <View style={styles.statsItem}>
           <Text style={styles.statsLabel}>Toplam Yağ:</Text>
-          <Text style={styles.statsValue}>{nutrients.fat.toFixed(1)}g</Text>
+          <View style={styles.statsValueContainer}>
+            <Text style={styles.statsValue}>{nutrients.fat.toFixed(1)}g</Text>
+            <Text style={styles.statsGoal}>
+              (Hedef: {timeRange === 'day' ? nutrientGoals.fat : 
+                      timeRange === 'week' ? nutrientGoals.fat * 7 : 
+                      nutrientGoals.fat * 30}g)
+            </Text>
+          </View>
         </View>
         
         {timeRange !== 'day' && (
@@ -201,25 +394,25 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     padding: 16,
   },
   header: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 20,
     color: theme.colors.onBackground,
   },
   segmentedButtons: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   dateSelector: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   dateNavButton: {
     fontSize: 24,
-    fontWeight: 'bold',
     color: theme.colors.primary,
-    paddingHorizontal: 16,
+    fontWeight: 'bold',
+    padding: 10,
   },
   dateTitle: {
     fontSize: 18,
@@ -227,51 +420,93 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     color: theme.colors.onBackground,
   },
   summaryContainer: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 12,
     padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    backgroundColor: theme.colors.surface,
+  },
+  summaryContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
   summaryTitle: {
     fontSize: 16,
-    color: theme.colors.onPrimary,
-    marginBottom: 8,
+    color: theme.colors.onSurface,
+    opacity: 0.8,
   },
   calorieCount: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: theme.colors.onPrimary,
+    color: theme.colors.primary,
+  },
+  goalStatusContainer: {
+    alignItems: 'flex-end',
+  },
+  goalLabel: {
+    fontSize: 14,
+    color: theme.colors.onSurface,
+    opacity: 0.7,
+  },
+  goalStatus: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 4,
   },
   divider: {
     marginVertical: 16,
   },
+  chartCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    backgroundColor: theme.colors.surface,
+  },
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    color: theme.colors.onSurface,
+    textAlign: 'center',
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
   statsDetail: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
     padding: 16,
-    marginTop: 16,
-    marginBottom: 32,
+    borderRadius: 12,
+    marginBottom: 20,
   },
   statsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 12,
     color: theme.colors.onSurface,
   },
   statsItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   statsLabel: {
     fontSize: 16,
-    color: theme.colors.onSurfaceVariant,
+    color: theme.colors.onSurface,
   },
   statsValue: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: theme.colors.primary,
+  },
+  statsValueContainer: {
+    alignItems: 'flex-end',
+  },
+  statsGoal: {
+    fontSize: 12,
     color: theme.colors.onSurface,
+    opacity: 0.7,
   },
 });
 

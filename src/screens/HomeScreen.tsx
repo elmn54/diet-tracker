@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { useFoodStore } from '../store/foodStore';
-import { useTheme, Menu, Divider, IconButton } from 'react-native-paper';
+import { useFoodStore, FoodItem } from '../store/foodStore';
+import { useCalorieGoalStore } from '../store/calorieGoalStore';
+import { useTheme, Menu, Divider, Card } from 'react-native-paper';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import CaloriesCard from '../components/CaloriesCard';
 import MacrosCard from '../components/MacrosCard';
@@ -12,28 +13,43 @@ import FoodEntryBar from '../components/FoodEntryBar';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ana Sayfa'>;
 
+// Aynı tarihte olup olmadığını kontrol eden yardımcı fonksiyon
+const isSameDay = (date1: string, date2: Date): boolean => {
+  const d1 = new Date(date1);
+  return (
+    d1.getFullYear() === date2.getFullYear() &&
+    d1.getMonth() === date2.getMonth() &&
+    d1.getDate() === date2.getDate()
+  );
+};
+
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [menuVisible, setMenuVisible] = useState(false);
+  const [dailyFoods, setDailyFoods] = useState<FoodItem[]>([]);
   const theme = useTheme();
   
   const styles = makeStyles(theme.colors);
   
-  const { calculateDailyCalories, calculateDailyNutrients } = useFoodStore();
+  // Yemek ve kalori hedefi verilerini çek
+  const { foods, calculateDailyCalories, calculateDailyNutrients } = useFoodStore();
+  const { calorieGoal, nutrientGoals } = useCalorieGoalStore();
   
   // Seçilen günün değerlerini hesapla
   const dailyCalories = calculateDailyCalories(selectedDate.toISOString());
   const dailyNutrients = calculateDailyNutrients(selectedDate.toISOString());
   
-  // Sabit değerler (ileride kullanıcı profilinden gelebilir)
-  const calorieGoal = 1500;
+  // Kalan kalorileri hesapla
   const remainingCalories = Math.max(0, calorieGoal - dailyCalories);
-  
-  // Makro besin hedefleri
-  const carbsGoal = 180;
-  const proteinGoal = 102;
-  const fatGoal = 42;
+
+  // Seçilen tarihe göre yemekleri filtreleme
+  useEffect(() => {
+    const filteredFoods = foods.filter(food => 
+      isSameDay(food.date, selectedDate)
+    );
+    setDailyFoods(filteredFoods);
+  }, [foods, selectedDate]);
 
   // Tema ayarları sayfasına git
   const handleOpenThemeSettings = () => {
@@ -66,78 +82,161 @@ const HomeScreen = () => {
   // Menüyü aç/kapa
   const toggleMenu = () => setMenuVisible(!menuVisible);
 
+  // Öğün türü emojisi
+  const getMealTypeEmoji = (mealType: string) => {
+    switch (mealType) {
+      case 'breakfast': return '🍳';
+      case 'lunch': return '🍲';
+      case 'dinner': return '🍽️';
+      case 'snack': return '🍌';
+      default: return '🍴';
+    }
+  };
+
+  // Yemek öğesini görüntüleme
+  const renderFoodItem = ({ item }: { item: FoodItem }) => (
+    <Card style={styles.foodCard} onPress={() => {
+      // Düzenleme işlevi burada eklenecek
+    }}>
+      <View style={styles.foodItemContainer}>
+        <Text style={styles.mealTypeEmoji}>{getMealTypeEmoji(item.mealType)}</Text>
+        <View style={styles.foodDetails}>
+          <Text style={styles.foodName}>{item.name}</Text>
+          <Text style={styles.foodCalories}>{item.calories} kcal</Text>
+        </View>
+        <View style={styles.foodMacros}>
+          <Text style={styles.macroText}>P: {item.protein}g</Text>
+          <Text style={styles.macroText}>C: {item.carbs}g</Text>
+          <Text style={styles.macroText}>Y: {item.fat}g</Text>
+        </View>
+      </View>
+    </Card>
+  );
+
+  // Boş liste yerini tutan öğe
+  const EmptyListComponent = () => (
+    <View style={styles.emptyListContainer}>
+      <Text style={styles.emptyListText}>
+        Bu tarihte kayıtlı yemek bulunmamaktadır.
+      </Text>
+    </View>
+  );
+
+  const getDayLabel = () => {
+    // Bugünün tarihiyle karşılaştır
+    const today = new Date();
+    const isToday = 
+      today.getDate() === selectedDate.getDate() && 
+      today.getMonth() === selectedDate.getMonth() && 
+      today.getFullYear() === selectedDate.getFullYear();
+    
+    if (isToday) return 'Bugün';
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = 
+      yesterday.getDate() === selectedDate.getDate() && 
+      yesterday.getMonth() === selectedDate.getMonth() && 
+      yesterday.getFullYear() === selectedDate.getFullYear();
+    
+    if (isYesterday) return 'Dün';
+    
+    // Türkçe tarih formatı
+    return selectedDate.toLocaleDateString('tr-TR', { 
+      day: 'numeric',
+      month: 'long', 
+      year: 'numeric'
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
         backgroundColor={theme.colors.background}
         barStyle={theme.dark ? 'light-content' : 'dark-content'}
       />
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Ana Sayfa</Text>
-      </View>
       
-      <View style={styles.todayContainer}>
-        <Text style={styles.todayText}>Today</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={handleOpenStats}
-          >
-            <Text style={styles.themeIcon}>📊</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={handleOpenThemeSettings}
-          >
-            <Text style={styles.themeIcon}>{theme.dark ? '🌙' : '☀️'}</Text>
-          </TouchableOpacity>
-          
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
-                <Text style={styles.themeIcon}>⚙️</Text>
-              </TouchableOpacity>
-            }
-          >
-            <Menu.Item 
-              onPress={handleOpenCalorieGoalScreen} 
-              title="Kalori Hedefi" 
-              leadingIcon="target"
-            />
-            <Menu.Item 
-              onPress={handleOpenApiSettings} 
-              title="API Ayarları" 
-              leadingIcon="api"
-            />
-            <Menu.Item 
-              onPress={handleOpenPricingScreen}
-              title="Abonelik Planları" 
-              leadingIcon="cash" 
-            />
-            <Divider />
-            <Menu.Item 
-              onPress={() => {
-                navigation.navigate('Profile');
-                setMenuVisible(false);
-              }}
-              title="Profil" 
-              leadingIcon="account" 
-            />
-          </Menu>
+      {/* ÜST BÖLÜM: Header ve Takvim */}
+      <View style={styles.topSection}>
+        {/* Başlık */}
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle}>Ana Sayfa</Text>
         </View>
+        
+        {/* Tarih ve Butonlar */}
+        <View style={styles.todayContainer}>
+          <Text style={styles.todayText}>{getDayLabel()}</Text>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={handleOpenStats}
+            >
+              <Text style={styles.themeIcon}>📊</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={handleOpenThemeSettings}
+            >
+              <Text style={styles.themeIcon}>{theme.dark ? '🌙' : '☀️'}</Text>
+            </TouchableOpacity>
+            
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
+                  <Text style={styles.themeIcon}>⚙️</Text>
+                </TouchableOpacity>
+              }
+            >
+              <Menu.Item 
+                onPress={handleOpenCalorieGoalScreen} 
+                title="Kalori Hedefi" 
+                leadingIcon="target"
+              />
+              <Menu.Item 
+                onPress={handleOpenApiSettings} 
+                title="API Ayarları" 
+                leadingIcon="api"
+              />
+              <Menu.Item 
+                onPress={handleOpenPricingScreen}
+                title="Abonelik Planları" 
+                leadingIcon="cash" 
+              />
+              <Divider />
+              <Menu.Item 
+                onPress={() => {
+                  navigation.navigate('Profile');
+                  setMenuVisible(false);
+                }}
+                title="Profil" 
+                leadingIcon="account" 
+              />
+            </Menu>
+          </View>
+        </View>
+        
+        {/* Takvim */}
+        <WeeklyCalendar 
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+        />
       </View>
       
-      <WeeklyCalendar 
-        selectedDate={selectedDate}
-        onSelectDate={setSelectedDate}
-      />
+      {/* ORTA BÖLÜM: Yemek Listesi (kaydırılabilir) */}
+      <View style={styles.middleSection}>
+        <FlatList
+          data={dailyFoods}
+          renderItem={renderFoodItem}
+          keyExtractor={item => item.id}
+          ListEmptyComponent={EmptyListComponent}
+          contentContainerStyle={dailyFoods.length === 0 ? styles.emptyListContentContainer : styles.foodListContentContainer}
+        />
+      </View>
       
-      <ScrollView 
-        style={styles.scrollContent}
-        contentContainerStyle={styles.scrollContentContainer}
-      >
+      {/* ALT BÖLÜM: Kalori ve Makro Kartları */}
+      <View style={styles.bottomSection}>
         <View style={styles.cardsContainer}>
           <CaloriesCard 
             food={dailyCalories}
@@ -146,18 +245,14 @@ const HomeScreen = () => {
           />
           
           <MacrosCard 
-            carbs={{ current: dailyNutrients.carbs, goal: carbsGoal }}
-            protein={{ current: dailyNutrients.protein, goal: proteinGoal }}
-            fat={{ current: dailyNutrients.fat, goal: fatGoal }}
+            carbs={{ current: dailyNutrients.carbs, goal: nutrientGoals.carbs }}
+            protein={{ current: dailyNutrients.protein, goal: nutrientGoals.protein }}
+            fat={{ current: dailyNutrients.fat, goal: nutrientGoals.fat }}
           />
         </View>
-        
-        {/* Buraya eklenen yemekler listelenebilir */}
-        <View style={styles.foodListContainer}>
-          {/* Yemek listesi bileşenleri */}
-        </View>
-      </ScrollView>
+      </View>
       
+      {/* EN ALT: Yemek Giriş Çubuğu */}
       <FoodEntryBar />
     </SafeAreaView>
   );
@@ -167,6 +262,19 @@ const makeStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  topSection: {
+    backgroundColor: colors.background,
+  },
+  middleSection: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  bottomSection: {
+    backgroundColor: colors.background,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 100, // FoodEntryBar için daha fazla yer
   },
   headerContainer: {
     backgroundColor: colors.background,
@@ -178,7 +286,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: colors.text,
+    color: colors.onSurface,
   },
   todayContainer: {
     flexDirection: 'row',
@@ -190,7 +298,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   todayText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: colors.text,
+    color: colors.onSurface,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -207,21 +315,71 @@ const makeStyles = (colors: any) => StyleSheet.create({
   themeIcon: {
     fontSize: 24,
   },
-  scrollContent: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContentContainer: {
-    paddingBottom: 80, // FoodEntryBar için boşluk
-  },
   cardsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    alignItems: 'stretch',
+    height: 120, // Kartların yüksekliği azaltıldı
   },
-  foodListContainer: {
+  foodListContentContainer: {
     paddingHorizontal: 16,
-    marginBottom: 20,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  emptyListContentContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  foodCard: {
+    marginBottom: 10,
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+  },
+  foodItemContainer: {
+    flexDirection: 'row',
+    padding: 12,
+    alignItems: 'center',
+  },
+  mealTypeEmoji: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  foodDetails: {
+    flex: 1,
+  },
+  foodName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.onSurface,
+  },
+  foodCalories: {
+    fontSize: 14,
+    color: colors.onSurface,
+    opacity: 0.7,
+  },
+  foodMacros: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  macroText: {
+    fontSize: 12,
+    color: colors.onSurface,
+    opacity: 0.7,
+  },
+  emptyListContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: 10,
+  },
+  emptyListText: {
+    fontSize: 16,
+    color: colors.onSurface,
+    textAlign: 'center',
   },
 });
 

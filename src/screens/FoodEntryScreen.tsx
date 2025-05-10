@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,6 +7,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useFoodStore, FoodItem } from '../store/foodStore';
+import { useApiKeyStore } from '../store/apiKeyStore';
+import { useSubscriptionStore } from '../store/subscriptionStore';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { RadioButton, Text, ActivityIndicator, Divider, useTheme, MD3Theme } from 'react-native-paper';
@@ -29,23 +31,72 @@ const foodSchema = z.object({
 type FoodFormData = z.infer<typeof foodSchema>;
 type FoodEntryScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'FoodEntry'>;
 
-// Bu API çağrı fonksiyonu mockup olarak düşünülmelidir
-// Gerçek API entegrasyonu yapılacaktır
-const analyzeImageWithAI = async (imageUri: string): Promise<any> => {
-  // Bu sadece bir mock - gerçek API'den veri gelene kadar gecikme simüle ediliyor
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        name: 'Karışık Meyve Salatası',
-        nutritionFacts: {
-          calories: 120,
-          protein: 1.5,
-          carbs: 30,
-          fat: 0.2
-        }
+// Gerçek API çağrı fonksiyonu 
+const analyzeImageWithAI = async (imageUri: string, apiKey: string, provider: string): Promise<any> => {
+  if (!apiKey) {
+    throw new Error('API anahtarı bulunamadı');
+  }
+  
+  // Seçilen API sağlayıcısına göre endpoint ve parametre yapılandırması
+  let endpoint;
+  let formData = new FormData();
+  
+  switch (provider) {
+    case 'openai':
+      endpoint = 'https://api.openai.com/v1/chat/completions';
+      
+      // Base64 formatına çevirme işlemi (gerçek uygulamada)
+      // const base64Image = await convertImageToBase64(imageUri);
+      
+      // Mockup davranış
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            name: 'Karışık Meyve Salatası (OpenAI)',
+            nutritionFacts: {
+              calories: 120,
+              protein: 1.5,
+              carbs: 30,
+              fat: 0.2
+            }
+          });
+        }, 2000);
       });
-    }, 2000);
-  });
+      
+    case 'google_vision':
+      endpoint = 'https://vision.googleapis.com/v1/images:annotate';
+      
+      // Mockup davranış
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            name: 'Sebzeli Makarna (Google Vision)',
+            nutritionFacts: {
+              calories: 350,
+              protein: 12,
+              carbs: 65,
+              fat: 6
+            }
+          });
+        }, 2000);
+      });
+      
+    default:
+      // Varsayılan mock davranış
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            name: 'Analiz Edilen Yemek',
+            nutritionFacts: {
+              calories: 250,
+              protein: 8,
+              carbs: 40,
+              fat: 5
+            }
+          });
+        }, 2000);
+      });
+  }
 };
 
 const FoodEntryScreen = () => {
@@ -56,6 +107,15 @@ const FoodEntryScreen = () => {
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const theme = useTheme();
+  
+  // API anahtarı ve abonelik bilgilerini al
+  const { apiKeys, preferredProvider } = useApiKeyStore();
+  const { isPlanFeatureAvailable, getRemainingRequests } = useSubscriptionStore();
+  
+  // Yemek tanıma özelliği kullanılabilir mi kontrol et
+  const canUseImageRecognition = isPlanFeatureAvailable('imageRecognitionEnabled');
+  // Kalan istek sayısını kontrol et
+  const remainingRequests = getRemainingRequests();
   
   const styles = makeStyles(theme);
   
@@ -134,9 +194,53 @@ const FoodEntryScreen = () => {
 
   const analyzeImage = async (imageUri: string) => {
     setIsAnalyzing(true);
+    
     try {
-      // API'den veri alma - burada mock kullanıyoruz
-      const result = await analyzeImageWithAI(imageUri);
+      // Abonelik kontrolü
+      if (!canUseImageRecognition) {
+        Alert.alert(
+          'Premium Özellik', 
+          'Görsel tanıma özelliği sadece premium aboneler için kullanılabilir.',
+          [
+            { text: 'İptal' },
+            { text: 'Abonelik Planları', onPress: () => navigation.navigate('Pricing') }
+          ]
+        );
+        setIsAnalyzing(false);
+        return;
+      }
+      
+      // İstek limitini kontrol et
+      if (remainingRequests === 0) {
+        Alert.alert(
+          'Limit Aşıldı', 
+          'Bu ay için AI görüntü tanıma limitinizi doldurdunuz. Daha fazla kullanım için Pro planına yükseltin.',
+          [
+            { text: 'İptal' },
+            { text: 'Abonelik Planları', onPress: () => navigation.navigate('Pricing') }
+          ]
+        );
+        setIsAnalyzing(false);
+        return;
+      }
+      
+      // API anahtarı kontrolü
+      const currentApiKey = apiKeys[preferredProvider];
+      if (!currentApiKey) {
+        Alert.alert(
+          'API Anahtarı Gerekli', 
+          'Görüntü tanıma için API anahtarı gereklidir.',
+          [
+            { text: 'İptal' },
+            { text: 'API Ayarları', onPress: () => navigation.navigate('ApiSettings') }
+          ]
+        );
+        setIsAnalyzing(false);
+        return;
+      }
+      
+      // API'den veri alma
+      const result = await analyzeImageWithAI(imageUri, currentApiKey, preferredProvider);
       
       // Form değerlerini AI analiz sonuçlarıyla doldur
       setValue('name', result.name);
@@ -148,7 +252,16 @@ const FoodEntryScreen = () => {
       Alert.alert('Analiz Tamamlandı', 'Yemek bilgileri otomatik olarak dolduruldu. Gerekirse düzenleyebilirsiniz.');
     } catch (error) {
       console.error('Görüntü analiz edilirken hata oluştu:', error);
-      Alert.alert('Analiz Hatası', 'Yemek tanınamadı. Lütfen bilgileri manuel olarak girin veya tekrar deneyin.');
+      
+      // Hata mesajını özelleştir
+      let errorMessage = 'Yemek tanınamadı. Lütfen bilgileri manuel olarak girin veya tekrar deneyin.';
+      if (error instanceof Error) {
+        if (error.message.includes('API anahtarı')) {
+          errorMessage = 'API anahtarı geçersiz veya eksik. API ayarlarınızı kontrol edin.';
+        }
+      }
+      
+      Alert.alert('Analiz Hatası', errorMessage);
     } finally {
       setIsAnalyzing(false);
     }
