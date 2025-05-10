@@ -9,6 +9,17 @@ interface WeeklyCalendarProps {
   onSelectDate: (date: Date) => void;
 }
 
+// Türkçe gün kısaltmaları
+const turkishDays = {
+  0: 'Paz',
+  1: 'Pzt',
+  2: 'Sal',
+  3: 'Çar',
+  4: 'Per',
+  5: 'Cum',
+  6: 'Cmt'
+};
+
 const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ selectedDate, onSelectDate }) => {
   const [weekDays, setWeekDays] = useState<Date[]>([]);
   const theme = useTheme();
@@ -27,7 +38,8 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ selectedDate, onSelectD
 
   // Gün kısaltmaları
   const getDayShort = (date: Date) => {
-    return format(date, 'EEE', { locale: tr });
+    const dayIndex = date.getDay();
+    return turkishDays[dayIndex as keyof typeof turkishDays];
   };
 
   // Gün sayısı
@@ -80,39 +92,39 @@ const makeStyles = (colors: any) => StyleSheet.create({
   calendarContainer: {
     flexDirection: 'row',
     paddingVertical: 10,
-    justifyContent: 'space-between',
+    paddingHorizontal: 10,
   },
   dayContainer: {
     width: 60,
     height: 70,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20,
-    backgroundColor: colors.surfaceVariant || '#F0F0F0',
+    borderRadius: 25,
+    backgroundColor: colors.dark ? '#333333' : '#F0F0F0',
     marginHorizontal: 5,
   },
   selectedDayContainer: {
     backgroundColor: colors.primary || '#FF9C8C',
   },
   todayContainer: {
-    backgroundColor: colors.secondary || '#E6F7E9',
+    backgroundColor: colors.dark ? '#444444' : '#E6E6FA',
   },
   dayName: {
     fontSize: 14,
     color: colors.textLight || '#666',
     marginBottom: 5,
-    textTransform: 'capitalize',
+    textTransform: 'uppercase',
   },
   dayNumber: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.text || '#333',
   },
   selectedText: {
-    color: '#fff',
+    color: colors.dark ? colors.text : '#fff',
   },
   todayText: {
-    color: colors.primary || '#008566',
+    color: colors.dark ? colors.text : colors.primary || '#008566',
   },
 });
 

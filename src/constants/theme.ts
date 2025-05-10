@@ -278,7 +278,31 @@ export let buttonVariants = lightButtonVariants;
 export const toggleTheme = (isDark: boolean) => {
   colors = isDark ? darkColors : lightColors;
   buttonVariants = isDark ? darkButtonVariants : lightButtonVariants;
-  return isDark ? DarkTheme : LightTheme;
+  
+  // Temayı değiştirdikten sonra uygulama içindeki diğer renkleri güncelle
+  const updatedTheme = isDark ? {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      background: darkColors.background,
+      surface: darkColors.surface,
+      text: darkColors.text,
+      primary: darkColors.primary,
+      accent: darkColors.secondary
+    }
+  } : {
+    ...LightTheme,
+    colors: {
+      ...LightTheme.colors,
+      background: lightColors.background,
+      surface: lightColors.surface,
+      text: lightColors.text,
+      primary: lightColors.primary,
+      accent: lightColors.secondary
+    }
+  };
+  
+  return updatedTheme;
 };
 
 export default {

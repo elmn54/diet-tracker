@@ -47,11 +47,17 @@ const AppNavigator = () => {
   };
   
   return (
-    <Stack.Navigator initialRouteName="Ana Sayfa">
+    <Stack.Navigator 
+      initialRouteName="Ana Sayfa"
+      id={undefined}
+    >
       <Stack.Screen 
         name="Ana Sayfa" 
         component={HomeScreen}
-        options={screenOptions}
+        options={{
+          ...screenOptions,
+          headerShown: false
+        }}
       />
       <Stack.Screen 
         name="Login" 

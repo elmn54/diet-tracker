@@ -85,7 +85,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.dark ? '#333333' : '#F8E8F0',
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
     elevation: 10,
@@ -99,7 +99,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceVariant || colors.background,
+    backgroundColor: colors.dark ? '#444444' : '#FFFFFF',
     borderRadius: 25,
     paddingHorizontal: 15,
     paddingVertical: 8,
@@ -113,9 +113,11 @@ const makeStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
   },
   iconButton: {
-    marginLeft: 8,
+    marginLeft: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    width: 36,
+    height: 36,
   },
   icon: {
     fontSize: 20,
@@ -138,7 +140,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
     fontWeight: 'bold',
   },
   advancedEntryButton: {
-    backgroundColor: colors.surfaceVariant || colors.background,
+    backgroundColor: colors.dark ? '#444444' : '#E0E0E0',
     padding: 12,
     borderRadius: 8,
     flex: 1,

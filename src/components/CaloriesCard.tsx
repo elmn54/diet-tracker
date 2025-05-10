@@ -38,7 +38,7 @@ const CaloriesCard: React.FC<CaloriesCardProps> = ({ food, exercise, remaining }
         <View style={styles.divider} />
         
         <View style={styles.stat}>
-          <Text style={styles.statValue}>{remaining}</Text>
+          <Text style={[styles.statValue, styles.remainingValue]}>{remaining}</Text>
           <Text style={styles.statLabel}>Remaining</Text>
         </View>
       </View>
@@ -49,7 +49,7 @@ const CaloriesCard: React.FC<CaloriesCardProps> = ({ food, exercise, remaining }
 const makeStyles = (colors: any) => StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: colors.surfaceVariant || colors.surface,
+    backgroundColor: colors.dark ? '#333333' : '#F8E8F0',
     borderRadius: 16,
     padding: 15,
     marginRight: 8,
@@ -84,6 +84,10 @@ const makeStyles = (colors: any) => StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
+  remainingValue: {
+    fontSize: 22,
+    color: colors.dark ? '#47A0FF' : '#4169E1',
+  },
   statLabel: {
     fontSize: 12,
     color: colors.textLight || colors.placeholder,
@@ -92,7 +96,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   divider: {
     width: 1,
     height: 35,
-    backgroundColor: colors.divider || '#DDD',
+    backgroundColor: colors.dark ? '#444444' : '#E0E0E0',
     marginHorizontal: 5,
   },
 });

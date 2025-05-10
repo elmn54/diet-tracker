@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -41,11 +41,16 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.hamburgerPlaceholder} />
-        <View style={styles.todayTextContainer}>
-          <Text style={styles.today}>Today</Text>
-        </View>
+      <StatusBar
+        backgroundColor={theme.colors.background}
+        barStyle={theme.dark ? 'light-content' : 'dark-content'}
+      />
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>Ana Sayfa</Text>
+      </View>
+      
+      <View style={styles.todayContainer}>
+        <Text style={styles.todayText}>Today</Text>
         <TouchableOpacity 
           style={styles.themeIconContainer}
           onPress={handleOpenThemeSettings}
@@ -93,34 +98,39 @@ const makeStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
+  headerContainer: {
+    backgroundColor: colors.background,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  todayContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.surface,
   },
-  hamburgerPlaceholder: {
-    width: 30,
-    height: 30,
-  },
-  todayTextContainer: {
-    alignItems: 'center',
-  },
-  today: {
-    fontSize: 20,
+  todayText: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.text,
   },
   themeIconContainer: {
-    width: 30,
-    height: 30,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 20,
   },
   themeIcon: {
-    fontSize: 20,
+    fontSize: 24,
   },
   scrollContent: {
     flex: 1,

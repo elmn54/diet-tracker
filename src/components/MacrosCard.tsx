@@ -64,7 +64,7 @@ const MacrosCard: React.FC<MacrosCardProps> = ({ carbs, protein, fat }) => {
 const makeStyles = (colors: any) => StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: colors.surfaceVariant || colors.surface,
+    backgroundColor: colors.dark ? '#333333' : '#F8E8F0',
     borderRadius: 16,
     padding: 15,
     marginLeft: 8,
@@ -100,8 +100,8 @@ const makeStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
   },
   macroGoal: {
-    fontSize: 16,
-    color: colors.textLight || colors.placeholder,
+    fontSize: 14,
+    color: colors.dark ? '#999999' : '#AAAAAA',
     fontWeight: 'normal',
   },
   macroLabel: {
@@ -112,7 +112,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   divider: {
     width: 1,
     height: 35,
-    backgroundColor: colors.divider || '#DDD',
+    backgroundColor: colors.dark ? '#444444' : '#E0E0E0',
     marginHorizontal: 5,
   },
 });
