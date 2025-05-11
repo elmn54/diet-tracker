@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -85,6 +85,8 @@ const FoodEntryScreen = () => {
   // Memoized route params
   const editMode = useMemo(() => route.params?.editMode || false, [route.params]);
   const existingFood = useMemo(() => route.params?.foodItem, [route.params]);
+  const openCamera = useMemo(() => route.params?.openCamera || false, [route.params]);
+  const openGallery = useMemo(() => route.params?.openGallery || false, [route.params]);
   
   // Local state
   const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>(
@@ -93,6 +95,15 @@ const FoodEntryScreen = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [image, setImage] = useState<string | null>(existingFood?.imageUri || null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // Otomatik olarak kamera veya galeri açma
+  useEffect(() => {
+    if (openCamera) {
+      takePicture();
+    } else if (openGallery) {
+      pickImage();
+    }
+  }, [openCamera, openGallery]);
   
   const styles = makeStyles(theme);
   

@@ -83,32 +83,62 @@ const HomeScreen = () => {
   const toggleMenu = () => setMenuVisible(!menuVisible);
 
   // Yemek türüne göre emoji seçme
-  const getFoodEmoji = (foodName: string) => {
-    const lowerName = foodName.toLowerCase();
+  const getFoodEmoji = (foodName: string | undefined) => {
+    // foodName undefined veya null ise varsayılan emoji döndür
+    if (!foodName) return '🍽️';
     
-    if (lowerName.includes('pilav') || lowerName.includes('rice')) return '🍚';
-    if (lowerName.includes('tavuk') || lowerName.includes('chicken')) return '🍗';
-    if (lowerName.includes('balık') || lowerName.includes('fish')) return '🐟';
-    if (lowerName.includes('pizza')) return '🍕';
-    if (lowerName.includes('hamburger') || lowerName.includes('burger')) return '🍔';
-    if (lowerName.includes('salata') || lowerName.includes('salad')) return '🥗';
-    if (lowerName.includes('muz') || lowerName.includes('banana')) return '🍌';
-    if (lowerName.includes('elma') || lowerName.includes('apple')) return '🍎';
-    if (lowerName.includes('portakal') || lowerName.includes('orange')) return '🍊';
-    if (lowerName.includes('çorba') || lowerName.includes('soup')) return '🍲';
-    if (lowerName.includes('makarna') || lowerName.includes('pasta')) return '🍝';
-    if (lowerName.includes('et') || lowerName.includes('meat')) return '🥩';
-    if (lowerName.includes('yumurta') || lowerName.includes('egg')) return '🍳';
-    if (lowerName.includes('süt') || lowerName.includes('milk')) return '🥛';
-    if (lowerName.includes('ekmek') || lowerName.includes('bread')) return '🍞';
-    if (lowerName.includes('çikolata') || lowerName.includes('chocolate')) return '🍫';
-    if (lowerName.includes('dondurma') || lowerName.includes('ice cream')) return '🍦';
-    if (lowerName.includes('kahve') || lowerName.includes('coffee')) return '☕';
-    if (lowerName.includes('çay') || lowerName.includes('tea')) return '🍵';
-    if (lowerName.includes('kek') || lowerName.includes('cake')) return '🍰';
-    
-    // Varsayılan
-    return '🍽️';
+    try {
+      const lowerName = foodName.toLowerCase();
+      const words = lowerName.split(/\s+/); // Boşluklarla kelimelere ayır
+      
+      // Daha özel yemek türleri (öncelikli)
+      if (hasWord(lowerName, ['dolma', 'sarma'])) return '🍃';
+      if (hasWord(lowerName, ['kebap', 'kebab', 'şiş'])) return '🍢';
+      if (hasWord(lowerName, ['çorba', 'soup'])) return '🍲';
+      if (hasWord(lowerName, ['pilav', 'rice', 'pirinç'])) return '🍚';
+      if (hasWord(lowerName, ['kızartma', 'fırında', 'frying'])) return '🍳';
+      if (hasWord(lowerName, ['börek', 'poğaça', 'açma'])) return '🥐';
+      if (hasWord(lowerName, ['pizza'])) return '🍕';
+      if (hasWord(lowerName, ['hamburger', 'burger'])) return '🍔';
+      if (hasWord(lowerName, ['tavuk', 'chicken'])) return '🍗';
+      if (hasWord(lowerName, ['balık', 'fish'])) return '🐟';
+      if (hasWord(lowerName, ['makarna', 'pasta', 'spagetti', 'noodle'])) return '🍝';
+      if (hasWord(lowerName, ['salata', 'salad'])) return '🥗';
+      if (hasWord(lowerName, ['muz', 'banana'])) return '🍌';
+      if (hasWord(lowerName, ['elma', 'apple'])) return '🍎';
+      if (hasWord(lowerName, ['portakal', 'orange'])) return '🍊';
+      if (hasWord(lowerName, ['çikolata', 'chocolate'])) return '🍫';
+      if (hasWord(lowerName, ['dondurma', 'ice cream'])) return '🍦';
+      if (hasWord(lowerName, ['kahve', 'coffee'])) return '☕';
+      if (hasWord(lowerName, ['çay', 'tea'])) return '🍵';
+      if (hasWord(lowerName, ['kek', 'cake', 'pasta'])) return '🍰';
+      if (hasWord(lowerName, ['süt', 'milk', 'yoğurt', 'yogurt'])) return '🥛';
+      if (hasWord(lowerName, ['ekmek', 'bread'])) return '🍞';
+      
+      // Daha genel yemek türleri (düşük öncelikli)
+      if (hasWord(lowerName, ['et', 'meat', 'steak', 'biftek'])) return '🥩';
+      if (hasWord(lowerName, ['yumurta', 'egg'])) return '🍳';
+      
+      // Varsayılan kategori bulunamadıysa
+      return '🍽️';
+    } catch (error) {
+      console.error('Emoji seçme hatası:', error);
+      return '🍽️'; // Hata durumunda varsayılan emoji
+    }
+  };
+  
+  // Kelime eşleştirme yardımcı fonksiyonu
+  const hasWord = (text: string, keywords: string[]): boolean => {
+    // Her bir anahtar kelimeyi kontrol et
+    for (const keyword of keywords) {
+      // Kelimenin başında, sonunda veya ayrı bir kelime olarak olup olmadığını kontrol et
+      // Örnek: "et" kelimesi "diet" içinde eşleşmemeli, ama "et yemeği" içinde eşleşmeli
+      const regex = new RegExp(`\\b${keyword}\\b|^${keyword}|${keyword}$`, 'i');
+      if (regex.test(text)) {
+        return true;
+      }
+    }
+    return false;
   };
 
   // Öğün türü emojisi
@@ -138,9 +168,9 @@ const HomeScreen = () => {
           <Text style={styles.foodCalories}>{item.calories} kcal</Text>
         </View>
         <View style={styles.foodMacros}>
-          <Text style={styles.macroText}>P: {item.protein}g</Text>
-          <Text style={styles.macroText}>C: {item.carbs}g</Text>
-          <Text style={styles.macroText}>Y: {item.fat}g</Text>
+          <Text style={styles.macroText}>P: {Number(item.protein).toFixed(1).replace(/\.0$/, '')}g</Text>
+          <Text style={styles.macroText}>C: {Number(item.carbs).toFixed(1).replace(/\.0$/, '')}g</Text>
+          <Text style={styles.macroText}>Y: {Number(item.fat).toFixed(1).replace(/\.0$/, '')}g</Text>
         </View>
         <TouchableOpacity 
           style={styles.deleteButton}

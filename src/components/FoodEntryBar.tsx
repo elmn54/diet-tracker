@@ -10,6 +10,10 @@ import { useUIStore } from '../store/uiStore';
 // Gerçek API hizmetini ekle
 import { AI_PROVIDERS } from '../constants/aiProviders';
 import { createCompletion } from '../services/aiService.js';
+// Fotoğraf işlemleri için
+import * as ImagePicker from 'expo-image-picker';
+import { identifyFood } from '../services/foodRecognitionService';
+import { useSubscriptionStore } from '../store/subscriptionStore';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ana Sayfa'>;
 
@@ -35,13 +39,108 @@ const FoodEntryBar: React.FC = () => {
     navigation.navigate('FoodEntry');
   };
 
+  // Kamera izni isteği
+  const requestCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('İzin Gerekli', 'Kamerayı kullanmak için izin gereklidir.');
+      return false;
+    }
+    return true;
+  };
+
+  // Galeri izni isteği
+  const requestMediaLibraryPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('İzin Gerekli', 'Galeriyi kullanmak için izin gereklidir.');
+      return false;
+    }
+    return true;
+  };
+
+  // Görüntü API'si ile analiz
+  const analyzeImageWithAI = async (imageUri: string): Promise<any> => {
+    const apiKey = apiKeys[preferredProvider];
+    if (!apiKey) {
+      throw new Error('API anahtarı bulunamadı');
+    }
+    
+    try {
+      console.log(`Analyzing image with ${preferredProvider} API`);
+      const result = await identifyFood(
+        { uri: imageUri },
+        preferredProvider,
+        apiKey
+      );
+      
+      console.log('Analysis result:', result);
+      return result;
+    } catch (error) {
+      console.error('API çağrısı sırasında hata:', error);
+      throw error;
+    }
+  };
+
+  // Abonelik kontrolü
+  const isPlanFeatureAvailable = (feature: string): boolean => {
+    return useSubscriptionStore.getState().isPlanFeatureAvailable(feature);
+  };
+
+  // Kalan istek sayısı kontrolü
+  const getRemainingRequests = (): number => {
+    return useSubscriptionStore.getState().getRemainingRequests();
+  };
+
+  // Kamera ile direkt fotoğraf çek ve analiz et
+  const handleCameraCapture = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await analyzeAndSaveImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Fotoğraf çekerken hata oluştu:', error);
+      Alert.alert('Hata', 'Fotoğraf çekilemedi. Lütfen tekrar deneyin.');
+    }
+  };
+
+  // Galeriden direkt fotoğraf seç ve analiz et
+  const handleGalleryPick = async () => {
+    const hasPermission = await requestMediaLibraryPermission();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await analyzeAndSaveImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Fotoğraf seçerken hata oluştu:', error);
+      Alert.alert('Hata', 'Fotoğraf seçilemedi. Lütfen tekrar deneyin.');
+    }
+  };
+
   // API anahtarı kontrolü
   const checkApiKey = (): boolean => {
     const apiKey = apiKeys[preferredProvider];
     if (!apiKey) {
       Alert.alert(
         'API Anahtarı Gerekli', 
-        'Hızlı yemek analizi için bir API anahtarı gereklidir. API ayarlarına gitmek ister misiniz?',
+        'Yemek analizi için bir API anahtarı gereklidir. API ayarlarına gitmek ister misiniz?',
         [
           {
             text: 'İptal',
@@ -57,7 +156,177 @@ const FoodEntryBar: React.FC = () => {
     }
     return true;
   };
+
+  // Görüntüyü analiz et ve kaydet
+  const analyzeAndSaveImage = async (imageUri: string) => {
+    setIsAnalyzing(true);
+    
+    try {
+      // API anahtarı kontrolü
+      if (!checkApiKey()) {
+        setIsAnalyzing(false);
+        return;
+      }
+      
+      // Abonelik kontrolü
+      if (!isPlanFeatureAvailable('imageRecognitionEnabled')) {
+        Alert.alert(
+          'Premium Özellik', 
+          'Görsel tanıma özelliği sadece premium aboneler için kullanılabilir.',
+          [
+            { text: 'İptal' },
+            { text: 'Abonelik Planları', onPress: () => navigation.navigate('Pricing') }
+          ]
+        );
+        setIsAnalyzing(false);
+        return;
+      }
+      
+      // İstek limitini kontrol et
+      const remainingReqs = getRemainingRequests();
+      if (remainingReqs === 0) {
+        Alert.alert(
+          'Limit Aşıldı', 
+          'Bu ay için AI görüntü tanıma limitinizi doldurdunuz. Daha fazla kullanım için Pro planına yükseltin.',
+          [
+            { text: 'İptal' },
+            { text: 'Abonelik Planları', onPress: () => navigation.navigate('Pricing') }
+          ]
+        );
+        setIsAnalyzing(false);
+        return;
+      }
+      
+      // API'den veri alma
+      const result = await analyzeImageWithAI(imageUri);
+      console.log('Raw result:', JSON.stringify(result));
+      
+      // API yanıt yapısını kontrol et ve uygun şekilde kullan
+      let foodName = 'Bilinmeyen Yemek';
+      let calories = 0;
+      let protein = 0;
+      let carbs = 0;
+      let fat = 0;
+      let hasCompleteData = true;
+      
+      // name veya foodName alanlarını kontrol et
+      if (typeof result === 'object' && result !== null) {
+        foodName = result.name || result.foodName || 'Bilinmeyen Yemek';
+        
+        // Besin değerleri kontrolü - çeşitli yanıt yapıları için destek
+        if (result.nutritionFacts) {
+          calories = result.nutritionFacts.calories || 0;
+          protein = result.nutritionFacts.protein || 0;
+          carbs = result.nutritionFacts.carbs || 0;
+          fat = result.nutritionFacts.fat || 0;
+          
+          // Veri eksik mi kontrol et
+          if (result.nutritionFacts.protein === null || 
+              result.nutritionFacts.carbs === null || 
+              result.nutritionFacts.fat === null) {
+            hasCompleteData = false;
+          }
+        } else {
+          // Direkt olarak ana objede olabilir
+          calories = result.calories || 0;
+          protein = result.protein || 0;
+          carbs = result.carbs || 0;
+          fat = result.fat || 0;
+          
+          // Ana objede eksik veri kontrolü
+          if (result.protein === null || result.carbs === null || result.fat === null) {
+            hasCompleteData = false;
+          }
+        }
+      }
+      
+      // Eksik besin değerleri varsa kullanıcıya sor
+      if (!hasCompleteData) {
+        Alert.alert(
+          'Eksik Besin Değerleri',
+          `"${foodName}" için bazı besin değerleri eksik. Ne yapmak istersiniz?`,
+          [
+            { 
+              text: 'Eksik Değerlerle Kaydet', 
+              onPress: () => {
+                // Mevcut değerlerle kaydet
+                saveFood(foodName, calories, protein, carbs, fat, imageUri);
+              }
+            },
+            { 
+              text: 'Manuel Düzenle', 
+              onPress: () => {
+                // Detaylı düzenleme ekranına git
+                navigation.navigate('FoodEntry', {
+                  foodItem: {
+                    id: Date.now().toString(),
+                    name: foodName,
+                    calories: Number(calories),
+                    protein: Number(protein),
+                    carbs: Number(carbs),
+                    fat: Number(fat),
+                    date: new Date().toISOString(),
+                    mealType: 'lunch',
+                    imageUri: imageUri
+                  }
+                });
+                setIsAnalyzing(false);
+              },
+              style: 'default'
+            }
+          ]
+        );
+      } else {
+        // Tam verileri olan yemeği direkt kaydet
+        saveFood(foodName, calories, protein, carbs, fat, imageUri);
+      }
+    } catch (error) {
+      console.error('Görüntü analiz edilirken hata oluştu:', error);
+      
+      // Hata mesajını özelleştir
+      let errorMessage = 'Yemek tanınamadı. Lütfen manuel olarak ekleyin veya tekrar deneyin.';
+      if (error instanceof Error) {
+        console.error('Error details:', error.message, error.stack);
+        if (error.message.includes('API anahtarı')) {
+          errorMessage = 'API anahtarı geçersiz veya eksik. API ayarlarınızı kontrol edin.';
+        }
+      }
+      
+      Alert.alert('Analiz Hatası', errorMessage);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
   
+  // Yemek kaydetme yardımcı fonksiyonu
+  const saveFood = async (name: string, calories: number, protein: number, carbs: number, fat: number, imageUri?: string) => {
+    try {
+      // Yeni yemek oluştur
+      const newFood: FoodItem = {
+        id: Date.now().toString(),
+        name: name,
+        calories: Number(calories),
+        protein: Number(protein),
+        carbs: Number(carbs),
+        fat: Number(fat),
+        date: new Date().toISOString(),
+        mealType: 'lunch', // Varsayılan öğün tipi
+        imageUri: imageUri
+      };
+      
+      console.log('Oluşturulan yemek:', newFood);
+      
+      // Yemeği kaydet
+      await addFood(newFood);
+      
+      // Başarılı mesajı göster
+      showToast(`${newFood.name} eklendi (${newFood.calories} kcal)`, 'success');
+    } catch (error) {
+      console.error('Yemek kaydedilirken hata oluştu:', error);
+      Alert.alert('Hata', 'Yemek kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.');
+    }
+  };
+
   // Metin tabanlı yemek analizi için AI çağrısı
   const analyzeTextWithAI = async (text: string): Promise<any> => {
     const apiKey = apiKeys[preferredProvider];
@@ -164,13 +433,18 @@ const FoodEntryBar: React.FC = () => {
           onBlur={() => setIsInputFocused(false)}
         />
         <View style={styles.buttonsContainer}>
-          <TouchableOpacity style={styles.iconButton} onPress={handleAdvancedEntry}>
-            <Text style={styles.icon}>⏱️</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={handleAdvancedEntry}>
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={handleGalleryPick}
+            disabled={isAnalyzing}
+          >
             <Text style={styles.icon}>🖼️</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={handleAdvancedEntry}>
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={handleCameraCapture}
+            disabled={isAnalyzing}
+          >
             <Text style={styles.icon}>📷</Text>
           </TouchableOpacity>
         </View>
@@ -197,6 +471,21 @@ const FoodEntryBar: React.FC = () => {
             <Text style={styles.advancedEntryButtonText}>Gelişmiş</Text>
           </TouchableOpacity>
         </View>
+      )}
+
+      {isAnalyzing && !isInputFocused && (
+        <Modal
+          transparent={true}
+          visible={isAnalyzing && !isInputFocused}
+          animationType="fade"
+        >
+          <View style={styles.modalBackground}>
+            <View style={styles.globalLoading}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text style={styles.loadingText}>Yemek Analiz Ediliyor...</Text>
+            </View>
+          </View>
+        </Modal>
       )}
     </View>
   );
@@ -225,12 +514,15 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: 25,
     paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    height: 54,
   },
   input: {
     flex: 1,
     fontSize: 16,
     color: theme.colors.onSurface,
+    paddingVertical: 8,
+    paddingLeft: 5,
   },
   buttonsContainer: {
     flexDirection: 'row',
@@ -274,6 +566,31 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     color: theme.colors.onSurface,
     fontWeight: 'bold',
   },
+  modalBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  globalLoading: {
+    backgroundColor: theme.colors.surface,
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '80%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  loadingText: {
+    color: theme.colors.onSurface,
+    marginTop: 10,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  }
 });
 
 export default FoodEntryBar; 

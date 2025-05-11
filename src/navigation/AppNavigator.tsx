@@ -31,7 +31,9 @@ export type RootStackParamList = {
       date: string;
       mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
       imageUri?: string;
-    } 
+    };
+    openCamera?: boolean;
+    openGallery?: boolean;
   } | undefined;
   'DailySummary': undefined;
   'Profile': undefined;

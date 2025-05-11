@@ -22,6 +22,11 @@ const MacrosCard: React.FC<MacrosCardProps> = ({ carbs, protein, fat }) => {
   
   const styles = makeStyles(theme);
   
+  // Format numbers to have at most 1 decimal place
+  const formatNumber = (num: number): string => {
+    return num.toFixed(1).replace(/\.0$/, '');
+  };
+  
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -34,7 +39,7 @@ const MacrosCard: React.FC<MacrosCardProps> = ({ carbs, protein, fat }) => {
       <View style={styles.content}>
         <View style={styles.macroItem}>
           <Text style={styles.macroValue}>
-            {carbs.current}<Text style={styles.macroGoal}>/{carbs.goal}</Text>
+            {formatNumber(carbs.current)}<Text style={styles.macroGoal}>/{formatNumber(carbs.goal)}</Text>
           </Text>
           <Text style={styles.macroLabel}>Carbs (g)</Text>
         </View>
@@ -43,7 +48,7 @@ const MacrosCard: React.FC<MacrosCardProps> = ({ carbs, protein, fat }) => {
         
         <View style={styles.macroItem}>
           <Text style={styles.macroValue}>
-            {protein.current}<Text style={styles.macroGoal}>/{protein.goal}</Text>
+            {formatNumber(protein.current)}<Text style={styles.macroGoal}>/{formatNumber(protein.goal)}</Text>
           </Text>
           <Text style={styles.macroLabel}>Protein (g)</Text>
         </View>
@@ -52,7 +57,7 @@ const MacrosCard: React.FC<MacrosCardProps> = ({ carbs, protein, fat }) => {
         
         <View style={styles.macroItem}>
           <Text style={styles.macroValue}>
-            {fat.current}<Text style={styles.macroGoal}>/{fat.goal}</Text>
+            {formatNumber(fat.current)}<Text style={styles.macroGoal}>/{formatNumber(fat.goal)}</Text>
           </Text>
           <Text style={styles.macroLabel}>Fat (g)</Text>
         </View>
