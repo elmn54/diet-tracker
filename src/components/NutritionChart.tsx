@@ -1,7 +1,5 @@
 import React from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import { Svg } from 'react-native-svg';
-import { VictoryPie } from 'victory';
 import { Text, useTheme, MD3Theme } from 'react-native-paper';
 import { Nutrients } from '../store/foodStore';
 
@@ -26,11 +24,11 @@ const NutritionChart: React.FC<NutritionChartProps> = ({ data }) => {
     );
   }
 
-  // Format data for Victory Pie
+  // Format data for chart
   const chartData = [
-    { x: 'Protein', y: data.protein, color: theme.dark ? '#7C8BFF' : '#6979F8' },
-    { x: 'Karbonhidrat', y: data.carbs, color: theme.dark ? '#FFD97A' : '#FFCF5C' },
-    { x: 'Yağ', y: data.fat, color: theme.dark ? '#FF7A8F' : '#FF647C' }
+    { name: 'Protein', value: data.protein, color: theme.dark ? '#7C8BFF' : '#6979F8' },
+    { name: 'Karbonhidrat', value: data.carbs, color: theme.dark ? '#FFD97A' : '#FFCF5C' },
+    { name: 'Yağ', value: data.fat, color: theme.dark ? '#FF7A8F' : '#FF647C' }
   ];
 
   // Calculate percentages for display
@@ -47,28 +45,28 @@ const NutritionChart: React.FC<NutritionChartProps> = ({ data }) => {
       <Text style={styles.title}>Besin Oranları</Text>
       
       <View style={styles.chartContainer}>
-        <Svg width={chartSize} height={chartSize}>
-          <VictoryPie
-            standalone={false}
-            data={chartData}
-            width={chartSize}
-            height={chartSize}
-            padding={40}
-            innerRadius={chartSize / 5}
-            labelRadius={chartSize / 3}
-            style={{
-              data: {
-                fill: ({ datum }) => datum.color,
-              },
-              labels: {
-                fill: theme.colors.onSurface,
-                fontSize: 12,
-                fontWeight: 'bold',
-              },
-            }}
-            labels={({ datum }) => `${datum.x}\n${Math.round(datum.y)}g`}
-          />
-        </Svg>
+        {/* Basit daire gösterimi */}
+        <View style={styles.pieChartContainer}>
+          <View style={styles.pieCenter}>
+            <Text style={styles.totalText}>{totalValue}g</Text>
+            <Text style={styles.totalLabel}>Toplam</Text>
+          </View>
+          
+          <View style={styles.pieSegmentsContainer}>
+            {chartData.map((item, index) => (
+              <View 
+                key={index}
+                style={[
+                  styles.pieSegment,
+                  {
+                    backgroundColor: item.color,
+                    height: (item.value / totalValue) * 100, 
+                  }
+                ]}
+              />
+            ))}
+          </View>
+        </View>
       </View>
       
       <View style={styles.legendContainer}>
@@ -113,6 +111,53 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   chartContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginVertical: 20,
+  },
+  pieChartContainer: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  pieCenter: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: theme.colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  totalText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.onSurface,
+  },
+  totalLabel: {
+    fontSize: 12,
+    color: theme.colors.onSurfaceVariant,
+  },
+  pieSegmentsContainer: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+  },
+  pieSegment: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   legendContainer: {
     marginTop: 20,

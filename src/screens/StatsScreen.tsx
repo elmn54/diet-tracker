@@ -4,7 +4,6 @@ import { Text, Divider, SegmentedButtons, useTheme, MD3Theme, Card } from 'react
 import { useFoodStore } from '../store/foodStore';
 import { useCalorieGoalStore } from '../store/calorieGoalStore';
 import NutritionChart from '../components/NutritionChart';
-import { LineChart, BarChart } from 'react-native-chart-kit';
 import { format, subDays, isSameDay, startOfWeek, addDays, eachDayOfInterval, endOfWeek } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -233,27 +232,55 @@ const StatsScreen = () => {
   
   const goalStatus = getGoalStatus();
 
-  // Chart kit config
-  const chartConfig = {
-    backgroundGradientFrom: theme.colors.surface,
-    backgroundGradientTo: theme.colors.surface,
-    color: (opacity = 1) => theme.colors.onSurface + opacity,
-    labelColor: (opacity = 1) => theme.colors.onSurface + opacity,
-    strokeWidth: 2,
-    barPercentage: 0.5,
-    decimalPlaces: 0,
-    style: {
-      borderRadius: 16
-    },
-    propsForDots: {
-      r: "6",
-      strokeWidth: "2",
-      stroke: theme.colors.primary
-    }
+  const renderWeeklyChart = () => {
+    return (
+      <View style={styles.alternativeChart}>
+        <Text style={styles.chartTitle}>Haftalık Kalori Takibi</Text>
+        {weeklyData.datasets[0].data.map((value, index) => (
+          <View key={index} style={styles.chartItemRow}>
+            <Text style={styles.chartDay}>{weeklyData.labels[index]}</Text>
+            <View style={styles.chartBarContainer}>
+              <View 
+                style={[
+                  styles.chartBar, 
+                  { 
+                    width: `${(value / calorieGoal) * 100}%`,
+                    backgroundColor: value > calorieGoal ? theme.colors.error : theme.colors.primary
+                  }
+                ]} 
+              />
+            </View>
+            <Text style={styles.chartValue}>{Math.round(value)} kcal</Text>
+          </View>
+        ))}
+      </View>
+    );
   };
-  
-  const chartWidth = Dimensions.get('window').width - 40;
-  const chartHeight = 220;
+
+  const renderMonthlyChart = () => {
+    return (
+      <View style={styles.alternativeChart}>
+        <Text style={styles.chartTitle}>Aylık Ortalama Kalori Değişimi</Text>
+        {monthlyData.datasets[0].data.map((value, index) => (
+          <View key={index} style={styles.chartItemRow}>
+            <Text style={styles.chartDay}>{monthlyData.labels[index]}</Text>
+            <View style={styles.chartBarContainer}>
+              <View 
+                style={[
+                  styles.chartBar, 
+                  { 
+                    width: `${(value / calorieGoal) * 100}%`,
+                    backgroundColor: value > calorieGoal ? theme.colors.error : theme.colors.primary
+                  }
+                ]} 
+              />
+            </View>
+            <Text style={styles.chartValue}>{Math.round(value)} kcal</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
   
   return (
     <ScrollView style={styles.container}>
@@ -307,31 +334,13 @@ const StatsScreen = () => {
       
       {timeRange === 'week' && (
         <Card style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Haftalık Kalori Takibi</Text>
-          <LineChart
-            data={weeklyData}
-            width={chartWidth}
-            height={chartHeight}
-            chartConfig={chartConfig}
-            bezier
-            style={styles.chart}
-          />
+          {renderWeeklyChart()}
         </Card>
       )}
       
       {timeRange === 'month' && (
         <Card style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Aylık Ortalama Kalori Değişimi</Text>
-          <BarChart
-            data={monthlyData}
-            width={chartWidth}
-            height={chartHeight}
-            chartConfig={chartConfig}
-            style={styles.chart}
-            showValuesOnTopOfBars
-            yAxisLabel=""
-            yAxisSuffix=""
-          />
+          {renderMonthlyChart()}
         </Card>
       )}
       
@@ -507,6 +516,37 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     fontSize: 12,
     color: theme.colors.onSurface,
     opacity: 0.7,
+  },
+  alternativeChart: {
+    padding: 8,
+  },
+  chartItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  chartDay: {
+    width: 40,
+    fontSize: 14,
+    color: theme.colors.onSurface,
+  },
+  chartBarContainer: {
+    flex: 1,
+    height: 20,
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 10,
+    marginHorizontal: 10,
+    overflow: 'hidden',
+  },
+  chartBar: {
+    height: '100%',
+    borderRadius: 10,
+  },
+  chartValue: {
+    width: 80,
+    fontSize: 14,
+    textAlign: 'right',
+    color: theme.colors.onSurface,
   },
 });
 
