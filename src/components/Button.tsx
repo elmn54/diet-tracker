@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, StyleProp, ViewStyle, Animated, Easing } from 'react-native';
+import { StyleSheet, StyleProp, ViewStyle, View, Text } from 'react-native';
 import { Button as PaperButton, ActivityIndicator, useTheme, IconButton } from 'react-native-paper';
 import { buttonVariants } from '../constants/theme';
 
@@ -37,62 +37,26 @@ const Button: React.FC<ButtonProps> = ({
   const variantStyle = buttonVariants[variant];
   
   const [showSuccess, setShowSuccess] = useState(false);
-  const successScale = new Animated.Value(0);
-  const successOpacity = new Animated.Value(0);
   
-  // Success animasyonu
+  // Success durumunu güncelle
   useEffect(() => {
     if (showSuccessAnimation && !showSuccess) {
       setShowSuccess(true);
       
-      // Scale ve opacity animasyonları
-      Animated.parallel([
-        Animated.timing(successScale, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-          easing: Easing.out(Easing.back(1.5)),
-        }),
-        Animated.timing(successOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-      
-      // Animasyon sonrası reset
+      // Belirli bir süre sonra başarı durumunu sıfırla
       const timer = setTimeout(() => {
-        Animated.timing(successOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }).start(() => {
-          setShowSuccess(false);
-          successScale.setValue(0);
-        });
+        setShowSuccess(false);
       }, successDuration);
       
       return () => clearTimeout(timer);
     }
-  }, [showSuccessAnimation, showSuccess, successScale, successOpacity, successDuration]);
-  
-  const buttonContent = () => {
-    if (showSuccess) {
-      return (
-        <Animated.View style={{ 
-          transform: [{ scale: successScale }],
-          opacity: successOpacity,
-        }}>
-          <IconButton
-            icon="check-circle"
-            iconColor={theme.colors.background}
-            size={24}
-            style={styles.successIcon}
-          />
-        </Animated.View>
-      );
-    }
+  }, [showSuccessAnimation, showSuccess, successDuration]);
+
+  // Buton içeriğini hazırla
+  const renderContent = () => {
+    const contentItems = [];
     
+    // Yükleme göstergesi
     if (loading) {
       return (
         <ActivityIndicator 
@@ -103,15 +67,51 @@ const Button: React.FC<ButtonProps> = ({
       );
     }
     
-    return title;
+    // Normal ikonlar
+    if (icon && !showSuccess) {
+      contentItems.push(
+        <IconButton
+          key="icon"
+          icon={icon}
+          size={20}
+          iconColor={variantStyle.textColor}
+          style={styles.buttonIcon}
+        />
+      );
+    }
+    
+    // Başarı ikonu
+    if (showSuccess) {
+      contentItems.push(
+        <IconButton
+          key="success-icon"
+          icon="check-circle"
+          size={20}
+          iconColor={variantStyle.textColor}
+          style={styles.buttonIcon}
+        />
+      );
+    }
+    
+    // Başlık metni her durumda göster
+    contentItems.push(
+      <Text key="title" style={[styles.labelStyle, { color: variantStyle.textColor }]}>
+        {title}
+      </Text>
+    );
+    
+    return (
+      <View style={styles.contentContainer}>
+        {contentItems}
+      </View>
+    );
   };
   
   return (
     <PaperButton
       mode={mode}
       onPress={onPress}
-      disabled={disabled || loading || showSuccess}
-      icon={(!loading && !showSuccess) ? icon : undefined}
+      disabled={disabled || loading}
       style={[
         styles.button,
         {
@@ -122,15 +122,11 @@ const Button: React.FC<ButtonProps> = ({
         fullWidth && styles.fullWidth,
         style
       ]}
-      contentStyle={styles.contentStyle}
-      labelStyle={[
-        styles.labelStyle,
-        { color: variantStyle.textColor },
-      ]}
+      contentStyle={styles.buttonContentStyle}
       testID="button-container"
       theme={{ roundness: 24 }}
     >
-      {buttonContent()}
+      {renderContent()}
     </PaperButton>
   );
 };
@@ -140,21 +136,29 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     elevation: 0,
   },
-  contentStyle: { 
+  buttonContentStyle: { 
     paddingVertical: 8,
     paddingHorizontal: 16,
+  },
+  contentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   labelStyle: { 
     fontWeight: 'bold',
     fontSize: 16,
     letterSpacing: 0.5,
   },
-  fullWidth: {
-    width: '100%',
-  },
-  successIcon: {
+  buttonIcon: {
     margin: 0,
     padding: 0,
+    width: 24,
+    height: 24,
+    marginRight: 8,
+  },
+  fullWidth: {
+    width: '100%',
   },
 });
 
