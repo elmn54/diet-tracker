@@ -80,7 +80,9 @@ const Toast: React.FC<ToastProps> = ({
     <Animated.View 
       style={[
         styles.container, 
-        { opacity, backgroundColor: theme.colors.background },
+        { opacity, backgroundColor: theme.dark 
+          ? theme.colors.elevation.level3 
+          : theme.colors.surface },
         type === 'success' && styles.successContainer,
         type === 'error' && styles.errorContainer,
         type === 'info' && styles.infoContainer,

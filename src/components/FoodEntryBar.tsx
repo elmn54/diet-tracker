@@ -6,6 +6,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme, MD3Theme } from 'react-native-paper';
 import { useFoodStore, FoodItem } from '../store/foodStore';
 import { useApiKeyStore } from '../store/apiKeyStore';
+import { useUIStore } from '../store/uiStore';
 // Gerçek API hizmetini ekle
 import { AI_PROVIDERS } from '../constants/aiProviders';
 import { createCompletion } from '../services/aiService.js';
@@ -19,6 +20,7 @@ const FoodEntryBar: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const theme = useTheme();
   const { addFood } = useFoodStore();
+  const { showToast } = useUIStore();
   
   // Store'dan API bilgilerini al
   const apiKeys = useApiKeyStore(state => state.apiKeys);
@@ -133,7 +135,8 @@ const FoodEntryBar: React.FC = () => {
         
         await addFood(newFood);
         
-        Alert.alert('Başarılı', `${newFood.name} eklendi (${newFood.calories} kcal)`);
+        // Alert yerine toast kullan
+        showToast(`${newFood.name} eklendi (${newFood.calories} kcal)`, 'success');
         
         // Input temizle
         setInputText('');
