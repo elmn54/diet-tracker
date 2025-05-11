@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, FlatList } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, FlatList, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -82,6 +82,35 @@ const HomeScreen = () => {
   // Menüyü aç/kapa
   const toggleMenu = () => setMenuVisible(!menuVisible);
 
+  // Yemek türüne göre emoji seçme
+  const getFoodEmoji = (foodName: string) => {
+    const lowerName = foodName.toLowerCase();
+    
+    if (lowerName.includes('pilav') || lowerName.includes('rice')) return '🍚';
+    if (lowerName.includes('tavuk') || lowerName.includes('chicken')) return '🍗';
+    if (lowerName.includes('balık') || lowerName.includes('fish')) return '🐟';
+    if (lowerName.includes('pizza')) return '🍕';
+    if (lowerName.includes('hamburger') || lowerName.includes('burger')) return '🍔';
+    if (lowerName.includes('salata') || lowerName.includes('salad')) return '🥗';
+    if (lowerName.includes('muz') || lowerName.includes('banana')) return '🍌';
+    if (lowerName.includes('elma') || lowerName.includes('apple')) return '🍎';
+    if (lowerName.includes('portakal') || lowerName.includes('orange')) return '🍊';
+    if (lowerName.includes('çorba') || lowerName.includes('soup')) return '🍲';
+    if (lowerName.includes('makarna') || lowerName.includes('pasta')) return '🍝';
+    if (lowerName.includes('et') || lowerName.includes('meat')) return '🥩';
+    if (lowerName.includes('yumurta') || lowerName.includes('egg')) return '🍳';
+    if (lowerName.includes('süt') || lowerName.includes('milk')) return '🥛';
+    if (lowerName.includes('ekmek') || lowerName.includes('bread')) return '🍞';
+    if (lowerName.includes('çikolata') || lowerName.includes('chocolate')) return '🍫';
+    if (lowerName.includes('dondurma') || lowerName.includes('ice cream')) return '🍦';
+    if (lowerName.includes('kahve') || lowerName.includes('coffee')) return '☕';
+    if (lowerName.includes('çay') || lowerName.includes('tea')) return '🍵';
+    if (lowerName.includes('kek') || lowerName.includes('cake')) return '🍰';
+    
+    // Varsayılan
+    return '🍽️';
+  };
+
   // Öğün türü emojisi
   const getMealTypeEmoji = (mealType: string) => {
     switch (mealType) {
@@ -96,10 +125,14 @@ const HomeScreen = () => {
   // Yemek öğesini görüntüleme
   const renderFoodItem = ({ item }: { item: FoodItem }) => (
     <Card style={styles.foodCard} onPress={() => {
-      // Düzenleme işlevi burada eklenecek
+      // Düzenleme işlevini çağır
+      navigation.navigate('FoodEntry', { 
+        editMode: true, 
+        foodItem: item 
+      });
     }}>
       <View style={styles.foodItemContainer}>
-        <Text style={styles.mealTypeEmoji}>{getMealTypeEmoji(item.mealType)}</Text>
+        <Text style={styles.mealTypeEmoji}>{getFoodEmoji(item.name)}</Text>
         <View style={styles.foodDetails}>
           <Text style={styles.foodName}>{item.name}</Text>
           <Text style={styles.foodCalories}>{item.calories} kcal</Text>
@@ -109,6 +142,32 @@ const HomeScreen = () => {
           <Text style={styles.macroText}>C: {item.carbs}g</Text>
           <Text style={styles.macroText}>Y: {item.fat}g</Text>
         </View>
+        <TouchableOpacity 
+          style={styles.deleteButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            Alert.alert(
+              'Yemeği Sil',
+              'Bu yemeği silmek istediğinizden emin misiniz?',
+              [
+                { text: 'İptal', style: 'cancel' },
+                { text: 'Sil', 
+                  onPress: async () => {
+                    try {
+                      await useFoodStore.getState().removeFood(item.id);
+                    } catch (error) {
+                      console.error('Yemek silinirken hata oluştu:', error);
+                      Alert.alert('Hata', 'Yemek silinirken bir hata oluştu.');
+                    }
+                  }, 
+                  style: 'destructive' 
+                }
+              ]
+            );
+          }}
+        >
+          <Text style={styles.deleteIcon}>🗑️</Text>
+        </TouchableOpacity>
       </View>
     </Card>
   );
@@ -380,6 +439,14 @@ const makeStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     color: colors.onSurface,
     textAlign: 'center',
+  },
+  deleteButton: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteIcon: {
+    fontSize: 20,
   },
 });
 

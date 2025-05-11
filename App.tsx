@@ -9,6 +9,9 @@ import { useThemeStore } from './src/store/themeStore';
 import { useApiKeyStore } from './src/store/apiKeyStore';
 import { useSubscriptionStore } from './src/store/subscriptionStore';
 import { useCalorieGoalStore } from './src/store/calorieGoalStore';
+import { useUIStore } from './src/store/uiStore';
+import Toast from './src/components/Toast';
+import CustomAlert from './src/components/CustomAlert';
 
 // Tema uygulanmış ve veri yükleme mantığı içeren uygulama
 export default function App() {
@@ -23,6 +26,14 @@ export default function App() {
     loadThemePreference,
     setIsDarkMode
   } = useThemeStore();
+  
+  // UI state
+  const { 
+    toast, 
+    alert, 
+    hideToast, 
+    hideAlert 
+  } = useUIStore();
   
   // Uygulamanın ilk başlatılmasında verileri yükle
   const loadFoods = useFoodStore(state => state.loadFoods);
@@ -84,6 +95,25 @@ export default function App() {
           barStyle={(isSystemTheme ? colorScheme === 'dark' : isDarkMode) ? 'light-content' : 'dark-content'} 
           backgroundColor={currentTheme.colors.background}
           translucent
+        />
+        
+        {/* Global Toast bildirimi */}
+        <Toast
+          visible={toast.visible}
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          onDismiss={hideToast}
+        />
+        
+        {/* Global Alert bildirimi */}
+        <CustomAlert
+          visible={alert.visible}
+          title={alert.title}
+          message={alert.message}
+          type={alert.type}
+          buttons={alert.buttons}
+          onDismiss={hideAlert}
         />
       </NavigationContainer>
     </PaperProvider>

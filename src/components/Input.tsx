@@ -44,12 +44,26 @@ const Input: React.FC<InputProps> = ({
   const theme = useTheme();
   const styles = makeStyles(theme);
 
+  // Sayısal girişleri doğrulama
+  const handleChangeText = (text: string) => {
+    // Sayısal klavye kullanılıyorsa, sadece sayıların ve nokta karakterinin girilmesine izin ver
+    if (keyboardType === 'numeric' || keyboardType === 'number-pad' || keyboardType === 'decimal-pad') {
+      // Boş değer veya sadece sayılar (ve nokta) içeren değerler için değişikliğe izin ver
+      if (text === '' || /^\d*\.?\d*$/.test(text)) {
+        onChangeText(text);
+      }
+    } else {
+      // Sayısal olmayan giriş türleri için normal değişikliğe izin ver
+      onChangeText(text);
+    }
+  };
+
   return (
     <View style={[styles.container, style]}>
       <TextInput
         label={label}
         value={value}
-        onChangeText={onChangeText}
+        onChangeText={handleChangeText}
         placeholder={placeholder}
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}

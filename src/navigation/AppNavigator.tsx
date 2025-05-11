@@ -19,7 +19,20 @@ export type RootStackParamList = {
   'Ana Sayfa': undefined;
   'Login': undefined;
   'Register': undefined;
-  'FoodEntry': undefined;
+  'FoodEntry': { 
+    editMode?: boolean; 
+    foodItem?: {
+      id: string;
+      name: string;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+      date: string;
+      mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+      imageUri?: string;
+    } 
+  } | undefined;
   'DailySummary': undefined;
   'Profile': undefined;
   'ThemeSettings': undefined;
@@ -86,10 +99,10 @@ const AppNavigator = () => {
       <Stack.Screen 
         name="FoodEntry" 
         component={FoodEntryScreen}
-        options={{
+        options={({ route }) => ({
           ...screenOptions,
-          title: 'Yemek Ekle'
-        }}
+          title: route.params?.editMode ? 'Yemeği Düzenle' : 'Yemek Ekle'
+        })}
       />
       <Stack.Screen 
         name="DailySummary" 

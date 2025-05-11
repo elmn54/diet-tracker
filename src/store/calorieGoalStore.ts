@@ -50,6 +50,15 @@ export const useCalorieGoalStore = create<CalorieGoalState>((set, get) => ({
   // Kalori hedefini ayarla
   setCalorieGoal: async (goal: number) => {
     try {
+      // Değerin geçerli bir sayı olduğundan emin ol
+      if (isNaN(goal) || goal <= 0) {
+        console.error('Geçersiz kalori hedefi değeri:', goal);
+        return;
+      }
+      
+      console.log('Setting calorie goal to:', goal);
+      
+      // Kalori hedefini güncelle
       set({ calorieGoal: goal });
       await AsyncStorage.setItem(CALORIE_GOAL_KEY, goal.toString());
       
@@ -64,6 +73,18 @@ export const useCalorieGoalStore = create<CalorieGoalState>((set, get) => ({
   // Besin değerleri hedeflerini ayarla
   setNutrientGoals: async (goals: NutrientGoals) => {
     try {
+      // Değerlerin geçerli sayılar olduğundan emin ol
+      if (
+        isNaN(goals.protein) || goals.protein < 0 ||
+        isNaN(goals.carbs) || goals.carbs < 0 ||
+        isNaN(goals.fat) || goals.fat < 0
+      ) {
+        console.error('Geçersiz besin değerleri hedefleri:', goals);
+        return;
+      }
+      
+      console.log('Setting nutrient goals to:', goals);
+      
       set({ nutrientGoals: goals });
       await AsyncStorage.setItem(NUTRIENT_GOALS_KEY, JSON.stringify(goals));
     } catch (error) {
@@ -99,19 +120,64 @@ export const useCalorieGoalStore = create<CalorieGoalState>((set, get) => ({
       // Kalori hedefini yükle
       const storedCalorieGoal = await AsyncStorage.getItem(CALORIE_GOAL_KEY);
       if (storedCalorieGoal) {
-        set({ calorieGoal: parseInt(storedCalorieGoal, 10) });
+        try {
+          const parsedGoal = parseInt(storedCalorieGoal, 10);
+          
+          // Değerin geçerli olduğundan emin ol
+          if (!isNaN(parsedGoal) && parsedGoal > 0) {
+            console.log('Loaded calorie goal from storage:', parsedGoal);
+            set({ calorieGoal: parsedGoal });
+          } else {
+            console.warn('Invalid stored calorie goal, using default:', DEFAULT_CALORIE_GOAL);
+            set({ calorieGoal: DEFAULT_CALORIE_GOAL });
+          }
+        } catch (parseError) {
+          console.error('Failed to parse stored calorie goal:', parseError);
+          set({ calorieGoal: DEFAULT_CALORIE_GOAL });
+        }
       }
       
       // Besin değerleri hedeflerini yükle
       const storedNutrientGoals = await AsyncStorage.getItem(NUTRIENT_GOALS_KEY);
       if (storedNutrientGoals) {
-        set({ nutrientGoals: JSON.parse(storedNutrientGoals) });
+        try {
+          const parsedGoals = JSON.parse(storedNutrientGoals);
+          
+          // Tüm değerlerin geçerli olduğundan emin ol
+          if (
+            parsedGoals &&
+            typeof parsedGoals === 'object' &&
+            !isNaN(parsedGoals.protein) && parsedGoals.protein >= 0 &&
+            !isNaN(parsedGoals.carbs) && parsedGoals.carbs >= 0 &&
+            !isNaN(parsedGoals.fat) && parsedGoals.fat >= 0
+          ) {
+            console.log('Loaded nutrient goals from storage:', parsedGoals);
+            set({ nutrientGoals: parsedGoals });
+          } else {
+            console.warn('Invalid stored nutrient goals, using defaults:', DEFAULT_NUTRIENT_GOALS);
+            set({ nutrientGoals: DEFAULT_NUTRIENT_GOALS });
+          }
+        } catch (parseError) {
+          console.error('Failed to parse stored nutrient goals:', parseError);
+          set({ nutrientGoals: DEFAULT_NUTRIENT_GOALS });
+        }
       }
       
       // Tüketilen kaloriyi yükle
       const storedConsumedCalories = await AsyncStorage.getItem(CONSUMED_CALORIES_KEY);
       if (storedConsumedCalories) {
-        set({ consumedCalories: parseInt(storedConsumedCalories, 10) });
+        try {
+          const parsedConsumed = parseInt(storedConsumedCalories, 10);
+          
+          if (!isNaN(parsedConsumed) && parsedConsumed >= 0) {
+            set({ consumedCalories: parsedConsumed });
+          } else {
+            set({ consumedCalories: 0 });
+          }
+        } catch (parseError) {
+          console.error('Failed to parse stored consumed calories:', parseError);
+          set({ consumedCalories: 0 });
+        }
       }
       
       // Kalan kaloriyi hesapla

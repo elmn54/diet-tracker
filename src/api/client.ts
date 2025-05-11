@@ -87,11 +87,35 @@ export const get = async <T>(url: string, config?: any): Promise<T> => {
  */
 export const post = async <T>(url: string, data?: any, config?: any): Promise<T> => {
   try {
+    console.log(`API Request: POST ${url}`);
+    console.log('Request config:', { 
+      headers: config?.headers ? {...config.headers, Authorization: config.headers.Authorization ? 'Bearer ***' : undefined} : {},
+      timeout: config?.timeout || client.defaults.timeout
+    });
+    // Hide sensitive data but show request structure
+    const sensitiveDataHidden = JSON.parse(JSON.stringify(data || {}));
+    if (sensitiveDataHidden.inline_data?.data) {
+      sensitiveDataHidden.inline_data.data = '***image data truncated***';
+    }
+    console.log('Request data (sanitized):', sensitiveDataHidden);
+
     const response = await client.post<T>(url, data, config);
+    
+    console.log(`API Response status: ${response.status}`);
+    // Log only a portion of the response to avoid flooding logs
+    console.log('Response data (truncated):', typeof response.data === 'object' 
+      ? JSON.stringify(response.data).substring(0, 300) + '...' 
+      : String(response.data).substring(0, 300) + '...');
+    
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     const { message, retryable } = handleApiError(error);
     console.error('POST request failed:', message, 'Retryable:', retryable);
+    // Log detailed error information
+    if (error.response) {
+      console.error('Error response status:', error.response.status);
+      console.error('Error response data:', error.response.data);
+    }
     throw error;
   }
 };

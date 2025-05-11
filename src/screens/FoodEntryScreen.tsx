@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useForm, Controller } from 'react-hook-form';
@@ -14,6 +14,8 @@ import Button from '../components/Button';
 import { RadioButton, Text, ActivityIndicator, Divider, useTheme, MD3Theme } from 'react-native-paper';
 import { spacing, typography, metrics } from '../constants/theme';
 import * as ImagePicker from 'expo-image-picker';
+import { identifyFood } from '../services/foodRecognitionService';
+import { AI_PROVIDERS } from '../constants/aiProviders';
 
 // Yemek formu validasyon şeması
 const foodSchema = z.object({
@@ -30,6 +32,7 @@ const foodSchema = z.object({
 
 type FoodFormData = z.infer<typeof foodSchema>;
 type FoodEntryScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'FoodEntry'>;
+type FoodEntryScreenRouteProp = RouteProp<RootStackParamList, 'FoodEntry'>;
 
 // Gerçek API çağrı fonksiyonu 
 const analyzeImageWithAI = async (imageUri: string, apiKey: string, provider: string): Promise<any> => {
@@ -37,97 +40,71 @@ const analyzeImageWithAI = async (imageUri: string, apiKey: string, provider: st
     throw new Error('API anahtarı bulunamadı');
   }
   
-  // Seçilen API sağlayıcısına göre endpoint ve parametre yapılandırması
-  let endpoint;
-  let formData = new FormData();
-  
-  switch (provider) {
-    case 'openai':
-      endpoint = 'https://api.openai.com/v1/chat/completions';
-      
-      // Base64 formatına çevirme işlemi (gerçek uygulamada)
-      // const base64Image = await convertImageToBase64(imageUri);
-      
-      // Mockup davranış
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            name: 'Karışık Meyve Salatası (OpenAI)',
-            nutritionFacts: {
-              calories: 120,
-              protein: 1.5,
-              carbs: 30,
-              fat: 0.2
-            }
-          });
-        }, 2000);
-      });
-      
-    case 'google_vision':
-      endpoint = 'https://vision.googleapis.com/v1/images:annotate';
-      
-      // Mockup davranış
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            name: 'Sebzeli Makarna (Google Vision)',
-            nutritionFacts: {
-              calories: 350,
-              protein: 12,
-              carbs: 65,
-              fat: 6
-            }
-          });
-        }, 2000);
-      });
-      
-    default:
-      // Varsayılan mock davranış
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            name: 'Analiz Edilen Yemek',
-            nutritionFacts: {
-              calories: 250,
-              protein: 8,
-              carbs: 40,
-              fat: 5
-            }
-          });
-        }, 2000);
-      });
+  try {
+    console.log(`Analyzing image with ${provider} API`);
+    const result = await identifyFood(
+      { uri: imageUri },
+      provider,
+      apiKey
+    );
+    
+    console.log('Analysis result:', result);
+    return result;
+  } catch (error) {
+    console.error('API çağrısı sırasında hata:', error);
+    throw error;
   }
 };
 
 const FoodEntryScreen = () => {
   const navigation = useNavigation<FoodEntryScreenNavigationProp>();
-  const addFood = useFoodStore((state) => state.addFood);
-  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [image, setImage] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const route = useRoute<FoodEntryScreenRouteProp>();
   const theme = useTheme();
   
-  // API anahtarı ve abonelik bilgilerini al
-  const { apiKeys, preferredProvider } = useApiKeyStore();
-  const { isPlanFeatureAvailable, getRemainingRequests } = useSubscriptionStore();
+  // Stable references to state functions
+  const addFood = useFoodStore(useCallback(state => state.addFood, []));
+  const updateFood = useFoodStore(useCallback(state => state.updateFood, []));
   
-  // Yemek tanıma özelliği kullanılabilir mi kontrol et
-  const canUseImageRecognition = isPlanFeatureAvailable('imageRecognitionEnabled');
-  // Kalan istek sayısını kontrol et
-  const remainingRequests = getRemainingRequests();
+  // Use static store access to avoid subscription updates for rarely changing values
+  const getApiKey = (provider: string) => {
+    return useApiKeyStore.getState().apiKeys[provider];
+  };
+  
+  const getPreferredProvider = () => {
+    return useApiKeyStore.getState().preferredProvider;
+  };
+  
+  const isPlanFeatureAvailable = useCallback((feature: string) => {
+    return useSubscriptionStore.getState().isPlanFeatureAvailable(feature);
+  }, []);
+  
+  const getRemainingRequests = useCallback(() => {
+    return useSubscriptionStore.getState().getRemainingRequests();
+  }, []);
+  
+  // Memoized route params
+  const editMode = useMemo(() => route.params?.editMode || false, [route.params]);
+  const existingFood = useMemo(() => route.params?.foodItem, [route.params]);
+  
+  // Local state
+  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>(
+    existingFood ? existingFood.mealType : 'breakfast'
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [image, setImage] = useState<string | null>(existingFood?.imageUri || null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   const styles = makeStyles(theme);
   
   const { control, handleSubmit, formState: { errors }, setValue, reset } = useForm<FoodFormData>({
     resolver: zodResolver(foodSchema),
-    defaultValues: {
-      name: '',
-      calories: '',
-      protein: '',
-      carbs: '',
-      fat: '',
-    },
+    defaultValues: useMemo(() => ({
+      name: existingFood?.name || '',
+      calories: existingFood ? String(existingFood.calories) : '',
+      protein: existingFood ? String(existingFood.protein) : '',
+      carbs: existingFood ? String(existingFood.carbs) : '',
+      fat: existingFood ? String(existingFood.fat) : '',
+    }), [existingFood]),
   });
 
   const requestCameraPermission = async () => {
@@ -194,10 +171,11 @@ const FoodEntryScreen = () => {
 
   const analyzeImage = async (imageUri: string) => {
     setIsAnalyzing(true);
+    console.log('Starting image analysis...');
     
     try {
       // Abonelik kontrolü
-      if (!canUseImageRecognition) {
+      if (!isPlanFeatureAvailable('imageRecognitionEnabled')) {
         Alert.alert(
           'Premium Özellik', 
           'Görsel tanıma özelliği sadece premium aboneler için kullanılabilir.',
@@ -211,7 +189,8 @@ const FoodEntryScreen = () => {
       }
       
       // İstek limitini kontrol et
-      if (remainingRequests === 0) {
+      const remainingReqs = getRemainingRequests();
+      if (remainingReqs === 0) {
         Alert.alert(
           'Limit Aşıldı', 
           'Bu ay için AI görüntü tanıma limitinizi doldurdunuz. Daha fazla kullanım için Pro planına yükseltin.',
@@ -225,7 +204,11 @@ const FoodEntryScreen = () => {
       }
       
       // API anahtarı kontrolü
-      const currentApiKey = apiKeys[preferredProvider];
+      const preferredProvider = getPreferredProvider();
+      const currentApiKey = getApiKey(preferredProvider);
+      console.log('Using provider:', preferredProvider);
+      console.log('API key exists:', !!currentApiKey);
+      
       if (!currentApiKey) {
         Alert.alert(
           'API Anahtarı Gerekli', 
@@ -240,7 +223,9 @@ const FoodEntryScreen = () => {
       }
       
       // API'den veri alma
+      console.log('Sending image to analyzeImageWithAI...');
       const result = await analyzeImageWithAI(imageUri, currentApiKey, preferredProvider);
+      console.log('Analysis complete, result received:', JSON.stringify(result).substring(0, 200));
       
       // Form değerlerini AI analiz sonuçlarıyla doldur
       setValue('name', result.name);
@@ -256,6 +241,7 @@ const FoodEntryScreen = () => {
       // Hata mesajını özelleştir
       let errorMessage = 'Yemek tanınamadı. Lütfen bilgileri manuel olarak girin veya tekrar deneyin.';
       if (error instanceof Error) {
+        console.error('Error details:', error.message, error.stack);
         if (error.message.includes('API anahtarı')) {
           errorMessage = 'API anahtarı geçersiz veya eksik. API ayarlarınızı kontrol edin.';
         }
@@ -267,39 +253,52 @@ const FoodEntryScreen = () => {
     }
   };
 
+  const createFoodData = useCallback((data: FoodFormData): FoodItem => {
+    return {
+      id: editMode && existingFood ? existingFood.id : Date.now().toString(),
+      name: data.name,
+      calories: Number(data.calories),
+      protein: Number(data.protein),
+      carbs: Number(data.carbs),
+      fat: Number(data.fat),
+      date: editMode && existingFood ? existingFood.date : new Date().toISOString(),
+      mealType: mealType,
+      imageUri: image || undefined 
+    };
+  }, [editMode, existingFood, mealType, image]);
+
   const onSubmit = async (data: FoodFormData) => {
     try {
       setIsSubmitting(true);
       
-      // Verileri sayısal değerlere dönüştürme
-      const newFood: FoodItem = {
-        id: Date.now().toString(),
-        name: data.name,
-        calories: Number(data.calories),
-        protein: Number(data.protein),
-        carbs: Number(data.carbs),
-        fat: Number(data.fat),
-        date: new Date().toISOString(),
-        mealType: mealType,
-        imageUri: image || undefined // Eğer varsa yemek fotoğrafını da sakla, yoksa undefined olsun
-      };
+      const foodData = createFoodData(data);
 
-      // Yemeği store'a ekleme
-      await addFood(newFood);
-      
-      // Başarı mesajı gösterme
-      Alert.alert(
-        'Başarılı',
-        'Yemek kaydedildi',
-        [{ text: 'Tamam', onPress: () => {
-          reset(); // Formu sıfırla
-          setImage(null); // Resmi temizle
-          navigation.navigate('Ana Sayfa');
-        }}]
-      );
+      if (editMode) {
+        await updateFood(foodData);
+        Alert.alert(
+          'Başarılı',
+          'Yemek güncellendi',
+          [{ text: 'Tamam', onPress: () => {
+            reset();
+            setImage(null);
+            navigation.goBack();
+          }}]
+        );
+      } else {
+        await addFood(foodData);
+        Alert.alert(
+          'Başarılı',
+          'Yemek kaydedildi',
+          [{ text: 'Tamam', onPress: () => {
+            reset();
+            setImage(null);
+            navigation.navigate('Ana Sayfa');
+          }}]
+        );
+      }
     } catch (error) {
-      console.error('Yemek eklenirken hata oluştu:', error);
-      Alert.alert('Hata', 'Yemek kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.');
+      console.error('Yemek işlemi sırasında hata oluştu:', error);
+      Alert.alert('Hata', 'İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setIsSubmitting(false);
     }
@@ -307,7 +306,7 @@ const FoodEntryScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Yemek Ekle</Text>
+      <Text style={styles.title}>{editMode ? 'Yemeği Düzenle' : 'Yemek Ekle'}</Text>
       
       {/* Fotoğraf Alanı */}
       <View style={styles.imageSection}>
@@ -439,7 +438,7 @@ const FoodEntryScreen = () => {
       />
       
       <Button 
-        title="Kaydet"
+        title={editMode ? "Güncelle" : "Kaydet"}
         onPress={handleSubmit(onSubmit)}
         style={styles.button}
         loading={isSubmitting}

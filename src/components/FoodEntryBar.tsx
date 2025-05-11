@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme, MD3Theme } from 'react-native-paper';
 import { useFoodStore, FoodItem } from '../store/foodStore';
 import { useApiKeyStore } from '../store/apiKeyStore';
+// Gerçek API hizmetini ekle
+import { AI_PROVIDERS } from '../constants/aiProviders';
+import { createCompletion } from '../services/aiService.js';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ana Sayfa'>;
 
@@ -13,9 +16,13 @@ const FoodEntryBar: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const [inputText, setInputText] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const theme = useTheme();
   const { addFood } = useFoodStore();
-  const { apiKeys, preferredProvider } = useApiKeyStore();
+  
+  // Store'dan API bilgilerini al
+  const apiKeys = useApiKeyStore(state => state.apiKeys);
+  const preferredProvider = useApiKeyStore(state => state.preferredProvider);
   
   const styles = makeStyles(theme);
 
@@ -48,6 +55,54 @@ const FoodEntryBar: React.FC = () => {
     }
     return true;
   };
+  
+  // Metin tabanlı yemek analizi için AI çağrısı
+  const analyzeTextWithAI = async (text: string): Promise<any> => {
+    const apiKey = apiKeys[preferredProvider];
+    if (!apiKey) {
+      throw new Error('API anahtarı bulunamadı');
+    }
+    
+    console.log(`Analyzing text with ${preferredProvider} API: "${text}"`);
+    
+    try {
+      // Text promtu oluştur
+      const prompt = `Aşağıdaki yemek için besin değerlerini JSON formatında ver: ${text}
+      
+      Yanıtını şu formatta ver:
+      {
+        "name": "Yemek adı",
+        "nutritionFacts": {
+          "calories": sayı,
+          "protein": sayı,
+          "carbs": sayı,
+          "fat": sayı
+        }
+      }`;
+      
+      // createCompletion fonksiyonunu kullan
+      const completion = await createCompletion(
+        preferredProvider,
+        prompt,
+        apiKey
+      );
+      
+      console.log("AI yanıtı:", completion);
+      
+      // JSON yanıtını çıkar
+      const jsonMatch = completion.match(/\{.*\}/s);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        console.log("Parse edilmiş sonuç:", result);
+        return result;
+      }
+      
+      throw new Error('AI yanıtından JSON çıkarılamadı');
+    } catch (error) {
+      console.error('AI analizi sırasında hata:', error);
+      throw error;
+    }
+  };
 
   // Basit giriş için
   const handleQuickEntry = async () => {
@@ -58,42 +113,27 @@ const FoodEntryBar: React.FC = () => {
       }
       
       try {
-        // Normalde burada API çağrısı yapılırdı
-        // Şimdilik simüle ediyoruz
+        setIsAnalyzing(true);
+        
+        // Gerçek API çağrısı yap
+        console.log("Yemek analizi başlıyor:", inputText);
+        const result = await analyzeTextWithAI(inputText);
+        
+        // AI sonuçlarını kullanarak yeni yemek oluştur
         const newFood: FoodItem = {
           id: Date.now().toString(),
-          name: inputText,
-          calories: 150, // Varsayılan değerler
-          protein: 5,
-          carbs: 20,
-          fat: 7,
+          name: result.name || inputText,
+          calories: result.nutritionFacts.calories,
+          protein: result.nutritionFacts.protein,
+          carbs: result.nutritionFacts.carbs,
+          fat: result.nutritionFacts.fat,
           date: new Date().toISOString(),
           mealType: 'lunch', // Varsayılan öğün tipi
         };
         
-        // API anahtarı var ama simülasyon amaçlı temel kelime analizi
-        const lowerText = inputText.toLowerCase();
-        if (lowerText.includes('pilav') || lowerText.includes('rice')) {
-          newFood.name = 'Pilav';
-          newFood.calories = 240;
-          newFood.protein = 4.5;
-          newFood.carbs = 50;
-          newFood.fat = 3.2;
-        } else if (lowerText.includes('tavuk') || lowerText.includes('chicken')) {
-          newFood.name = 'Tavuk Göğsü';
-          newFood.calories = 165;
-          newFood.protein = 31;
-          newFood.carbs = 0;
-          newFood.fat = 3.6;
-        } else if (lowerText.includes('salata') || lowerText.includes('salad')) {
-          newFood.name = 'Karışık Salata';
-          newFood.calories = 45;
-          newFood.protein = 2;
-          newFood.carbs = 8;
-          newFood.fat = 0.5;
-        }
-        
         await addFood(newFood);
+        
+        Alert.alert('Başarılı', `${newFood.name} eklendi (${newFood.calories} kcal)`);
         
         // Input temizle
         setInputText('');
@@ -102,6 +142,8 @@ const FoodEntryBar: React.FC = () => {
       } catch (error) {
         console.error('Yemek eklenirken hata oluştu:', error);
         Alert.alert('Hata', 'Yemek eklenirken bir hata oluştu. Lütfen tekrar deneyin.');
+      } finally {
+        setIsAnalyzing(false);
       }
     }
   };
@@ -136,9 +178,13 @@ const FoodEntryBar: React.FC = () => {
           <TouchableOpacity 
             style={styles.quickEntryButton}
             onPress={handleQuickEntry}
-            disabled={inputText.trim().length === 0}
+            disabled={inputText.trim().length === 0 || isAnalyzing}
           >
-            <Text style={styles.quickEntryButtonText}>Hızlı Ekle</Text>
+            {isAnalyzing ? (
+              <ActivityIndicator size="small" color={theme.colors.onPrimary} />
+            ) : (
+              <Text style={styles.quickEntryButtonText}>Hızlı Ekle</Text>
+            )}
           </TouchableOpacity>
           
           <TouchableOpacity 

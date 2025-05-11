@@ -1,6 +1,6 @@
-import React from 'react';
-import { StyleSheet, StyleProp, ViewStyle } from 'react-native';
-import { Button as PaperButton, ActivityIndicator, useTheme } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, StyleProp, ViewStyle, Animated, Easing } from 'react-native';
+import { Button as PaperButton, ActivityIndicator, useTheme, IconButton } from 'react-native-paper';
 import { buttonVariants } from '../constants/theme';
 
 interface ButtonProps {
@@ -13,6 +13,8 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'outline' | 'transparent' | 'success';
   fullWidth?: boolean;
   icon?: string;
+  showSuccessAnimation?: boolean;
+  successDuration?: number;
 }
 
 /**
@@ -28,20 +30,92 @@ const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   fullWidth = false,
   icon,
+  showSuccessAnimation = false,
+  successDuration = 1500,
 }) => {
   const theme = useTheme();
   const variantStyle = buttonVariants[variant];
+  
+  const [showSuccess, setShowSuccess] = useState(false);
+  const successScale = new Animated.Value(0);
+  const successOpacity = new Animated.Value(0);
+  
+  // Success animasyonu
+  useEffect(() => {
+    if (showSuccessAnimation && !showSuccess) {
+      setShowSuccess(true);
+      
+      // Scale ve opacity animasyonları
+      Animated.parallel([
+        Animated.timing(successScale, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.back(1.5)),
+        }),
+        Animated.timing(successOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      
+      // Animasyon sonrası reset
+      const timer = setTimeout(() => {
+        Animated.timing(successOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start(() => {
+          setShowSuccess(false);
+          successScale.setValue(0);
+        });
+      }, successDuration);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessAnimation, showSuccess, successScale, successOpacity, successDuration]);
+  
+  const buttonContent = () => {
+    if (showSuccess) {
+      return (
+        <Animated.View style={{ 
+          transform: [{ scale: successScale }],
+          opacity: successOpacity,
+        }}>
+          <IconButton
+            icon="check-circle"
+            iconColor={theme.colors.background}
+            size={24}
+            style={styles.successIcon}
+          />
+        </Animated.View>
+      );
+    }
+    
+    if (loading) {
+      return (
+        <ActivityIndicator 
+          size={20} 
+          color={variantStyle.textColor} 
+          testID="button-loading"
+        />
+      );
+    }
+    
+    return title;
+  };
   
   return (
     <PaperButton
       mode={mode}
       onPress={onPress}
-      disabled={disabled || loading}
-      icon={loading ? undefined : icon}
+      disabled={disabled || loading || showSuccess}
+      icon={(!loading && !showSuccess) ? icon : undefined}
       style={[
         styles.button,
         {
-          backgroundColor: variantStyle.backgroundColor,
+          backgroundColor: showSuccess ? theme.colors.primary : variantStyle.backgroundColor,
           borderColor: variantStyle.borderColor,
           borderWidth: variantStyle.borderWidth,
         },
@@ -56,13 +130,7 @@ const Button: React.FC<ButtonProps> = ({
       testID="button-container"
       theme={{ roundness: 24 }}
     >
-      {loading ? (
-        <ActivityIndicator 
-          size={20} 
-          color={variantStyle.textColor} 
-          testID="button-loading"
-        />
-      ) : title}
+      {buttonContent()}
     </PaperButton>
   );
 };
@@ -83,6 +151,10 @@ const styles = StyleSheet.create({
   },
   fullWidth: {
     width: '100%',
+  },
+  successIcon: {
+    margin: 0,
+    padding: 0,
   },
 });
 

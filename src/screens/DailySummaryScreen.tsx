@@ -151,6 +151,35 @@ const DailySummaryScreen = () => {
     snack: 'Atıştırmalık',
   };
 
+  // Yemek türüne göre emoji seçme
+  const getFoodEmoji = (foodName: string) => {
+    const lowerName = foodName.toLowerCase();
+    
+    if (lowerName.includes('pilav') || lowerName.includes('rice')) return '🍚';
+    if (lowerName.includes('tavuk') || lowerName.includes('chicken')) return '🍗';
+    if (lowerName.includes('balık') || lowerName.includes('fish')) return '🐟';
+    if (lowerName.includes('pizza')) return '🍕';
+    if (lowerName.includes('hamburger') || lowerName.includes('burger')) return '🍔';
+    if (lowerName.includes('salata') || lowerName.includes('salad')) return '🥗';
+    if (lowerName.includes('muz') || lowerName.includes('banana')) return '🍌';
+    if (lowerName.includes('elma') || lowerName.includes('apple')) return '🍎';
+    if (lowerName.includes('portakal') || lowerName.includes('orange')) return '🍊';
+    if (lowerName.includes('çorba') || lowerName.includes('soup')) return '🍲';
+    if (lowerName.includes('makarna') || lowerName.includes('pasta')) return '🍝';
+    if (lowerName.includes('et') || lowerName.includes('meat')) return '🥩';
+    if (lowerName.includes('yumurta') || lowerName.includes('egg')) return '🍳';
+    if (lowerName.includes('süt') || lowerName.includes('milk')) return '🥛';
+    if (lowerName.includes('ekmek') || lowerName.includes('bread')) return '🍞';
+    if (lowerName.includes('çikolata') || lowerName.includes('chocolate')) return '🍫';
+    if (lowerName.includes('dondurma') || lowerName.includes('ice cream')) return '🍦';
+    if (lowerName.includes('kahve') || lowerName.includes('coffee')) return '☕';
+    if (lowerName.includes('çay') || lowerName.includes('tea')) return '🍵';
+    if (lowerName.includes('kek') || lowerName.includes('cake')) return '🍰';
+    
+    // Varsayılan
+    return '🍽️';
+  };
+
   // Öğün emoji'leri
   const mealTypeEmojis = {
     breakfast: '🍳',
@@ -163,6 +192,9 @@ const DailySummaryScreen = () => {
   const renderFoodCard = (food: FoodItem) => (
     <Card key={food.id} style={styles.foodCard}>
       <Card.Content style={styles.foodCardContent}>
+        <View style={styles.foodIconContainer}>
+          <Text style={styles.foodIcon}>{getFoodEmoji(food.name)}</Text>
+        </View>
         <View style={styles.foodInfo}>
           <Text style={styles.foodName}>{food.name}</Text>
           <Text style={styles.calorieText}>{food.calories} kcal</Text>
@@ -521,7 +553,13 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   foodCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
+    paddingVertical: 8,
+  },
+  foodIconContainer: {
+    marginRight: 12,
+  },
+  foodIcon: {
+    fontSize: 28,
   },
   foodInfo: {
     flex: 1,

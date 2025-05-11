@@ -73,7 +73,7 @@ const ApiSettingsScreen = () => {
       case AI_PROVIDERS.GEMINI:
         return (
           <Text style={[styles.instructions, { color: theme.colors.onSurfaceVariant }]}>
-            Google Gemini API anahtarınızı oluşturmak için <Text style={{ fontWeight: 'bold' }}>makersuite.google.com</Text> adresine gidin 
+            Google Gemini API anahtarınızı oluşturmak için <Text style={{ fontWeight: 'bold' }}>https://aistudio.google.com/apikey</Text>
             ve API Key bölümünden yeni bir anahtar oluşturun.
           </Text>
         );

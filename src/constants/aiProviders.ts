@@ -12,7 +12,7 @@ export const AI_PROVIDER_NAMES = {
 
 export const AI_PROVIDER_ENDPOINTS = {
   [AI_PROVIDERS.OPENAI]: 'https://api.openai.com/v1/chat/completions',
-  [AI_PROVIDERS.GEMINI]: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent',
+  [AI_PROVIDERS.GEMINI]: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
   [AI_PROVIDERS.CLAUDE]: 'https://api.anthropic.com/v1/messages',
 };
 

@@ -7,7 +7,7 @@ import { imageToBase64 } from './cameraService';
 // API endpoint'leri
 const API_ENDPOINTS = {
   [AI_PROVIDERS.OPENAI]: 'https://api.openai.com/v1/chat/completions',
-  [AI_PROVIDERS.GEMINI]: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent',
+  [AI_PROVIDERS.GEMINI]: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro-vision:generateContent',
   [AI_PROVIDERS.CLAUDE]: 'https://api.anthropic.com/v1/messages',
 };
 
@@ -71,6 +71,8 @@ export const identifyFood = async (
   provider: string = AI_PROVIDERS.OPENAI,
   apiKey: string
 ): Promise<FoodRecognitionResult> => {
+  console.log(`Starting food identification with provider: ${provider}`);
+  
   if (!image.uri) {
     throw new Error('Image URI is required');
   }
@@ -83,6 +85,8 @@ export const identifyFood = async (
 
   // Get the endpoint for the selected provider
   const endpoint = AI_PROVIDER_ENDPOINTS[provider];
+  console.log(`Using endpoint: ${endpoint}`);
+  
   if (!endpoint) {
     throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -100,6 +104,11 @@ export const identifyFood = async (
     }
   } catch (error: any) {
     console.error(`Error identifying food with ${provider}:`, error);
+    console.error('Error details:', {
+      message: error.message,
+      status: error.status,
+      response: error.response?.data
+    });
     throw new Error(`Failed to identify food: ${error.message}`);
   }
 };
@@ -163,6 +172,20 @@ const identifyWithOpenAI = async (base64: string, apiKey: string, endpoint: stri
  * @param apiKey - Gemini API anahtarı
  */
 const identifyWithGemini = async (base64: string, apiKey: string, endpoint: string): Promise<FoodRecognitionResult> => {
+  console.log('Sending request to Gemini API:', `${endpoint}?key=${apiKey.substring(0, 5)}...`);
+  console.log('Request payload:', {
+    contents: [{
+      parts: [
+        { text: "Prompt text..." },
+        { inline_data: { mime_type: "image/jpeg", data: "Base64 data (truncated)..." } }
+      ]
+    }],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 300
+    }
+  });
+
   const response = await post<GeminiResponse>(
     `${endpoint}?key=${apiKey}`,
     {
@@ -187,6 +210,8 @@ const identifyWithGemini = async (base64: string, apiKey: string, endpoint: stri
       }
     }
   );
+
+  console.log('Received response from Gemini API:', JSON.stringify(response, null, 2).substring(0, 500) + '...');
 
   try {
     // Extract JSON from the response
@@ -266,17 +291,23 @@ const identifyWithClaude = async (base64: string, apiKey: string, endpoint: stri
  * @returns Base64 formatındaki görüntü verisi
  */
 const convertImageToBase64 = async (uri: string): Promise<string> => {
-  // Not: Gerçek uygulamada, React Native veya Expo için uygun bir kütüphane kullanarak
-  // görüntü dosyasını Base64'e dönüştürme kodunu buraya ekleyin
-  // Bu bir mock implementasyondur
   try {
-    // Örnek yaklaşım (gerçek uygulamada farklı olabilir):
-    // 1. Fetch ile dosyayı al
-    // 2. Blob'a dönüştür
-    // 3. FileReader ile Base64'e çevir
-    return 'MOCK_BASE64_IMAGE_DATA';
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        // Extract the base64 part after the data URL prefix
+        const base64 = base64String.split(',')[1];
+        console.log('Image successfully converted to base64');
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   } catch (error) {
-    console.error('Görüntü Base64\'e dönüştürülürken hata:', error);
+    console.error('Error converting image to base64:', error);
     throw new Error('Görüntü formatı dönüştürülemedi');
   }
 };
