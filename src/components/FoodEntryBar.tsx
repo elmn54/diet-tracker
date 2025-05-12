@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,12 +19,19 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ana Sayfa'>
 
 interface FoodEntryBarProps {
   selectedDate?: Date;
+  hideCaloriesAndMacros?: boolean;
+  onFocusChange?: (isFocused: boolean) => void;
 }
 
-const FoodEntryBar: React.FC<FoodEntryBarProps> = ({ selectedDate = new Date() }) => {
+const FoodEntryBar: React.FC<FoodEntryBarProps> = ({ 
+  selectedDate = new Date(),
+  hideCaloriesAndMacros = true,
+  onFocusChange
+}) => {
   const navigation = useNavigation<NavigationProp>();
   const [inputText, setInputText] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const theme = useTheme();
   const { addFood } = useFoodStore();
@@ -35,10 +42,42 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({ selectedDate = new Date() }
   const preferredProvider = useApiKeyStore(state => state.preferredProvider);
   
   const styles = makeStyles(theme);
+  
+  // Klavye olaylarını dinle
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        setIsKeyboardVisible(true);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setIsKeyboardVisible(false);
+        if (!inputText.trim()) {
+          handleFocusChange(false);
+        }
+      }
+    );
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
+    };
+  }, [inputText]);
+
+  // Input odak değişikliğini işle
+  const handleFocusChange = (focused: boolean) => {
+    setIsInputFocused(focused);
+    if (onFocusChange) {
+      onFocusChange(focused);
+    }
+  };
 
   // Gelişmiş yemek eklemeye git
   const handleAdvancedEntry = () => {
-    setIsInputFocused(false);
+    handleFocusChange(false);
     Keyboard.dismiss();
     navigation.navigate('FoodEntry', { selectedDate });
   };
@@ -414,7 +453,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({ selectedDate = new Date() }
         
         // Input temizle
         setInputText('');
-        setIsInputFocused(false);
+        handleFocusChange(false);
         Keyboard.dismiss();
       } catch (error) {
         console.error('Yemek eklenirken hata oluştu:', error);
@@ -425,8 +464,14 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({ selectedDate = new Date() }
     }
   };
 
+  // Klavye ve focus durumuna göre butonları gösterme durumu
+  const shouldShowButtons = isInputFocused && (isKeyboardVisible || inputText.trim().length > 0);
+
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      shouldShowButtons && styles.containerExpanded
+    ]}>
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -434,8 +479,8 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({ selectedDate = new Date() }
           placeholderTextColor={theme.colors.onSurfaceVariant}
           value={inputText}
           onChangeText={setInputText}
-          onFocus={() => setIsInputFocused(true)}
-          onBlur={() => setIsInputFocused(false)}
+          onFocus={() => handleFocusChange(true)}
+          onBlur={() => handleFocusChange(false)}
         />
         <View style={styles.buttonsContainer}>
           <TouchableOpacity 
@@ -455,7 +500,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({ selectedDate = new Date() }
         </View>
       </View>
       
-      {isInputFocused && (
+      {shouldShowButtons && (
         <View style={styles.quickEntryContainer}>
           <TouchableOpacity 
             style={styles.quickEntryButton}
@@ -512,6 +557,9 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     shadowRadius: 5,
     paddingVertical: 15,
     paddingHorizontal: 20,
+  },
+  containerExpanded: {
+    paddingBottom: 20,
   },
   inputContainer: {
     flexDirection: 'row',

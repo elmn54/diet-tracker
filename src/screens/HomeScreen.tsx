@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, StatusBar, FlatList, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,7 +10,10 @@ import WeeklyCalendar from '../components/WeeklyCalendar';
 import CaloriesCard from '../components/CaloriesCard';
 import MacrosCard from '../components/MacrosCard';
 import FoodEntryBar from '../components/FoodEntryBar';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import GestureRecognizer from 'react-native-swipe-gestures';
+
+// Alternatif yaklaşım (eğer mevcut çözüm çalışmazsa):
+// import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ana Sayfa'>;
 
@@ -29,13 +32,36 @@ const HomeScreen = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [menuVisible, setMenuVisible] = useState(false);
   const [dailyFoods, setDailyFoods] = useState<FoodItem[]>([]);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const theme = useTheme();
+  
+  // FlatList için referans oluştur
+  const flatListRef = useRef<FlatList<FoodItem>>(null);
+  const nativeGestureRef = useRef(null);
   
   const styles = makeStyles(theme.colors);
   
   // Yemek ve kalori hedefi verilerini çek
   const { foods, calculateDailyCalories, calculateDailyNutrients } = useFoodStore();
   const { calorieGoal, nutrientGoals } = useCalorieGoalStore();
+  
+  // Swipe konfigürasyonu
+  const swipeConfig = {
+    velocityThreshold: 0.3,         // Hız eşiği
+    directionalOffsetThreshold: 50,  // Yön sapma eşiği 
+    gestureIsClickThreshold: 5,      // Tıklama eşiği
+    enableMoveUp: false,            // Yukarı swipe'ı devre dışı bırak (FlatList scroll için)
+    enableMoveDown: false           // Aşağı swipe'ı devre dışı bırak (FlatList scroll için)
+  };
+  
+  // Swipe işleyicileri
+  const onSwipeLeft = () => {
+    goToNextDay();
+  };
+  
+  const onSwipeRight = () => {
+    goToPreviousDay();
+  };
   
   // Seçilen günün değerlerini hesapla
   const dailyCalories = calculateDailyCalories(selectedDate.toISOString());
@@ -284,26 +310,6 @@ const HomeScreen = () => {
     }
   };
   
-  // Basit kaydırma tanımlaması - Pan kullanarak
-  const swipeGesture = Gesture.Pan()
-    .runOnJS(true)
-    .onEnd((event) => {
-      // Sadece belirgin yatay hareketleri algıla
-      if (Math.abs(event.translationX) < 50) return;
-      
-      // Yatay hareketin dikey hareketten daha güçlü olduğunu kontrol et
-      if (Math.abs(event.translationX) > Math.abs(event.translationY)) {
-        // Sağa kaydırma (soldan sağa) -> önceki gün
-        if (event.translationX > 0) {
-          goToPreviousDay();
-        } 
-        // Sola kaydırma (sağdan sola) -> sonraki gün
-        else {
-          goToNextDay();
-        }
-      }
-    });
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
@@ -376,39 +382,52 @@ const HomeScreen = () => {
       </View>
       
       {/* ORTA BÖLÜM: Yemek Listesi (kaydırılabilir) */}
-      <GestureDetector gesture={swipeGesture}>
-        <View style={styles.middleSection}>
+      <View style={styles.middleSection}>
+        <GestureRecognizer
+          onSwipeLeft={onSwipeLeft}
+          onSwipeRight={onSwipeRight}
+          config={swipeConfig}
+          style={{ flex: 1 }}
+        >
           <FlatList
+            ref={flatListRef}
             data={dailyFoods}
             renderItem={renderFoodItem}
             keyExtractor={item => item.id}
             ListEmptyComponent={EmptyListComponent}
             contentContainerStyle={dailyFoods.length === 0 ? styles.emptyListContentContainer : styles.foodListContentContainer}
             scrollEnabled={true}
-            scrollEventThrottle={16} // Kaydırma olaylarını 60 FPS için optimize et
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={true}
+            bounces={true}
           />
-        </View>
-      </GestureDetector>
-      
-      {/* ALT BÖLÜM: Kalori ve Makro Kartları */}
-      <View style={styles.bottomSection}>
-        <View style={styles.cardsContainer}>
-          <CaloriesCard 
-            food={dailyCalories}
-            exercise={0} // Egzersiz kalorisi henüz eklenmiyor
-            remaining={remainingCalories}
-          />
-          
-          <MacrosCard 
-            carbs={{ current: dailyNutrients.carbs, goal: nutrientGoals.carbs }}
-            protein={{ current: dailyNutrients.protein, goal: nutrientGoals.protein }}
-            fat={{ current: dailyNutrients.fat, goal: nutrientGoals.fat }}
-          />
-        </View>
+        </GestureRecognizer>
       </View>
       
+      {/* ALT BÖLÜM: Kalori ve Makro Kartları */}
+      {!isInputFocused && (
+        <View style={styles.bottomSection}>
+          <View style={styles.cardsContainer}>
+            <CaloriesCard 
+              food={dailyCalories}
+              exercise={0} // Egzersiz kalorisi henüz eklenmiyor
+              remaining={remainingCalories}
+            />
+            
+            <MacrosCard 
+              carbs={{ current: dailyNutrients.carbs, goal: nutrientGoals.carbs }}
+              protein={{ current: dailyNutrients.protein, goal: nutrientGoals.protein }}
+              fat={{ current: dailyNutrients.fat, goal: nutrientGoals.fat }}
+            />
+          </View>
+        </View>
+      )}
+      
       {/* EN ALT: Yemek Giriş Çubuğu */}
-      <FoodEntryBar selectedDate={selectedDate} />
+      <FoodEntryBar 
+        selectedDate={selectedDate} 
+        onFocusChange={setIsInputFocused}
+      />
     </SafeAreaView>
   );
 };
@@ -531,6 +550,14 @@ const makeStyles = (colors: any) => StyleSheet.create({
   },
   deleteIcon: {
     fontSize: 20,
+  },
+  gestureOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
   },
 });
 
