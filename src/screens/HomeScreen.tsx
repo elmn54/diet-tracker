@@ -253,6 +253,37 @@ const HomeScreen = () => {
     setSelectedDate(previousDay);
   };
   
+  // Kalori durumunu hesaplayan fonksiyon
+  const getCalorieStatus = (date: Date): 'complete' | 'incomplete' | 'exceeded' | undefined => {
+    try {
+      // Tarih biçimini ayarla
+      const dateString = date.toISOString();
+      
+      // Günün kalori değerlerini hesapla
+      const dayCalories = calculateDailyCalories(dateString);
+      
+      // Günün kalori durumunu değerlendir
+      const calorieCompletion = (dayCalories / calorieGoal) * 100;
+      
+      if (dayCalories === 0) {
+        // Veri yoksa undefined döndür (renklendirme yapılmaz)
+        return undefined;
+      } else if (calorieCompletion >= 95 && calorieCompletion <= 105) {
+        // %95-105 aralığında ise tamamlanmış kabul et (hedef tutturulmuş)
+        return 'complete';
+      } else if (calorieCompletion > 105) {
+        // %105'ten fazla ise aşılmış kabul et
+        return 'exceeded';
+      } else {
+        // %95'ten az ise tamamlanmamış kabul et
+        return 'incomplete';
+      }
+    } catch (error) {
+      console.error('Kalori durumu hesaplanırken hata:', error);
+      return undefined;
+    }
+  };
+  
   // Basit kaydırma tanımlaması - Pan kullanarak
   const swipeGesture = Gesture.Pan()
     .runOnJS(true)
@@ -340,6 +371,7 @@ const HomeScreen = () => {
         <WeeklyCalendar 
           selectedDate={selectedDate}
           onSelectDate={setSelectedDate}
+          getCalorieStatus={getCalorieStatus}
         />
       </View>
       
