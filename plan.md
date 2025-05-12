@@ -14,12 +14,26 @@
 - [x] AppNavigator.tsx oluşturma
 - Test doğrulaması
 
-### 1.4 Depolama Stratejisi
-- **Ücretsiz Plan:**
-  - Verilerin cihazda yerel olarak saklanması (Örn: Zustand persist middleware ile AsyncStorage kullanımı).
-- **Ücretli Plan:**
-  - Verilerin bulut tabanlı bir çözümde (Örn: Firebase, AWS Amplify) saklanması ve cihazlar arası senkronizasyonu.
-  - API üzerinden veri senkronizasyonunun yönetilmesi.
+### 1.4 Depolama Stratejisi (Revize)
+- **Tüm Tier'lar:**
+  - Kullanıcı kimlik bilgileri Firebase Authentication ile merkezi olarak saklanır.
+  - Kullanıcı profil bilgileri ve abonelik durumu Firestore'da saklanır.
+
+- **Tier 1 (Ücretsiz / Reklamlı):**
+  - Verilerin cihazda yerel olarak saklanması (Zustand persist middleware ile AsyncStorage).
+  - Reklam gösterimi aktif.
+  - Temel diyet takip özellikleri.
+
+- **Tier 2 (Premium Basic):**
+  - Yerel depolama devam eder.
+  - Reklamlar kaldırılır.
+  - Ek özellikler: Detaylı besin analizi, gelişmiş grafikler, yemek önerileri.
+
+- **Tier 3 (Premium Pro):**
+  - Cloud Storage ile cihazlar arası senkronizasyon.
+  - Reklamlar kaldırılır.
+  - Tüm premium özellikler + yedekleme ve geri yükleme.
+  - Gelişmiş AI yemek tanıma limitleri.
 
 ### 1.5 [x] Klasör Yapısı
 ```
@@ -35,6 +49,7 @@ src/
 ├── utils/            # Yardımcı fonksiyonlar
 ├── types/            # TypeScript tip tanımlamaları
 ├── context/          # Context API ile durum yönetimi
+├── services/         # Servis sağlayıcılar (Firebase, veri senkronizasyon, vb.)
 └── constants/        # Sabitler ve tema
 __tests__/            # Test dosyaları (src yapısını yansıtır)
 ```
@@ -46,13 +61,16 @@ __tests__/            # Test dosyaları (src yapısını yansıtır)
 - [x] apiKeyStore.ts oluşturma
 - [x] calorieGoalStore.ts oluşturma
 - [x] subscriptionStore.ts oluşturma
+- [ ] userStore.ts oluşturma (Firebase Auth entegrasyonu ile)
 
-### 1.7 Kimlik Doğrulama (Authentication) (Hafta 1-2)
-- [x] Login Ekranı (`LoginScreen`) UI, Temel Doğrulama ve Store Entegrasyonu
-- [x] Register Ekranı (`RegisterScreen`) UI, Kullanıcı Oluşturma ve Store Entegrasyonu
+### 1.7 Kimlik Doğrulama (Authentication) (Revize) (Hafta 1-2)
+- [x] Firebase Authentication entegrasyonu
+- [x] Login Ekranı (`LoginScreen`) UI, Firebase Auth entegrasyonu
+- [x] Register Ekranı (`RegisterScreen`) UI, Firebase Auth ile kullanıcı oluşturma
 - [x] Auth Durumuna Göre Navigasyon Mantığı (Giriş kontrolü ve yönlendirme)
-- (Opsiyonel) Şifre Sıfırlama Akışı
-- Kimlik Doğrulama Testleri (Birim ve Entegrasyon Testleri)
+- [x] Şifre Sıfırlama Akışı
+- [ ] Sosyal medya ile giriş seçenekleri (Google, Apple) (Opsiyonel)
+- [ ] Kimlik Doğrulama Testleri (Birim ve Entegrasyon Testleri)
 
 ## 2. UI Bileşenleri ve Veri Gösterimi (Hafta 2)
 
@@ -188,7 +206,6 @@ __tests__/            # Test dosyaları (src yapısını yansıtır)
 - Porsiyon boyutu yönetimi
 - Besin değerleri geçmişi
 
-
 ## 9. Kullanıcı Profili ve Ayarlar (Hafta 7-8)
 
 ### 9.1 [x] Kullanıcı Profili Yönetimi (`ProfileScreen`)
@@ -207,7 +224,7 @@ __tests__/            # Test dosyaları (src yapısını yansıtır)
 
 ### 9.4 [x] Abonelik ve API Ayarları
 - [x] `PricingScreen`: Ücretsiz ve ücretli abonelik planlarını, özelliklerini ve fiyatlarını gösterme.
-  - (Gelecek Özellik) Ödeme sistemi entegrasyonu (`RevenueCat` vb.).
+  - [ ] Ödeme sistemi entegrasyonu (`RevenueCat` vb.).
 - [x] `ApiSettingsScreen` (UI ve İşlevsellik):
   - [x] Desteklenen yemek tanıma API sağlayıcılarının listelenmesi ve seçimi.
   - [x] Seçilen sağlayıcı için API anahtarı giriş, güncelleme ve silme (`apiKeyStore.ts` entegrasyonu).
@@ -236,3 +253,76 @@ __tests__/            # Test dosyaları (src yapısını yansıtır)
 - [x] Hedef durumu göstergesi
 - [x] Kalan/fazla kalori gösterimi
 - [x] Görsel geri bildirim
+
+## 12. Abonelik ve Kullanıcı Yönetimi (Hafta 12-14)
+
+### 12.1 Firebase Entegrasyonu
+- [ ] Firebase projesinin oluşturulması ve yapılandırılması
+- [ ] Firebase SDK'nın kurulması ve inicialize edilmesi
+- [ ] Firestore ve Firebase Auth bağlantılarının kurulması
+- [ ] Firebase Yapılandırma Dosyalarının Oluşturulması
+  - [ ] `firebaseConfig.ts` (yapılandırma bilgileri)
+  - [ ] `firebaseService.ts` (genel Firebase servisleri)
+
+### 12.2 Kullanıcı Kimlik Doğrulama Sistemi
+- [ ] `authService.ts` Oluşturulması
+  - [ ] Kayıt fonksiyonu (e-posta/şifre)
+  - [ ] Giriş fonksiyonu
+  - [ ] Şifre sıfırlama
+  - [ ] Sosyal medya ile giriş (İleride)
+- [ ] `userStore.ts` Güncellenmesi
+  - [ ] Firebase Auth durumunun yönetimi
+  - [ ] Kullanıcı oturum bilgilerinin tutulması
+  - [ ] Kullanıcı profil bilgilerinin Firestore ile senkronizasyonu
+
+### 12.3 Abonelik Sistemi
+- [ ] `subscriptionService.ts` Oluşturulması
+  - [ ] RevenueCat entegrasyonu (veya alternatif sistem)
+  - [ ] Abonelik durumu yönetimi
+  - [ ] Satın alma işlemleri
+  - [ ] Abonelik yenileme ve iptal yönetimi
+- [ ] `subscriptionStore.ts` Güncellenmesi
+  - [ ] Kullanıcı abonelik durumunun izlenmesi
+  - [ ] Tier'a göre özellik bayraklarının ayarlanması
+  - [ ] Abonelik durumu değişikliklerinin takibi
+
+### 12.4 Veri Senkronizasyon Sistemi
+- [ ] `syncService.ts` Oluşturulması
+  - [ ] Yerel veri - bulut veri senkronizasyonu (Tier 3)
+  - [ ] Çevrimdışı destek
+  - [ ] Çakışma çözümleme stratejileri
+- [ ] Mevcut store'ların senkronizasyon için güncellenmesi
+  - [ ] `foodStore.ts` senkronizasyon desteği
+  - [ ] `calorieGoalStore.ts` senkronizasyon desteği
+  - [ ] Diğer gerekli store'ların güncellenmesi
+
+### 12.5 Reklam Entegrasyonu (Tier 1)
+- [ ] AdMob kurulumu ve yapılandırması
+- [ ] `adService.ts` Oluşturulması
+  - [ ] Banner reklamlar yönetimi
+  - [ ] Interstitial reklamlar yönetimi
+  - [ ] Kullanıcı deneyimini bozmayan reklam stratejileri
+- [ ] Tier 2+ kullanıcılar için reklamların devre dışı bırakılması
+
+### 12.6 Abonelik UI ve Akışları
+- [ ] Geliştirilmiş `PricingScreen` Ekranı
+  - [ ] Tier 1, 2 ve 3 özelliklerinin detaylı karşılaştırması
+  - [ ] Satın alma düğmeleri ve işlem akışı
+  - [ ] Deneme süresi teklifi
+- [ ] Abonelik Yönetim Ekranı (`SubscriptionManagementScreen`)
+  - [ ] Mevcut abonelik durumu
+  - [ ] Yükseltme/düşürme seçenekleri
+  - [ ] Faturalandırma bilgileri ve geçmişi
+- [ ] İptal Akışı Yönetimi
+  - [ ] Abonelik iptal akışı
+  - [ ] Kullanıcı geri bildirimi toplama
+
+### 12.7 Veri Güvenliği ve Gizlilik
+- [ ] GDPR/KVKK Uyumluluğu
+  - [ ] Veri işleme izinleri
+  - [ ] Veri silme hakları
+  - [ ] Verilerin taşınabilirliği
+- [ ] Firestore Güvenlik Kuralları
+  - [ ] Kullanıcılarının sadece kendi verilerine erişmesi
+  - [ ] Yetkilendirme kontrolleri
+- [ ] Hassas veri şifreleme stratejileri
