@@ -247,11 +247,6 @@ const HomeScreen = () => {
       
       {/* ÜST BÖLÜM: Header ve Takvim */}
       <View style={styles.topSection}>
-        {/* Başlık */}
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Ana Sayfa</Text>
-        </View>
-        
         {/* Tarih ve Butonlar */}
         <View style={styles.todayContainer}>
           <Text style={styles.todayText}>{getDayLabel()}</Text>
@@ -364,18 +359,6 @@ const makeStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     marginBottom: 100, // FoodEntryBar için daha fazla yer
-  },
-  headerContainer: {
-    backgroundColor: colors.background,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.onSurface,
   },
   todayContainer: {
     flexDirection: 'row',
