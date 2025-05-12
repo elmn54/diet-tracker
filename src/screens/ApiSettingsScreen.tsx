@@ -149,7 +149,10 @@ const ApiSettingsScreen = () => {
   return (
     <>
       <StatusBar backgroundColor={theme.dark ? '#121822' : '#F7F9FC'} barStyle={theme.dark ? 'light-content' : 'dark-content'} />
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView 
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+        edges={['left', 'right', 'bottom']}
+      >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.section}>
             <Text style={[styles.screenTitle, { color: theme.colors.primary }]}>
@@ -263,7 +266,7 @@ const ApiSettingsScreen = () => {
             </View>
           </View>
         </ScrollView>
-      </View>
+      </SafeAreaView>
     </>
   );
 };

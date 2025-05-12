@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Text, Divider, IconButton, FAB, useTheme, MD3Theme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFoodStore, FoodItem } from '../store/foodStore';
 import { useCalorieGoalStore } from '../store/calorieGoalStore';
 import { useNavigation } from '@react-navigation/native';
@@ -262,7 +263,7 @@ const DailySummaryScreen = () => {
   const isToday = isSameDay(date, new Date());
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <ScrollView style={styles.scrollContainer}>
         <View style={styles.dateSelector}>
           <IconButton 
@@ -397,7 +398,7 @@ const DailySummaryScreen = () => {
           color={theme.colors.onPrimary}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

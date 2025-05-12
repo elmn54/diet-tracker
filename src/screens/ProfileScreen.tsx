@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Image, Linking } from 'react-native';
 import { Text, Card, Divider, List, Avatar, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../components/Button';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -69,111 +70,115 @@ const ProfileScreen = () => {
   };
 
   return (
-    <ScrollView 
+    <SafeAreaView 
       style={[styles.container, { backgroundColor: theme.colors.background }]}
-      showsVerticalScrollIndicator={true}
+      edges={['left', 'right', 'bottom']}
     >
-      <View style={styles.header}>
-        <Avatar.Image 
-          size={120} 
-          source={require('../../assets/icon.png')} 
-          style={styles.avatar}
-        />
-        <Text style={[styles.userName, { color: theme.colors.onBackground }]}>{userProfile.name}</Text>
-        <Text style={[styles.userEmail, { color: theme.colors.onBackground }]}>{userProfile.email}</Text>
-        <Text style={[styles.joinDate, { color: theme.colors.onBackground }]}>
-          Üyelik: {formatDate(userProfile.joinDate)}
-        </Text>
+      <ScrollView 
+        showsVerticalScrollIndicator={true}
+      >
+        <View style={styles.header}>
+          <Avatar.Image 
+            size={120} 
+            source={require('../../assets/icon.png')} 
+            style={styles.avatar}
+          />
+          <Text style={[styles.userName, { color: theme.colors.onBackground }]}>{userProfile.name}</Text>
+          <Text style={[styles.userEmail, { color: theme.colors.onBackground }]}>{userProfile.email}</Text>
+          <Text style={[styles.joinDate, { color: theme.colors.onBackground }]}>
+            Üyelik: {formatDate(userProfile.joinDate)}
+          </Text>
+          
+          <Button
+            title="Profili Düzenle"
+            onPress={handleEditProfile}
+            style={styles.editButton}
+            variant="outline"
+            loading={loading}
+          />
+        </View>
         
-        <Button
-          title="Profili Düzenle"
-          onPress={handleEditProfile}
-          style={styles.editButton}
-          variant="outline"
-          loading={loading}
-        />
-      </View>
-      
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>İstatistikler</Text>
-          
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userProfile.streakDays}</Text>
-              <Text style={styles.statLabel}>Seri Gün</Text>
-            </View>
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>İstatistikler</Text>
             
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userProfile.totalLogsCount}</Text>
-              <Text style={styles.statLabel}>Toplam Kayıt</Text>
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{userProfile.streakDays}</Text>
+                <Text style={styles.statLabel}>Seri Gün</Text>
+              </View>
+              
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{userProfile.totalLogsCount}</Text>
+                <Text style={styles.statLabel}>Toplam Kayıt</Text>
+              </View>
             </View>
-          </View>
-        </Card.Content>
-      </Card>
-      
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Ayarlar</Text>
-          
-          <List.Item
-            title="Kalori ve Besin Hedefleri"
-            description="Günlük besin alımı hedeflerini ayarlayın"
-            left={props => <List.Icon {...props} icon="target" />}
-            onPress={handleOpenCalorieGoalScreen}
-          />
-          
-          <Divider style={styles.divider} />
-          
-          <List.Item
-            title="Tema Ayarları"
-            description="Uygulama tema tercihlerini değiştirin"
-            left={props => <List.Icon {...props} icon="theme-light-dark" />}
-            onPress={handleOpenThemeSettings}
-          />
-          
-          <Divider style={styles.divider} />
-          
-          <List.Item
-            title="Abonelik Planları"
-            description="Premium özelliklere erişin"
-            left={props => <List.Icon {...props} icon="cash" />}
-            onPress={() => navigation.navigate('Pricing')}
-          />
-        </Card.Content>
-      </Card>
-      
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Destek</Text>
-          
-          <List.Item
-            title="Uygulama Hakkında"
-            left={props => <List.Icon {...props} icon="information" />}
-            onPress={() => Alert.alert('Diyet Takip', 'Sürüm 1.0.0\n© 2023 Tüm Hakları Saklıdır')}
-          />
-          
-          <Divider style={styles.divider} />
-          
-          <List.Item
-            title="Gizlilik Politikası"
-            left={props => <List.Icon {...props} icon="shield-account" />}
-            onPress={() => Linking.openURL('https://example.com/privacy')}
-          />
-          
-          <Divider style={styles.divider} />
-          
-          <List.Item
-            title="Çıkış Yap"
-            left={props => <List.Icon {...props} icon="logout" color={colors.error} />}
-            onPress={handleLogout}
-            titleStyle={{ color: colors.error }}
-          />
-        </Card.Content>
-      </Card>
-      
-      <View style={styles.extraSpace} />
-    </ScrollView>
+          </Card.Content>
+        </Card>
+        
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Ayarlar</Text>
+            
+            <List.Item
+              title="Kalori ve Besin Hedefleri"
+              description="Günlük besin alımı hedeflerini ayarlayın"
+              left={props => <List.Icon {...props} icon="target" />}
+              onPress={handleOpenCalorieGoalScreen}
+            />
+            
+            <Divider style={styles.divider} />
+            
+            <List.Item
+              title="Tema Ayarları"
+              description="Uygulama tema tercihlerini değiştirin"
+              left={props => <List.Icon {...props} icon="theme-light-dark" />}
+              onPress={handleOpenThemeSettings}
+            />
+            
+            <Divider style={styles.divider} />
+            
+            <List.Item
+              title="Abonelik Planları"
+              description="Premium özelliklere erişin"
+              left={props => <List.Icon {...props} icon="cash" />}
+              onPress={() => navigation.navigate('Pricing')}
+            />
+          </Card.Content>
+        </Card>
+        
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Destek</Text>
+            
+            <List.Item
+              title="Uygulama Hakkında"
+              left={props => <List.Icon {...props} icon="information" />}
+              onPress={() => Alert.alert('Diyet Takip', 'Sürüm 1.0.0\n© 2023 Tüm Hakları Saklıdır')}
+            />
+            
+            <Divider style={styles.divider} />
+            
+            <List.Item
+              title="Gizlilik Politikası"
+              left={props => <List.Icon {...props} icon="shield-account" />}
+              onPress={() => Linking.openURL('https://example.com/privacy')}
+            />
+            
+            <Divider style={styles.divider} />
+            
+            <List.Item
+              title="Çıkış Yap"
+              left={props => <List.Icon {...props} icon="logout" color={colors.error} />}
+              onPress={handleLogout}
+              titleStyle={{ color: colors.error }}
+            />
+          </Card.Content>
+        </Card>
+        
+        <View style={styles.extraSpace} />
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

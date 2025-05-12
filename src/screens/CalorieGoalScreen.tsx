@@ -233,7 +233,10 @@ const CalorieGoalScreen = () => {
   };
   
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView 
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      edges={['left', 'right', 'bottom']}  // Exclude 'top' to prevent extra padding
+    >
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -357,8 +360,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.m,
+    paddingHorizontal: spacing.m,
     paddingBottom: spacing.xl,
+    paddingTop: 0,
   },
   section: {
     marginBottom: spacing.l,

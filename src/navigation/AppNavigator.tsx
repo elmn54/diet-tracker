@@ -13,6 +13,7 @@ import StatsScreen from '../screens/StatsScreen';
 import ApiSettingsScreen from '../screens/ApiSettingsScreen';
 import PricingScreen from '../screens/PricingScreen';
 import CalorieGoalScreen from '../screens/CalorieGoalScreen';
+import { spacing } from '../constants/theme';
 
 // Stack navigator tipini tanımlıyoruz
 export type RootStackParamList = {
@@ -58,7 +59,7 @@ const AppNavigator = () => {
   const screenOptions = {
     headerTitleAlign: 'center' as const,
     headerStyle: {
-      backgroundColor: theme.colors.surface,
+      backgroundColor: theme.colors.background,
     },
     headerTitleStyle: {
       fontWeight: 'bold' as const,
@@ -113,7 +114,11 @@ const AppNavigator = () => {
         component={DailySummaryScreen}
         options={{
           ...screenOptions,
-          title: 'Günlük Özet'
+          title: 'Günlük Özet',
+          contentStyle: {
+            ...screenOptions.contentStyle,
+            paddingTop: spacing.s,
+          }
         }}
       />
       <Stack.Screen 
@@ -137,7 +142,11 @@ const AppNavigator = () => {
         component={StatsScreen}
         options={{
           ...screenOptions,
-          title: 'İstatistikler'
+          title: '',
+          contentStyle: {
+            ...screenOptions.contentStyle,
+            paddingTop: 0,
+          }
         }}
       />
       <Stack.Screen 
@@ -145,7 +154,11 @@ const AppNavigator = () => {
         component={ApiSettingsScreen}
         options={{
           ...screenOptions,
-          title: 'API Ayarları'
+          title: '',
+          contentStyle: {
+            ...screenOptions.contentStyle,
+            paddingTop: 0,
+          }
         }}
       />
       <Stack.Screen 
@@ -153,7 +166,11 @@ const AppNavigator = () => {
         component={PricingScreen}
         options={{
           ...screenOptions,
-          title: 'Abonelik Planları'
+          title: '',
+          contentStyle: {
+            ...screenOptions.contentStyle,
+            paddingTop: spacing.s,
+          }
         }}
       />
       <Stack.Screen 
@@ -161,7 +178,11 @@ const AppNavigator = () => {
         component={CalorieGoalScreen}
         options={{
           ...screenOptions,
-          title: 'Kalori Hedefi'
+          title: '',
+          contentStyle: {
+            ...screenOptions.contentStyle,
+            paddingTop: spacing.s,
+          }
         }}
       />
     </Stack.Navigator>
