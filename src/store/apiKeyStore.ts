@@ -24,16 +24,21 @@ type ApiKeyState = {
 // API Anahtarlarını saklama ve yönetme store'u
 export const useApiKeyStore = create<ApiKeyState>((set, get) => ({
   apiKeys: {},
-  preferredProvider: AI_PROVIDERS.OPENAI,
+  preferredProvider: AI_PROVIDERS.GEMINI,
   isLoading: false,
   
   // API anahtarı ayarlama
   setApiKey: async (provider, apiKey) => {
     try {
-      const updatedApiKeys = {
-        ...get().apiKeys,
-        [provider]: apiKey
-      };
+      const updatedApiKeys = { ...get().apiKeys };
+      
+      // Eğer apiKey boş ise, o provider için olan anahtarı sil
+      if (!apiKey || apiKey.trim() === '') {
+        delete updatedApiKeys[provider];
+      } else {
+        // Değilse yeni anahtarı kaydet
+        updatedApiKeys[provider] = apiKey;
+      }
       
       set({ apiKeys: updatedApiKeys });
       await AsyncStorage.setItem('api_keys', JSON.stringify(updatedApiKeys));
@@ -90,7 +95,7 @@ export const useApiKeyStore = create<ApiKeyState>((set, get) => ({
     try {
       set({ 
         apiKeys: {}, 
-        preferredProvider: AI_PROVIDERS.OPENAI,
+        preferredProvider: AI_PROVIDERS.GEMINI,
         isLoading: false 
       });
       

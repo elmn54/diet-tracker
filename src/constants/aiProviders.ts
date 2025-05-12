@@ -6,7 +6,7 @@ export const AI_PROVIDERS = {
 
 export const AI_PROVIDER_NAMES = {
   [AI_PROVIDERS.OPENAI]: 'OpenAI',
-  [AI_PROVIDERS.GEMINI]: 'Google Gemini',
+  [AI_PROVIDERS.GEMINI]: 'Gemini',
   [AI_PROVIDERS.CLAUDE]: 'Claude',
 };
 

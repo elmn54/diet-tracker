@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard, Alert, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard, Alert, ActivityIndicator, BackHandler } from 'react-native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme, MD3Theme } from 'react-native-paper';
@@ -29,6 +29,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   onFocusChange
 }) => {
   const navigation = useNavigation<NavigationProp>();
+  const isFocused = useIsFocused(); // Ekranın aktif olup olmadığını takip et
   const [inputText, setInputText] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -36,12 +37,35 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   const theme = useTheme();
   const { addFood } = useFoodStore();
   const { showToast } = useUIStore();
+  const inputRef = useRef<TextInput>(null);
   
   // Store'dan API bilgilerini al
   const apiKeys = useApiKeyStore(state => state.apiKeys);
   const preferredProvider = useApiKeyStore(state => state.preferredProvider);
   
   const styles = makeStyles(theme);
+  
+  // Ekran değiştiğinde veya geri düğmesine basıldığında focus'u sıfırla
+  useEffect(() => {
+    if (!isFocused) {
+      // Ekran aktif değilse inputu ve focus durumunu sıfırla
+      setIsInputFocused(false);
+      if (onFocusChange) {
+        onFocusChange(false);
+      }
+    }
+  }, [isFocused, onFocusChange]);
+
+  // Navigasyon olaylarını dinle
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('blur', () => {
+      // Navigasyon ekrandan ayrıldığında focus'u kaldır
+      handleFocusChange(false);
+      Keyboard.dismiss();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
   
   // Klavye olaylarını dinle
   useEffect(() => {
@@ -51,12 +75,19 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         setIsKeyboardVisible(true);
       }
     );
+    
     const keyboardDidHideListener = Keyboard.addListener(
       'keyboardDidHide',
       () => {
         setIsKeyboardVisible(false);
-        if (!inputText.trim()) {
+        
+        // Klavye gizlendiğinde, Android geri tuşuna basıldığında
+        // focus ve butonları sıfırla (kullanıcı işlemini iptal ediyor)
+        if (isInputFocused) {
           handleFocusChange(false);
+          if (inputRef.current) {
+            inputRef.current.blur();
+          }
         }
       }
     );
@@ -65,7 +96,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       keyboardDidHideListener.remove();
       keyboardDidShowListener.remove();
     };
-  }, [inputText]);
+  }, [isInputFocused]);
 
   // Input odak değişikliğini işle
   const handleFocusChange = (focused: boolean) => {
@@ -468,7 +499,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   };
 
   // Klavye ve focus durumuna göre butonları gösterme durumu
-  const shouldShowButtons = isInputFocused && (isKeyboardVisible || inputText.trim().length > 0);
+  const shouldShowButtons = isInputFocused && isKeyboardVisible;
 
   return (
     <View style={[
@@ -477,6 +508,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     ]}>
       <View style={styles.inputContainer}>
         <TextInput
+          ref={inputRef}
           style={styles.input}
           placeholder="Ne yediniz?"
           placeholderTextColor={theme.colors.onSurfaceVariant}
