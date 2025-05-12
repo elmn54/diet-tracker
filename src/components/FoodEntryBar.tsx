@@ -17,7 +17,11 @@ import { useSubscriptionStore } from '../store/subscriptionStore';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ana Sayfa'>;
 
-const FoodEntryBar: React.FC = () => {
+interface FoodEntryBarProps {
+  selectedDate?: Date;
+}
+
+const FoodEntryBar: React.FC<FoodEntryBarProps> = ({ selectedDate = new Date() }) => {
   const navigation = useNavigation<NavigationProp>();
   const [inputText, setInputText] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -36,7 +40,7 @@ const FoodEntryBar: React.FC = () => {
   const handleAdvancedEntry = () => {
     setIsInputFocused(false);
     Keyboard.dismiss();
-    navigation.navigate('FoodEntry');
+    navigation.navigate('FoodEntry', { selectedDate });
   };
 
   // Kamera izni isteği
@@ -265,10 +269,11 @@ const FoodEntryBar: React.FC = () => {
                     protein: Number(protein),
                     carbs: Number(carbs),
                     fat: Number(fat),
-                    date: new Date().toISOString(),
+                    date: selectedDate.toISOString(),
                     mealType: 'lunch',
                     imageUri: imageUri
-                  }
+                  },
+                  selectedDate: selectedDate
                 });
                 setIsAnalyzing(false);
               },
@@ -309,7 +314,7 @@ const FoodEntryBar: React.FC = () => {
         protein: Number(protein),
         carbs: Number(carbs),
         fat: Number(fat),
-        date: new Date().toISOString(),
+        date: selectedDate.toISOString(),
         mealType: 'lunch', // Varsayılan öğün tipi
         imageUri: imageUri
       };
@@ -398,7 +403,7 @@ const FoodEntryBar: React.FC = () => {
           protein: result.nutritionFacts.protein,
           carbs: result.nutritionFacts.carbs,
           fat: result.nutritionFacts.fat,
-          date: new Date().toISOString(),
+          date: selectedDate.toISOString(),
           mealType: 'lunch', // Varsayılan öğün tipi
         };
         

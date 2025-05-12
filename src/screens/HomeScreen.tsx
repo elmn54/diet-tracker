@@ -408,7 +408,7 @@ const HomeScreen = () => {
       </View>
       
       {/* EN ALT: Yemek Giriş Çubuğu */}
-      <FoodEntryBar />
+      <FoodEntryBar selectedDate={selectedDate} />
     </SafeAreaView>
   );
 };

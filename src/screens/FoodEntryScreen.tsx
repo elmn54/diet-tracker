@@ -272,11 +272,13 @@ const FoodEntryScreen = () => {
       protein: Number(data.protein),
       carbs: Number(data.carbs),
       fat: Number(data.fat),
-      date: editMode && existingFood ? existingFood.date : new Date().toISOString(),
+      date: editMode && existingFood 
+        ? existingFood.date 
+        : (route.params?.selectedDate || new Date()).toISOString(),
       mealType: mealType,
       imageUri: image || undefined 
     };
-  }, [editMode, existingFood, mealType, image]);
+  }, [editMode, existingFood, mealType, image, route.params?.selectedDate]);
 
   const onSubmit = async (data: FoodFormData) => {
     try {
