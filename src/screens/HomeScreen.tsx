@@ -168,6 +168,13 @@ const HomeScreen = () => {
     return false;
   };
 
+  // Metni kısaltma fonksiyonu
+  const truncateText = (text: string, maxLength: number): string => {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
   // Öğün türü emojisi
   const getMealTypeEmoji = (mealType: string) => {
     switch (mealType) {
@@ -191,7 +198,9 @@ const HomeScreen = () => {
       <View style={styles.foodItemContainer}>
         <Text style={styles.mealTypeEmoji}>{getFoodEmoji(item.name)}</Text>
         <View style={styles.foodDetails}>
-          <Text style={styles.foodName}>{item.name}</Text>
+          <Text style={styles.foodName} numberOfLines={2} ellipsizeMode="tail">
+            {truncateText(item.name || '', 30)}
+          </Text>
           <Text style={styles.foodCalories}>{item.calories} kcal</Text>
         </View>
         <View style={styles.foodMacros}>
@@ -504,18 +513,23 @@ const makeStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     padding: 12,
     alignItems: 'center',
+    flexWrap: 'nowrap',
   },
   mealTypeEmoji: {
     fontSize: 24,
     marginRight: 12,
+    width: 30, // Sabit genişlik
   },
   foodDetails: {
     flex: 1,
+    minWidth: 0, // flexbox içindeki overflow sorunları için
   },
   foodName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.onSurface,
+    flexShrink: 1,
+    maxWidth: '100%',
   },
   foodCalories: {
     fontSize: 14,
@@ -525,11 +539,15 @@ const makeStyles = (colors: any) => StyleSheet.create({
   foodMacros: {
     flexDirection: 'row',
     gap: 8,
+    minWidth: 100, // Makrolar için minimum genişlik
+    justifyContent: 'flex-end',
+    flexShrink: 0, // Küçültülmesini engelle
   },
   macroText: {
     fontSize: 12,
     color: colors.onSurface,
     opacity: 0.7,
+    flexShrink: 0, // Küçültülmesini engelle
   },
   emptyListContainer: {
     padding: 20,
@@ -547,6 +565,8 @@ const makeStyles = (colors: any) => StyleSheet.create({
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 4,
+    flexShrink: 0, // Küçültülmesini engelle
   },
   deleteIcon: {
     fontSize: 20,
