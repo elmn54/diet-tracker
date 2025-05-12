@@ -10,6 +10,7 @@ import WeeklyCalendar from '../components/WeeklyCalendar';
 import CaloriesCard from '../components/CaloriesCard';
 import MacrosCard from '../components/MacrosCard';
 import FoodEntryBar from '../components/FoodEntryBar';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ana Sayfa'>;
 
@@ -238,6 +239,40 @@ const HomeScreen = () => {
     });
   };
 
+  // Sonraki güne geçme fonksiyonu
+  const goToNextDay = () => {
+    const nextDay = new Date(selectedDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setSelectedDate(nextDay);
+  };
+  
+  // Önceki güne geçme fonksiyonu
+  const goToPreviousDay = () => {
+    const previousDay = new Date(selectedDate);
+    previousDay.setDate(previousDay.getDate() - 1);
+    setSelectedDate(previousDay);
+  };
+  
+  // Basit kaydırma tanımlaması - Pan kullanarak
+  const swipeGesture = Gesture.Pan()
+    .runOnJS(true)
+    .onEnd((event) => {
+      // Sadece belirgin yatay hareketleri algıla
+      if (Math.abs(event.translationX) < 50) return;
+      
+      // Yatay hareketin dikey hareketten daha güçlü olduğunu kontrol et
+      if (Math.abs(event.translationX) > Math.abs(event.translationY)) {
+        // Sağa kaydırma (soldan sağa) -> önceki gün
+        if (event.translationX > 0) {
+          goToPreviousDay();
+        } 
+        // Sola kaydırma (sağdan sola) -> sonraki gün
+        else {
+          goToNextDay();
+        }
+      }
+    });
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
@@ -309,15 +344,19 @@ const HomeScreen = () => {
       </View>
       
       {/* ORTA BÖLÜM: Yemek Listesi (kaydırılabilir) */}
-      <View style={styles.middleSection}>
-        <FlatList
-          data={dailyFoods}
-          renderItem={renderFoodItem}
-          keyExtractor={item => item.id}
-          ListEmptyComponent={EmptyListComponent}
-          contentContainerStyle={dailyFoods.length === 0 ? styles.emptyListContentContainer : styles.foodListContentContainer}
-        />
-      </View>
+      <GestureDetector gesture={swipeGesture}>
+        <View style={styles.middleSection}>
+          <FlatList
+            data={dailyFoods}
+            renderItem={renderFoodItem}
+            keyExtractor={item => item.id}
+            ListEmptyComponent={EmptyListComponent}
+            contentContainerStyle={dailyFoods.length === 0 ? styles.emptyListContentContainer : styles.foodListContentContainer}
+            scrollEnabled={true}
+            scrollEventThrottle={16} // Kaydırma olaylarını 60 FPS için optimize et
+          />
+        </View>
+      </GestureDetector>
       
       {/* ALT BÖLÜM: Kalori ve Makro Kartları */}
       <View style={styles.bottomSection}>

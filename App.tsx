@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, useColorScheme, AppState, AppStateStatus } from 'react-native';
+import { StatusBar, useColorScheme, AppState, AppStateStatus, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider } from 'react-native-paper';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
 import { toggleTheme, LightTheme, DarkTheme } from './src/constants/theme';
 import { useFoodStore } from './src/store/foodStore';
@@ -88,34 +89,42 @@ export default function App() {
   }, [isDarkMode, isSystemTheme, colorScheme, setIsDarkMode]);
 
   return (
-    <PaperProvider theme={currentTheme}>
-      <NavigationContainer>
-        <AppNavigator />
-        <StatusBar 
-          barStyle={(isSystemTheme ? colorScheme === 'dark' : isDarkMode) ? 'light-content' : 'dark-content'} 
-          backgroundColor={currentTheme.colors.background}
-          translucent
-        />
-        
-        {/* Global Toast bildirimi */}
-        <Toast
-          visible={toast.visible}
-          message={toast.message}
-          type={toast.type}
-          duration={toast.duration}
-          onDismiss={hideToast}
-        />
-        
-        {/* Global Alert bildirimi */}
-        <CustomAlert
-          visible={alert.visible}
-          title={alert.title}
-          message={alert.message}
-          type={alert.type}
-          buttons={alert.buttons}
-          onDismiss={hideAlert}
-        />
-      </NavigationContainer>
-    </PaperProvider>
+    <GestureHandlerRootView style={styles.container}>
+      <PaperProvider theme={currentTheme}>
+        <NavigationContainer>
+          <AppNavigator />
+          <StatusBar 
+            barStyle={(isSystemTheme ? colorScheme === 'dark' : isDarkMode) ? 'light-content' : 'dark-content'} 
+            backgroundColor={currentTheme.colors.background}
+            translucent
+          />
+          
+          {/* Global Toast bildirimi */}
+          <Toast
+            visible={toast.visible}
+            message={toast.message}
+            type={toast.type}
+            duration={toast.duration}
+            onDismiss={hideToast}
+          />
+          
+          {/* Global Alert bildirimi */}
+          <CustomAlert
+            visible={alert.visible}
+            title={alert.title}
+            message={alert.message}
+            type={alert.type}
+            buttons={alert.buttons}
+            onDismiss={hideAlert}
+          />
+        </NavigationContainer>
+      </PaperProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
