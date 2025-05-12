@@ -79,6 +79,9 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   const handleAdvancedEntry = () => {
     handleFocusChange(false);
     Keyboard.dismiss();
+    
+    // Gelişmiş mod her zaman manuel giriş için kullanılır,
+    // bu nedenle fromTextInput parametresini geçmeyeceğiz
     navigation.navigate('FoodEntry', { selectedDate });
   };
 

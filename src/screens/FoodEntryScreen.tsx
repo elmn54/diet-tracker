@@ -11,7 +11,7 @@ import { useApiKeyStore } from '../store/apiKeyStore';
 import { useSubscriptionStore } from '../store/subscriptionStore';
 import Input from '../components/Input';
 import Button from '../components/Button';
-import { RadioButton, Text, ActivityIndicator, Divider, useTheme, MD3Theme } from 'react-native-paper';
+import { Text, ActivityIndicator, Divider, useTheme, MD3Theme } from 'react-native-paper';
 import { spacing, typography, metrics } from '../constants/theme';
 import * as ImagePicker from 'expo-image-picker';
 import { identifyFood } from '../services/foodRecognitionService';
@@ -33,28 +33,6 @@ const foodSchema = z.object({
 type FoodFormData = z.infer<typeof foodSchema>;
 type FoodEntryScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'FoodEntry'>;
 type FoodEntryScreenRouteProp = RouteProp<RootStackParamList, 'FoodEntry'>;
-
-// Gerçek API çağrı fonksiyonu 
-const analyzeImageWithAI = async (imageUri: string, apiKey: string, provider: string): Promise<any> => {
-  if (!apiKey) {
-    throw new Error('API anahtarı bulunamadı');
-  }
-  
-  try {
-    console.log(`Analyzing image with ${provider} API`);
-    const result = await identifyFood(
-      { uri: imageUri },
-      provider,
-      apiKey
-    );
-    
-    console.log('Analysis result:', result);
-    return result;
-  } catch (error) {
-    console.error('API çağrısı sırasında hata:', error);
-    throw error;
-  }
-};
 
 const FoodEntryScreen = () => {
   const navigation = useNavigation<FoodEntryScreenNavigationProp>();
@@ -89,12 +67,30 @@ const FoodEntryScreen = () => {
   const openGallery = useMemo(() => route.params?.openGallery || false, [route.params]);
   
   // Local state
-  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>(
-    existingFood ? existingFood.mealType : 'breakfast'
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [image, setImage] = useState<string | null>(existingFood?.imageUri || null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // Yemeğin bir fotoğrafa sahip olup olmadığına veya fotoğraf/kamera ile başlatılıp başlatılmadığına göre fotoğraf bölümünü göster
+  const [showPhotoSection, setShowPhotoSection] = useState(() => {
+    // Eğer düzenleme modundaysak ve mevcut yemeğin fotoğrafı varsa veya
+    // kamera/galeri ile açıldıysa fotoğraf bölümünü göster
+    return image !== null || openCamera || openGallery;
+  });
+  
+  const styles = makeStyles(theme);
+  
+  // Form yönetimi
+  const { control, handleSubmit, formState: { errors }, setValue, reset } = useForm<FoodFormData>({
+    resolver: zodResolver(foodSchema),
+    defaultValues: {
+      name: existingFood ? existingFood.name : '',
+      calories: existingFood ? String(existingFood.calories) : '',
+      protein: existingFood ? String(existingFood.protein) : '',
+      carbs: existingFood ? String(existingFood.carbs) : '',
+      fat: existingFood ? String(existingFood.fat) : ''
+    }
+  });
   
   // Otomatik olarak kamera veya galeri açma
   useEffect(() => {
@@ -105,63 +101,8 @@ const FoodEntryScreen = () => {
     }
   }, [openCamera, openGallery]);
   
-  const styles = makeStyles(theme);
-  
-  const { control, handleSubmit, formState: { errors }, setValue, reset } = useForm<FoodFormData>({
-    resolver: zodResolver(foodSchema),
-    defaultValues: useMemo(() => ({
-      name: existingFood?.name || '',
-      calories: existingFood ? String(existingFood.calories) : '',
-      protein: existingFood ? String(existingFood.protein) : '',
-      carbs: existingFood ? String(existingFood.carbs) : '',
-      fat: existingFood ? String(existingFood.fat) : '',
-    }), [existingFood]),
-  });
-
-  const requestCameraPermission = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('İzin Gerekli', 'Kamerayı kullanmak için izin gereklidir.');
-      return false;
-    }
-    return true;
-  };
-
-  const requestMediaLibraryPermission = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('İzin Gerekli', 'Galeriyi kullanmak için izin gereklidir.');
-      return false;
-    }
-    return true;
-  };
-
-  const takePicture = async () => {
-    const hasPermission = await requestCameraPermission();
-    if (!hasPermission) return;
-
-    try {
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImage(result.assets[0].uri);
-        analyzeImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Fotoğraf çekerken hata oluştu:', error);
-      Alert.alert('Hata', 'Fotoğraf çekilemedi. Lütfen tekrar deneyin.');
-    }
-  };
-
+  // Resim seçme fonksiyonu
   const pickImage = async () => {
-    const hasPermission = await requestMediaLibraryPermission();
-    if (!hasPermission) return;
-
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -169,77 +110,101 @@ const FoodEntryScreen = () => {
         aspect: [4, 3],
         quality: 0.8,
       });
-
+      
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImage(result.assets[0].uri);
-        analyzeImage(result.assets[0].uri);
+        const selectedImage = result.assets[0];
+        setImage(selectedImage.uri);
+        
+        // Eğer düzenleme modu değilse ve yemek bilgileri girilmemişse analiz et
+        if (!editMode && !existingFood && isPlanFeatureAvailable('foodRecognition')) {
+          analyzeImage(selectedImage.uri);
+        }
       }
     } catch (error) {
-      console.error('Fotoğraf seçerken hata oluştu:', error);
-      Alert.alert('Hata', 'Fotoğraf seçilemedi. Lütfen tekrar deneyin.');
+      console.error('Resim seçilirken hata oluştu:', error);
+      Alert.alert('Hata', 'Resim seçilirken bir hata oluştu.');
     }
   };
-
+  
+  // Resim çekme fonksiyonu
+  const takePicture = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('İzin Gerekli', 'Kamera kullanımı için izin gereklidir.');
+        return;
+      }
+      
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+      
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const capturedImage = result.assets[0];
+        setImage(capturedImage.uri);
+        
+        // Eğer düzenleme modu değilse ve yemek bilgileri girilmemişse analiz et
+        if (!editMode && !existingFood && isPlanFeatureAvailable('foodRecognition')) {
+          analyzeImage(capturedImage.uri);
+        }
+      }
+    } catch (error) {
+      console.error('Fotoğraf çekilirken hata oluştu:', error);
+      Alert.alert('Hata', 'Fotoğraf çekilirken bir hata oluştu.');
+    }
+  };
+  
+  // Görüntü analizi fonksiyonu
   const analyzeImage = async (imageUri: string) => {
+    // API anahtarı kontrolü
+    const apiKey = getApiKey(getPreferredProvider());
+    if (!apiKey) {
+      Alert.alert(
+        'API Anahtarı Eksik',
+        'Yemek tanıma için API anahtarı gereklidir. API ayarlarından ekleyebilirsiniz.',
+        [
+          { text: 'İptal' },
+          { 
+            text: 'API Ayarları', 
+            onPress: () => navigation.navigate('ApiSettings')
+          }
+        ]
+      );
+      return;
+    }
+    
+    // Kalan istek sayısı kontrolü
+    const remainingRequests = getRemainingRequests();
+    if (remainingRequests <= 0) {
+      Alert.alert(
+        'İstek Limiti Aşıldı',
+        'Günlük AI analiz limitinize ulaştınız. Premium abonelik ile daha fazla istek yapabilirsiniz.',
+        [
+          { text: 'İptal' },
+          { 
+            text: 'Abonelik Planları', 
+            onPress: () => navigation.navigate('Pricing')
+          }
+        ]
+      );
+      return;
+    }
+    
     setIsAnalyzing(true);
-    console.log('Starting image analysis...');
     
     try {
-      // Abonelik kontrolü
-      if (!isPlanFeatureAvailable('imageRecognitionEnabled')) {
-        Alert.alert(
-          'Premium Özellik', 
-          'Görsel tanıma özelliği sadece premium aboneler için kullanılabilir.',
-          [
-            { text: 'İptal' },
-            { text: 'Abonelik Planları', onPress: () => navigation.navigate('Pricing') }
-          ]
-        );
-        setIsAnalyzing(false);
-        return;
-      }
+      // Yemek tanıma servisini çağır
+      const result = await identifyFood(
+        { uri: imageUri }, 
+        getPreferredProvider(),
+        apiKey
+      );
       
-      // İstek limitini kontrol et
-      const remainingReqs = getRemainingRequests();
-      if (remainingReqs === 0) {
-        Alert.alert(
-          'Limit Aşıldı', 
-          'Bu ay için AI görüntü tanıma limitinizi doldurdunuz. Daha fazla kullanım için Pro planına yükseltin.',
-          [
-            { text: 'İptal' },
-            { text: 'Abonelik Planları', onPress: () => navigation.navigate('Pricing') }
-          ]
-        );
-        setIsAnalyzing(false);
-        return;
-      }
-      
-      // API anahtarı kontrolü
-      const preferredProvider = getPreferredProvider();
-      const currentApiKey = getApiKey(preferredProvider);
-      console.log('Using provider:', preferredProvider);
-      console.log('API key exists:', !!currentApiKey);
-      
-      if (!currentApiKey) {
-        Alert.alert(
-          'API Anahtarı Gerekli', 
-          'Görüntü tanıma için API anahtarı gereklidir.',
-          [
-            { text: 'İptal' },
-            { text: 'API Ayarları', onPress: () => navigation.navigate('ApiSettings') }
-          ]
-        );
-        setIsAnalyzing(false);
-        return;
-      }
-      
-      // API'den veri alma
-      console.log('Sending image to analyzeImageWithAI...');
-      const result = await analyzeImageWithAI(imageUri, currentApiKey, preferredProvider);
-      console.log('Analysis complete, result received:', JSON.stringify(result).substring(0, 200));
-      
-      // Form değerlerini AI analiz sonuçlarıyla doldur
-      setValue('name', result.name);
+      // Form alanlarını doldur
+      setValue('name', result.foodName);
       setValue('calories', String(result.nutritionFacts.calories));
       setValue('protein', String(result.nutritionFacts.protein));
       setValue('carbs', String(result.nutritionFacts.carbs));
@@ -275,10 +240,10 @@ const FoodEntryScreen = () => {
       date: editMode && existingFood 
         ? existingFood.date 
         : (route.params?.selectedDate || new Date()).toISOString(),
-      mealType: mealType,
+      mealType: editMode && existingFood ? existingFood.mealType : 'lunch',
       imageUri: image || undefined 
     };
-  }, [editMode, existingFood, mealType, image, route.params?.selectedDate]);
+  }, [editMode, existingFood, image, route.params?.selectedDate]);
 
   const onSubmit = async (data: FoodFormData) => {
     try {
@@ -321,58 +286,50 @@ const FoodEntryScreen = () => {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>{editMode ? 'Yemeği Düzenle' : 'Yemek Ekle'}</Text>
       
-      {/* Fotoğraf Alanı */}
-      <View style={styles.imageSection}>
-        {image ? (
-          <Image source={{ uri: image }} style={styles.previewImage} />
-        ) : (
-          <View style={styles.placeholderImage}>
-            <Text style={styles.placeholderText}>Fotoğraf Yok</Text>
+      {/* Fotoğraf Alanı - Koşullu gösterim */}
+      {showPhotoSection && (
+        <>
+          <View style={styles.imageSection}>
+            {image ? (
+              <Image source={{ uri: image }} style={styles.previewImage} />
+            ) : (
+              <View style={styles.placeholderImage}>
+                <Text style={styles.placeholderText}>Fotoğraf Yok</Text>
+              </View>
+            )}
+            
+            <View style={styles.imageButtons}>
+              <TouchableOpacity 
+                style={styles.imageButton} 
+                onPress={takePicture}
+                disabled={isAnalyzing}
+              >
+                <Text style={styles.imageButtonText}>Fotoğraf Çek</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.imageButton} 
+                onPress={pickImage}
+                disabled={isAnalyzing}
+              >
+                <Text style={styles.imageButtonText}>Galeriden Seç</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {isAnalyzing && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={styles.loadingText}>Yemek Analiz Ediliyor...</Text>
+              </View>
+            )}
           </View>
-        )}
-        
-        <View style={styles.imageButtons}>
-          <TouchableOpacity 
-            style={styles.imageButton} 
-            onPress={takePicture}
-            disabled={isAnalyzing}
-          >
-            <Text style={styles.imageButtonText}>Fotoğraf Çek</Text>
-          </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.imageButton} 
-            onPress={pickImage}
-            disabled={isAnalyzing}
-          >
-            <Text style={styles.imageButtonText}>Galeriden Seç</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {isAnalyzing && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>Yemek Analiz Ediliyor...</Text>
-          </View>
-        )}
-      </View>
+          <Divider style={styles.divider} />
+        </>
+      )}
       
-      <Divider style={styles.divider} />
-      
-      <Text style={styles.sectionTitle}>Öğün Tipi</Text>
-      <RadioButton.Group
-        onValueChange={(value) => setMealType(value as any)}
-        value={mealType}
-      >
-        <View style={styles.radioRow}>
-          <RadioButton.Item label="Kahvaltı" value="breakfast" />
-          <RadioButton.Item label="Öğle Yemeği" value="lunch" />
-        </View>
-        <View style={styles.radioRow}>
-          <RadioButton.Item label="Akşam Yemeği" value="dinner" />
-          <RadioButton.Item label="Atıştırmalık" value="snack" />
-        </View>
-      </RadioButton.Group>
+      {/* Yemek Verileri Formu */}
+      <Text style={styles.sectionTitle}>Yemek Bilgileri</Text>
       
       <Controller
         control={control}
@@ -380,7 +337,7 @@ const FoodEntryScreen = () => {
         render={({ field: { onChange, value } }) => (
           <Input
             label="Yemek Adı"
-            placeholder="Örn: Yulaf Ezmesi"
+            placeholder="Örn: Izgara Tavuk"
             value={value}
             onChangeText={onChange}
             error={errors.name?.message}
@@ -403,15 +360,13 @@ const FoodEntryScreen = () => {
         )}
       />
       
-      <Text style={styles.sectionTitle}>Besin Değerleri (gram)</Text>
-      
       <Controller
         control={control}
         name="protein"
         render={({ field: { onChange, value } }) => (
           <Input
             label="Protein (g)"
-            placeholder="Örn: 10"
+            placeholder="Örn: 20"
             value={value}
             onChangeText={onChange}
             error={errors.protein?.message}
@@ -530,27 +485,13 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     color: theme.colors.onSurfaceVariant,
     fontSize: typography.fontSize.medium,
   },
+  divider: {
+    marginVertical: spacing.m,
+  },
   button: {
     marginTop: spacing.xl,
     marginBottom: spacing.xxl,
     backgroundColor: theme.colors.primary,
-  },
-  radioRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.m,
-  },
-  radioItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  radioLabel: {
-    fontSize: typography.fontSize.medium,
-    color: theme.colors.onBackground,
-    marginLeft: spacing.xs,
-  },
-  divider: {
-    marginVertical: spacing.m,
   },
 });
 

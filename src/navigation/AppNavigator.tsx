@@ -35,6 +35,7 @@ export type RootStackParamList = {
     openCamera?: boolean;
     openGallery?: boolean;
     selectedDate?: Date;
+    fromTextInput?: boolean;
   } | undefined;
   'DailySummary': undefined;
   'Profile': undefined;
