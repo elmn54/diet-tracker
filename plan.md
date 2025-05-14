@@ -326,3 +326,58 @@ __tests__/            # Test dosyaları (src yapısını yansıtır)
   - [ ] Kullanıcılarının sadece kendi verilerine erişmesi
   - [ ] Yetkilendirme kontrolleri
 - [ ] Hassas veri şifreleme stratejileri
+
+## 13. Aktivite Takip Sistemi (Hafta 15-16)
+
+### 13.1 Aktivite Veri Modeli
+- [ ] `ActivityItem` arayüzünün oluşturulması
+  - [ ] Gerekli alanların tanımlanması (id, name, calories, duration, date)
+  - [ ] FoodItem'dan farklılaşan özelliklerin belirlenmesi
+- [ ] `activityStore.ts` oluşturulması
+  - [ ] Aktivite ekleme, silme, güncelleme işlevleri
+  - [ ] Günlük yakılan kalori hesaplama
+  - [ ] FoodStore ile entegrasyon: net kalori hesaplama
+
+### 13.2 Aktivite Girişi Kullanıcı Arayüzü
+- [ ] `FoodEntryBar` bileşeninin genişletilmesi
+  - [ ] Yemek ve aktivite algılama için metin analizi güncellenmesi
+  - [ ] Aktivite algılandığında farklı işlem akışı
+  - [ ] Kullanıcı giriş ipuçlarının güncellenmesi
+- [ ] `ActivityEntryScreen` ekranının oluşturulması
+  - [ ] Aktivite bilgileri formu (ad, süre, yoğunluk)
+  - [ ] Kalori hesaplama mantığı
+  - [ ] Store entegrasyonu
+
+### 13.3 Gelişmiş Giriş Seçenekleri
+- [ ] Seçim modalı/diyaloğu oluşturulması
+  - [ ] Yemek veya aktivite seçim arayüzü
+  - [ ] İlgili ekrana yönlendirme
+- [ ] Canlı öneriler ve AI entegrasyonu
+  - [ ] Aktivite tahminleri için AI prompt'larının güncellenmesi
+  - [ ] Egzersiz süresi ve şiddeti analizi
+
+### 13.4 Aktivite Gösterimi ve Düzenleme
+- [ ] `HomeScreen` ve `DailySummaryScreen` güncellemeleri
+  - [ ] Aktivite gösterim tasarımı (yemeklerden farklı stillenme)
+  - [ ] Negatif kalori gösterimi
+  - [ ] Aktivite düzenleme işlevselliği
+- [ ] Aktivite öğesi bileşeni tasarımı
+  - [ ] Farklı aktivite türleri için özel ikonlar/emojiler
+  - [ ] Süre ve yakılan kalori gösterimi
+
+### 13.5 İstatistik ve Grafik Entegrasyonu
+- [ ] İstatistik ekranı güncellemeleri
+  - [ ] Aktivite kalorileri dahil hesaplamalar
+  - [ ] Alınan ve yakılan kalori dengesi grafiği
+  - [ ] Aktivite geçmişi görünümü
+- [ ] Performans analizi eklentileri
+  - [ ] Zaman içinde aktivite eğilimleri
+  - [ ] Hedef belirleme ve takip
+
+### 13.6 Test ve Optimizasyon
+- [ ] Birim testleri
+  - [ ] `activityStore.ts` testleri
+  - [ ] Aktivite algılama ve hesaplama testleri
+- [ ] Kullanıcı arayüzü testleri
+  - [ ] Aktivite giriş ve düzenleme akışı testleri
+  - [ ] Görsel gösterim testleri
