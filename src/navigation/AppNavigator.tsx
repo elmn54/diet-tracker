@@ -6,6 +6,7 @@ import HomeScreen from '../screens/HomeScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import LoginScreen from '../screens/LoginScreen';
 import FoodEntryScreen from '../screens/FoodEntryScreen';
+import ActivityEntryScreen from '../screens/ActivityEntryScreen';
 import DailySummaryScreen from '../screens/DailySummaryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ThemeSettingsScreen from '../screens/ThemeSettingsScreen';
@@ -14,6 +15,7 @@ import ApiSettingsScreen from '../screens/ApiSettingsScreen';
 import PricingScreen from '../screens/PricingScreen';
 import CalorieGoalScreen from '../screens/CalorieGoalScreen';
 import { spacing } from '../constants/theme';
+import { ActivityItem } from '../types/activity';
 
 // Stack navigator tipini tanımlıyoruz
 export type RootStackParamList = {
@@ -37,6 +39,11 @@ export type RootStackParamList = {
     openGallery?: boolean;
     selectedDate?: Date;
     fromTextInput?: boolean;
+  } | undefined;
+  'ActivityEntry': {
+    editMode?: boolean;
+    activityItem?: ActivityItem;
+    selectedDate?: Date;
   } | undefined;
   'DailySummary': undefined;
   'Profile': undefined;
@@ -107,6 +114,14 @@ const AppNavigator = () => {
         options={({ route }) => ({
           ...screenOptions,
           title: route.params?.editMode ? 'Yemeği Düzenle' : 'Yemek Ekle'
+        })}
+      />
+      <Stack.Screen 
+        name="ActivityEntry" 
+        component={ActivityEntryScreen}
+        options={({ route }) => ({
+          ...screenOptions,
+          title: route.params?.editMode ? 'Aktiviteyi Düzenle' : 'Aktivite Ekle'
         })}
       />
       <Stack.Screen 

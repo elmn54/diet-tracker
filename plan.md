@@ -330,46 +330,46 @@ __tests__/            # Test dosyaları (src yapısını yansıtır)
 ## 13. Aktivite Takip Sistemi (Hafta 15-16)
 
 ### 13.1 Aktivite Veri Modeli
-- [ ] `ActivityItem` arayüzünün oluşturulması
-  - [ ] Gerekli alanların tanımlanması (id, name, calories, duration, date)
-  - [ ] FoodItem'dan farklılaşan özelliklerin belirlenmesi
-- [ ] `activityStore.ts` oluşturulması
-  - [ ] Aktivite ekleme, silme, güncelleme işlevleri
-  - [ ] Günlük yakılan kalori hesaplama
-  - [ ] FoodStore ile entegrasyon: net kalori hesaplama
+- [x] `ActivityItem` arayüzünün oluşturulması
+  - [x] Gerekli alanların tanımlanması (id, name, calories, duration, date)
+  - [x] FoodItem'dan farklılaşan özelliklerin belirlenmesi
+- [x] `activityStore.ts` oluşturulması
+  - [x] Aktivite ekleme, silme, güncelleme işlevleri
+  - [x] Günlük yakılan kalori hesaplama
+  - [x] FoodStore ile entegrasyon: net kalori hesaplama
 
 ### 13.2 Aktivite Girişi Kullanıcı Arayüzü
-- [ ] `FoodEntryBar` bileşeninin genişletilmesi
-  - [ ] Yemek ve aktivite algılama için metin analizi güncellenmesi
-  - [ ] Aktivite algılandığında farklı işlem akışı
-  - [ ] Kullanıcı giriş ipuçlarının güncellenmesi
-- [ ] `ActivityEntryScreen` ekranının oluşturulması
-  - [ ] Aktivite bilgileri formu (ad, süre, yoğunluk)
-  - [ ] Kalori hesaplama mantığı
-  - [ ] Store entegrasyonu
+- [x] `FoodEntryBar` bileşeninin genişletilmesi
+  - [x] Yemek ve aktivite algılama için metin analizi güncellenmesi
+  - [x] Aktivite algılandığında farklı işlem akışı
+  - [x] Kullanıcı giriş ipuçlarının güncellenmesi
+- [x] `ActivityEntryScreen` ekranının oluşturulması
+  - [x] Aktivite bilgileri formu (ad, süre, yoğunluk)
+  - [x] Kalori hesaplama mantığı
+  - [x] Store entegrasyonu
 
 ### 13.3 Gelişmiş Giriş Seçenekleri
-- [ ] Seçim modalı/diyaloğu oluşturulması
-  - [ ] Yemek veya aktivite seçim arayüzü
-  - [ ] İlgili ekrana yönlendirme
+- [x] Seçim modalı/diyaloğu oluşturulması
+  - [x] Yemek veya aktivite seçim arayüzü
+  - [x] İlgili ekrana yönlendirme
 - [ ] Canlı öneriler ve AI entegrasyonu
   - [ ] Aktivite tahminleri için AI prompt'larının güncellenmesi
   - [ ] Egzersiz süresi ve şiddeti analizi
 
 ### 13.4 Aktivite Gösterimi ve Düzenleme
-- [ ] `HomeScreen` ve `DailySummaryScreen` güncellemeleri
-  - [ ] Aktivite gösterim tasarımı (yemeklerden farklı stillenme)
-  - [ ] Negatif kalori gösterimi
-  - [ ] Aktivite düzenleme işlevselliği
-- [ ] Aktivite öğesi bileşeni tasarımı
-  - [ ] Farklı aktivite türleri için özel ikonlar/emojiler
-  - [ ] Süre ve yakılan kalori gösterimi
+- [x] `HomeScreen` ve `DailySummaryScreen` güncellemeleri
+  - [x] Aktivite gösterim tasarımı (yemeklerden farklı stillenme)
+  - [x] Negatif kalori gösterimi
+  - [x] Aktivite düzenleme işlevselliği
+- [x] Aktivite öğesi bileşeni tasarımı
+  - [x] Farklı aktivite türleri için özel ikonlar/emojiler
+  - [x] Süre ve yakılan kalori gösterimi
 
 ### 13.5 İstatistik ve Grafik Entegrasyonu
-- [ ] İstatistik ekranı güncellemeleri
-  - [ ] Aktivite kalorileri dahil hesaplamalar
-  - [ ] Alınan ve yakılan kalori dengesi grafiği
-  - [ ] Aktivite geçmişi görünümü
+- [x] İstatistik ekranı güncellemeleri
+  - [x] Aktivite kalorileri dahil hesaplamalar
+  - [x] Alınan ve yakılan kalori dengesi grafiği
+  - [x] Aktivite geçmişi görünümü
 - [ ] Performans analizi eklentileri
   - [ ] Zaman içinde aktivite eğilimleri
   - [ ] Hedef belirleme ve takip

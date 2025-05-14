@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { setItem, getItem } from '../storage/asyncStorage';
+import { useActivityStore } from './activityStore';
 
 // Anahtar sabitler
 const FOODS_STORAGE_KEY = 'foods';
@@ -30,6 +31,7 @@ interface FoodState {
   updateFood: (food: FoodItem) => Promise<void>;
   calculateDailyCalories: (date: string) => number;
   calculateDailyNutrients: (date: string) => Nutrients;
+  calculateNetCalories: (date: string) => number;
   reset: () => Promise<void>;
   loadFoods: () => Promise<void>;
   isLoading: boolean;
@@ -108,6 +110,18 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     return foods
       .filter((food) => isSameDay(food.date, date))
       .reduce((total, food) => total + food.calories, 0);
+  },
+  
+  // Net kalori hesapla (yemekler - aktiviteler)
+  calculateNetCalories: (date: string) => {
+    // Yemeklerden alınan kalori
+    const foodCalories = get().calculateDailyCalories(date);
+    
+    // Aktivitelerden yakılan kalori
+    const burnedCalories = useActivityStore.getState().calculateDailyBurnedCalories(date);
+    
+    // Net kalori (alınan - yakılan)
+    return foodCalories - burnedCalories;
   },
   
   // Günlük besin değerlerini hesapla

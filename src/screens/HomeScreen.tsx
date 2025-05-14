@@ -5,6 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useFoodStore, FoodItem } from '../store/foodStore';
+import { useActivityStore } from '../store/activityStore';
+import { ActivityItem, ActivityType } from '../types/activity';
 import { useCalorieGoalStore } from '../store/calorieGoalStore';
 import { useTheme, Menu, Divider, Card } from 'react-native-paper';
 import WeeklyCalendar from '../components/WeeklyCalendar';
@@ -33,17 +35,19 @@ const HomeScreen = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [menuVisible, setMenuVisible] = useState(false);
   const [dailyFoods, setDailyFoods] = useState<FoodItem[]>([]);
+  const [dailyActivities, setDailyActivities] = useState<ActivityItem[]>([]);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const theme = useTheme();
   
   // FlatList için referans oluştur
-  const flatListRef = useRef<FlatList<FoodItem>>(null);
+  const flatListRef = useRef<FlatList<FoodItem | ActivityItem>>(null);
   const nativeGestureRef = useRef(null);
   
   const styles = makeStyles(theme.colors);
   
-  // Yemek ve kalori hedefi verilerini çek
+  // Yemek, aktivite ve kalori hedefi verilerini çek
   const { foods, calculateDailyCalories, calculateDailyNutrients } = useFoodStore();
+  const { activities, calculateDailyBurnedCalories } = useActivityStore();
   const { calorieGoal, nutrientGoals } = useCalorieGoalStore();
   
   // Swipe konfigürasyonu
@@ -65,19 +69,28 @@ const HomeScreen = () => {
   };
   
   // Seçilen günün değerlerini hesapla
-  const dailyCalories = calculateDailyCalories(selectedDate.toISOString());
+  const foodCalories = calculateDailyCalories(selectedDate.toISOString());
+  const burnedCalories = calculateDailyBurnedCalories(selectedDate.toISOString());
   const dailyNutrients = calculateDailyNutrients(selectedDate.toISOString());
   
+  // Net kalorileri hesapla
+  const netCalories = foodCalories - burnedCalories;
+  
   // Kalan kalorileri hesapla
-  const remainingCalories = Math.max(0, calorieGoal - dailyCalories);
+  const remainingCalories = Math.max(0, calorieGoal - netCalories);
 
-  // Seçilen tarihe göre yemekleri filtreleme
+  // Seçilen tarihe göre yemekleri ve aktiviteleri filtreleme
   useEffect(() => {
     const filteredFoods = foods.filter(food => 
       isSameDay(food.date, selectedDate)
     );
     setDailyFoods(filteredFoods);
-  }, [foods, selectedDate]);
+    
+    const filteredActivities = activities.filter(activity => 
+      isSameDay(activity.date, selectedDate)
+    );
+    setDailyActivities(filteredActivities);
+  }, [foods, activities, selectedDate]);
 
   // Tema ayarları sayfasına git
   const handleOpenThemeSettings = () => {
@@ -183,8 +196,38 @@ const HomeScreen = () => {
       case 'lunch': return '🍲';
       case 'dinner': return '🍽️';
       case 'snack': return '🍌';
-      default: return '🍴';
+      default: return '��';
     }
+  };
+
+  // Aktivite türüne göre emoji seçme
+  const getActivityEmoji = (activityType?: ActivityType) => {
+    switch (activityType) {
+      case 'walking': return '🚶';
+      case 'running': return '🏃';
+      case 'cycling': return '🚲';
+      case 'swimming': return '🏊';
+      case 'workout': return '💪';
+      default: return '⚡';
+    }
+  };
+
+  // Tüm öğeleri sıralanmış şekilde birleştir
+  const getAllEntries = () => {
+    // FoodItem ve ActivityItem'ları birleştirmek için, tip ayrımı yapabilecek bir alan ekle
+    const foodEntries = dailyFoods.map(food => ({ ...food, entryType: 'food' as const }));
+    const activityEntries = dailyActivities.map(activity => ({ ...activity, entryType: 'activity' as const }));
+    
+    // Birleştirilmiş ve sıralanmış liste
+    return [...foodEntries, ...activityEntries].sort((a, b) => {
+      // id'lere göre sırala (id'ler timestamp olarak oluşturulduğu için)
+      const idA = parseInt(a.id);
+      const idB = parseInt(b.id);
+      
+      // Küçük id daha eski girdiyi temsil eder (timestamp olarak)
+      // Eski girdiler üstte, yeni girdiler altta olacak
+      return idA - idB;
+    });
   };
 
   // Yemek öğesini görüntüleme
@@ -239,11 +282,71 @@ const HomeScreen = () => {
     </Card>
   );
 
+  // Aktivite öğesini görüntüleme
+  const renderActivityItem = ({ item }: { item: ActivityItem }) => (
+    <Card style={styles.activityCard} onPress={() => {
+      // Düzenleme işlevini çağır
+      navigation.navigate('ActivityEntry', { 
+        editMode: true, 
+        activityItem: item 
+      });
+    }}>
+      <View style={styles.activityItemContainer}>
+        <Text style={styles.activityTypeEmoji}>{getActivityEmoji(item.activityType)}</Text>
+        <View style={styles.activityDetails}>
+          <Text style={styles.activityName} numberOfLines={2} ellipsizeMode="tail">
+            {truncateText(item.name || '', 30)}
+          </Text>
+          <Text style={styles.activityCalories}>-{item.calories} kcal</Text>
+        </View>
+        <View style={styles.activityInfo}>
+          <Text style={styles.activityDuration}>{item.duration} dk</Text>
+          <Text style={styles.activityIntensity}>{item.intensity}</Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.deleteButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            Alert.alert(
+              'Aktiviteyi Sil',
+              'Bu aktiviteyi silmek istediğinizden emin misiniz?',
+              [
+                { text: 'İptal', style: 'cancel' },
+                { text: 'Sil', 
+                  onPress: async () => {
+                    try {
+                      await useActivityStore.getState().removeActivity(item.id);
+                    } catch (error) {
+                      console.error('Aktivite silinirken hata oluştu:', error);
+                      Alert.alert('Hata', 'Aktivite silinirken bir hata oluştu.');
+                    }
+                  }, 
+                  style: 'destructive' 
+                }
+              ]
+            );
+          }}
+        >
+          <Text style={styles.deleteIcon}>🗑️</Text>
+        </TouchableOpacity>
+      </View>
+    </Card>
+  );
+
+  // Öğe tipine göre doğru render fonksiyonunu belirle
+  const renderItem = ({ item }: { item: any }) => {
+    if (item.entryType === 'activity') {
+      return renderActivityItem({ item });
+    } else {
+      return renderFoodItem({ item });
+    }
+  };
+
   // Boş liste yerini tutan öğe
   const EmptyListComponent = () => (
     <View style={styles.emptyListContainer}>
       <Text style={styles.emptyListText}>
-        Bu tarihte kayıtlı yemek bulunmamaktadır.
+        Bu tarihte kayıtlı yemek veya aktivite bulunmamaktadır.
       </Text>
     </View>
   );
@@ -400,15 +503,17 @@ const HomeScreen = () => {
           onSwipeLeft={onSwipeLeft}
           onSwipeRight={onSwipeRight}
           config={swipeConfig}
-          style={{ flex: 1 }}
+          style={{ flex: 1, width: '100%' }}
         >
           <FlatList
             ref={flatListRef}
-            data={dailyFoods}
-            renderItem={renderFoodItem}
+            data={getAllEntries()}
+            renderItem={renderItem}
             keyExtractor={item => item.id}
             ListEmptyComponent={EmptyListComponent}
-            contentContainerStyle={dailyFoods.length === 0 ? styles.emptyListContentContainer : styles.foodListContentContainer}
+            contentContainerStyle={dailyFoods.length === 0 && dailyActivities.length === 0 ? 
+              styles.emptyListContentContainer : styles.foodListContentContainer}
+            style={styles.flatList}
             scrollEnabled={true}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={true}
@@ -422,8 +527,8 @@ const HomeScreen = () => {
         <View style={styles.bottomSection}>
           <View style={styles.cardsContainer}>
             <CaloriesCard 
-              food={dailyCalories}
-              exercise={0} // Egzersiz kalorisi henüz eklenmiyor
+              food={foodCalories}
+              exercise={burnedCalories}
               remaining={remainingCalories}
             />
             
@@ -452,10 +557,15 @@ const makeStyles = (colors: any) => StyleSheet.create({
   },
   topSection: {
     backgroundColor: colors.background,
+    marginBottom: 0,
   },
   middleSection: {
     flex: 1,
     backgroundColor: colors.background,
+    paddingTop: 0,
+    marginTop: 0,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
   },
   bottomSection: {
     backgroundColor: colors.background,
@@ -498,15 +608,20 @@ const makeStyles = (colors: any) => StyleSheet.create({
   },
   foodListContentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: 0,
+    paddingBottom: 120,
+    width: '100%',
+    alignSelf: 'flex-start',
+    flexGrow: 1,
   },
   emptyListContentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 0, 
+    paddingBottom: 120,
     flex: 1,
+    width: '100%',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   foodCard: {
     marginBottom: 10,
@@ -559,11 +674,14 @@ const makeStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.surfaceVariant,
     borderRadius: 10,
+    width: '80%',
+    marginVertical: 20,
   },
   emptyListText: {
     fontSize: 16,
     color: colors.onSurface,
     textAlign: 'center',
+    lineHeight: 22,
   },
   deleteButton: {
     padding: 8,
@@ -582,6 +700,55 @@ const makeStyles = (colors: any) => StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'transparent',
+  },
+  activityCard: {
+    marginBottom: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    elevation: 3
+  },
+  activityItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  activityTypeEmoji: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  activityDetails: {
+    flex: 1,
+    marginRight: 10,
+  },
+  activityName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.onSurfaceVariant,
+  },
+  activityCalories: {
+    fontSize: 14,
+    color: colors.tertiary, // Aktivite kalori değeri için özel renk
+    fontWeight: 'bold',
+  },
+  activityInfo: {
+    alignItems: 'flex-end',
+    marginRight: 10,
+  },
+  activityDuration: {
+    fontSize: 13,
+    color: colors.onSurfaceVariant,
+  },
+  activityIntensity: {
+    fontSize: 13,
+    color: colors.onSurfaceVariant,
+    textTransform: 'capitalize'
+  },
+  flatList: {
+    flex: 1,
+    marginTop: 0,
+    paddingTop: 0,
+    width: '100%',
   },
 });
 

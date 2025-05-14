@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { Text, Divider, SegmentedButtons, useTheme, MD3Theme, Card } from 'react-native-paper';
 import { useFoodStore } from '../store/foodStore';
+import { useActivityStore } from '../store/activityStore';
 import { useCalorieGoalStore } from '../store/calorieGoalStore';
 import NutritionChart from '../components/NutritionChart';
 import { format, subDays, isSameDay, startOfWeek, addDays, eachDayOfInterval, endOfWeek } from 'date-fns';
@@ -9,16 +10,14 @@ import { tr } from 'date-fns/locale';
 
 type TimeRange = 'day' | 'week' | 'month';
 
-// Custom interfaces for chart data
-interface Dataset {
-  data: number[];
-  color?: (opacity?: number) => string;
-  withDots?: boolean;
-}
-
+// Grafik veri tipi
 interface ChartData {
   labels: string[];
-  datasets: Dataset[];
+  datasets: {
+    data: number[];
+    color?: (opacity?: number) => string;
+    withDots?: boolean;
+  }[];
 }
 
 const StatsScreen = () => {
@@ -35,12 +34,15 @@ const StatsScreen = () => {
     datasets: [{ data: [] }] 
   });
   
-  const { calculateDailyNutrients, calculateDailyCalories, foods } = useFoodStore();
+  const { calculateDailyNutrients, calculateDailyCalories, calculateNetCalories, foods } = useFoodStore();
+  const { calculateDailyBurnedCalories, activities } = useActivityStore();
   const { calorieGoal, nutrientGoals } = useCalorieGoalStore();
   
   // Günlük besin değerlerini hesapla
   const dailyNutrients = calculateDailyNutrients(selectedDate.toISOString());
-  const dailyCalories = calculateDailyCalories(selectedDate.toISOString());
+  const foodCalories = calculateDailyCalories(selectedDate.toISOString());
+  const burnedCalories = calculateDailyBurnedCalories(selectedDate.toISOString());
+  const netCalories = foodCalories - burnedCalories;
   
   // Haftalık besin değerlerini hesapla
   const calculateWeeklyNutrients = () => {
@@ -48,7 +50,8 @@ const StatsScreen = () => {
     let totalProtein = 0;
     let totalCarbs = 0;
     let totalFat = 0;
-    let totalCalories = 0;
+    let totalFoodCalories = 0;
+    let totalBurnedCalories = 0;
     
     for (let i = 0; i < 7; i++) {
       const currentDay = addDays(weekStart, i);
@@ -56,7 +59,8 @@ const StatsScreen = () => {
       totalProtein += dayNutrients.protein;
       totalCarbs += dayNutrients.carbs;
       totalFat += dayNutrients.fat;
-      totalCalories += calculateDailyCalories(currentDay.toISOString());
+      totalFoodCalories += calculateDailyCalories(currentDay.toISOString());
+      totalBurnedCalories += calculateDailyBurnedCalories(currentDay.toISOString());
     }
     
     return {
@@ -65,25 +69,32 @@ const StatsScreen = () => {
         carbs: totalCarbs,
         fat: totalFat
       },
-      calories: totalCalories
+      calories: {
+        food: totalFoodCalories,
+        burned: totalBurnedCalories,
+        net: totalFoodCalories - totalBurnedCalories
+      }
     };
   };
   
   // Aylık besin değerlerini hesapla
   const calculateMonthlyNutrients = () => {
-    // Basit yaklaşım: Son 30 günü hesapla
+    const today = new Date();
     let totalProtein = 0;
     let totalCarbs = 0;
     let totalFat = 0;
-    let totalCalories = 0;
+    let totalFoodCalories = 0;
+    let totalBurnedCalories = 0;
     
+    // Son 30 gün
     for (let i = 0; i < 30; i++) {
-      const currentDay = subDays(new Date(), i);
+      const currentDay = subDays(today, i);
       const dayNutrients = calculateDailyNutrients(currentDay.toISOString());
       totalProtein += dayNutrients.protein;
       totalCarbs += dayNutrients.carbs;
       totalFat += dayNutrients.fat;
-      totalCalories += calculateDailyCalories(currentDay.toISOString());
+      totalFoodCalories += calculateDailyCalories(currentDay.toISOString());
+      totalBurnedCalories += calculateDailyBurnedCalories(currentDay.toISOString());
     }
     
     return {
@@ -92,7 +103,11 @@ const StatsScreen = () => {
         carbs: totalCarbs,
         fat: totalFat
       },
-      calories: totalCalories
+      calories: {
+        food: totalFoodCalories,
+        burned: totalBurnedCalories,
+        net: totalFoodCalories - totalBurnedCalories
+      }
     };
   };
   
@@ -164,7 +179,11 @@ const StatsScreen = () => {
       case 'day':
         return {
           nutrients: dailyNutrients,
-          calories: dailyCalories
+          calories: {
+            food: foodCalories,
+            burned: burnedCalories,
+            net: netCalories
+          }
         };
       case 'week':
         return calculateWeeklyNutrients();
@@ -173,7 +192,11 @@ const StatsScreen = () => {
       default:
         return {
           nutrients: dailyNutrients,
-          calories: dailyCalories
+          calories: {
+            food: foodCalories,
+            burned: burnedCalories,
+            net: netCalories
+          }
         };
     }
   };
@@ -214,7 +237,7 @@ const StatsScreen = () => {
   // Hedef yüzdesini hesapla
   const calculateGoalPercentage = () => {
     if (calorieGoal === 0) return 0;
-    const percentage = (calories / (timeRange === 'day' ? calorieGoal : timeRange === 'week' ? calorieGoal * 7 : calorieGoal * 30)) * 100;
+    const percentage = (calories.food / (timeRange === 'day' ? calorieGoal : timeRange === 'week' ? calorieGoal * 7 : calorieGoal * 30)) * 100;
     return Math.min(percentage, 100);
   };
 
@@ -313,7 +336,7 @@ const StatsScreen = () => {
         <View style={styles.summaryContent}>
           <View>
             <Text style={styles.summaryTitle}>Toplam Kalori</Text>
-            <Text style={styles.calorieCount}>{Math.round(calories)} kcal</Text>
+            <Text style={styles.calorieCount}>{Math.round(calories.food)} kcal</Text>
           </View>
           
           <View style={styles.goalStatusContainer}>
@@ -387,7 +410,7 @@ const StatsScreen = () => {
           <View style={styles.statsItem}>
             <Text style={styles.statsLabel}>Günlük Ortalama Kalori:</Text>
             <Text style={styles.statsValue}>
-              {Math.round(calories / (timeRange === 'week' ? 7 : 30))} kcal
+              {Math.round(calories.food / (timeRange === 'week' ? 7 : 30))} kcal
             </Text>
           </View>
         )}
