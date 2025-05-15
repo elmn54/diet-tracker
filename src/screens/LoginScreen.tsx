@@ -8,11 +8,13 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useTheme, Divider } from 'react-native-paper';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const theme = useTheme();
   const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -30,8 +32,8 @@ const LoginScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Giriş Yap</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Text style={[styles.title, { color: theme.colors.onSurface }]}>Giriş Yap</Text>
       
       <Controller
         control={control}
@@ -43,6 +45,7 @@ const LoginScreen = () => {
             value={value}
             onChangeText={onChange}
             error={errors.email?.message}
+            keyboardType="email-address"
           />
         )}
       />
@@ -62,16 +65,41 @@ const LoginScreen = () => {
         )}
       />
       
+      <TouchableOpacity 
+        onPress={() => navigation.navigate('ForgotPassword')}
+        style={styles.forgotPasswordContainer}
+      >
+        <Text style={[styles.forgotPasswordText, { color: theme.colors.primary }]}>
+          Şifremi Unuttum
+        </Text>
+      </TouchableOpacity>
+      
       <Button 
         title="Giriş Yap"
         onPress={handleSubmit(onSubmit)}
         style={styles.button}
       />
       
+      <View style={styles.dividerContainer}>
+        <Divider style={styles.divider} />
+        <Text style={[styles.dividerText, { color: theme.colors.onSurfaceVariant }]}>veya</Text>
+        <Divider style={styles.divider} />
+      </View>
+      
+      <View style={styles.socialButtonsContainer}>
+        <Button 
+          title="Google ile Giriş Yap"
+          onPress={() => console.log('Google ile giriş')}
+          style={styles.socialButton}
+          variant="outline"
+          icon="google"
+        />
+      </View>
+      
       <View style={styles.footerContainer}>
-        <Text style={styles.footerText}>Hesabın yok mu?</Text>
+        <Text style={[styles.footerText, { color: theme.colors.onSurfaceVariant }]}>Hesabın yok mu?</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.footerLink}>Kayıt Ol</Text>
+          <Text style={[styles.footerLink, { color: theme.colors.primary }]}>Kayıt Ol</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -82,7 +110,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f5f5f5',
     justifyContent: 'center',
   },
   title: {
@@ -90,22 +117,46 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 24,
     textAlign: 'center',
-    color: '#333',
   },
   button: {
     marginTop: 16,
   },
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    paddingHorizontal: 16,
+    fontSize: 14,
+  },
+  socialButtonsContainer: {
+    marginBottom: 24,
+  },
+  socialButton: {
+    marginBottom: 12,
+  },
   footerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: 8,
   },
   footerText: {
     marginRight: 5,
-    color: '#666',
   },
   footerLink: {
-    color: '#5c6bc0',
     fontWeight: 'bold',
   },
 });

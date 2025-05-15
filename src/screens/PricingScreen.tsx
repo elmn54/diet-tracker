@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { Text, useTheme, Card, IconButton, Badge, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import Button from '../components/Button';
 import { useSubscriptionStore } from '../store/subscriptionStore';
 import { spacing, typography } from '../constants/theme';
 
 const PricingScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation();
   const { 
     plans, 
     selectedPlan, 
@@ -25,7 +27,7 @@ const PricingScreen = () => {
     if (isSubscribed) {
       const activePlan = plans.find(plan => plan.id === selectedPlan);
       return (
-        <View style={styles.statusContainer}>
+        <View style={[styles.statusContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
           <IconButton
             icon="check-circle"
             size={24}
@@ -34,6 +36,13 @@ const PricingScreen = () => {
           <Text style={[styles.statusText, { color: theme.colors.primary }]}>
             Aktif Abonelik: {activePlan?.name}
           </Text>
+          
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('SubscriptionManagement' as never)}
+            style={styles.manageButton}
+          >
+            <Text style={[styles.manageButtonText, { color: theme.colors.primary }]}>Yönet</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -41,13 +50,13 @@ const PricingScreen = () => {
     if (isTrialActive) {
       const remainingDays = getRemainingTrialDays();
       return (
-        <View style={styles.statusContainer}>
+        <View style={[styles.statusContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
           <IconButton
             icon="timer-sand"
             size={24}
-            iconColor={theme.colors.primary}
+            iconColor={theme.colors.tertiary}
           />
-          <Text style={[styles.statusText, { color: theme.colors.primary }]}>
+          <Text style={[styles.statusText, { color: theme.colors.tertiary }]}>
             Deneme Sürümü: {remainingDays} gün kaldı
           </Text>
         </View>
@@ -55,7 +64,7 @@ const PricingScreen = () => {
     }
     
     return (
-      <View style={styles.statusContainer}>
+      <View style={[styles.statusContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
         <IconButton
           icon="information"
           size={24}
@@ -73,6 +82,8 @@ const PricingScreen = () => {
     setIsLoading(true);
     try {
       await subscribe();
+      // Abonelik başarılı olursa yönetim ekranına yönlendir
+      navigation.navigate('SubscriptionManagement' as never);
     } catch (error) {
       console.error('Abonelik işlemi sırasında hata oluştu:', error);
     } finally {
@@ -109,79 +120,122 @@ const PricingScreen = () => {
             Beslenme hedeflerinize ulaşmak için size en uygun planı seçin
           </Text>
         </View>
-        
+    
         {renderSubscriptionStatus()}
         
         <View style={styles.plansContainer}>
-          {plans.map((plan) => (
-            <TouchableOpacity
-              key={plan.id}
-              onPress={() => selectPlan(plan.id)}
-              testID={`plan-${plan.id}`}
-              disabled={isSubscribed}
-            >
-              <Card
-                style={[
-                  styles.planCard,
-                  selectedPlan === plan.id && { 
-                    borderColor: theme.colors.primary,
-                    borderWidth: 2
-                  }
-                ]}
+          {plans.map((plan) => {
+            const isPremium = plan.id === 'premium';
+            const isSelected = selectedPlan === plan.id;
+            
+            return (
+              <TouchableOpacity
+                key={plan.id}
+                onPress={() => selectPlan(plan.id)}
+                testID={`plan-${plan.id}`}
+                disabled={isSubscribed}
+                style={isPremium ? styles.premiumPlanContainer : undefined}
               >
-                <Card.Content>
-                  <View style={styles.planHeader}>
-                    <Text style={styles.planName}>{plan.name}</Text>
-                    {plan.id === 'premium' && (
-                      <Badge style={{ backgroundColor: theme.colors.primary }}>
-                        Popüler
-                      </Badge>
+                <Card
+                  style={[
+                    styles.planCard,
+                    isPremium && styles.premiumPlanCard,
+                    isSelected && { 
+                      borderColor: theme.colors.primary,
+                      borderWidth: 2
+                    }
+                  ]}
+                >
+                  {isPremium && (
+                    <View style={[styles.popularBadgeContainer, { backgroundColor: theme.colors.primary }]}>
+                      <Text style={styles.popularBadgeText}>En Popüler</Text>
+                    </View>
+                  )}
+                  
+                  <Card.Content style={isPremium ? styles.premiumCardContent : undefined}>
+                    <View style={styles.planHeader}>
+                      <Text style={[
+                        styles.planName, 
+                        isPremium && { color: theme.colors.primary, fontSize: typography.fontSize.xl }
+                      ]}>
+                        {plan.name}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.priceContainer}>
+                      <Text style={[
+                        styles.price,
+                        isPremium && { color: theme.colors.primary, fontSize: typography.fontSize.xxxl }
+                      ]}>
+                        {plan.price} TL
+                      </Text>
+                      <Text style={styles.pricePeriod}>/ ay</Text>
+                    </View>
+                    
+                    <Divider style={styles.divider} />
+                    
+                    <View style={styles.featuresContainer}>
+                      {renderFeatures(plan.features)}
+                    </View>
+                    
+                    {!isSubscribed && (
+                      <Button
+                        title={isPremium ? "Şimdi Abone Ol" : "Seç"}
+                        onPress={() => {
+                          selectPlan(plan.id);
+                          if (isPremium) handleSubscribe();
+                        }}
+                        style={styles.planButton}
+                        variant={isPremium ? "primary" : "outline"}
+                      />
                     )}
-                  </View>
-                  
-                  <View style={styles.priceContainer}>
-                    <Text style={styles.price}>
-                      {plan.price} TL
-                    </Text>
-                    <Text style={styles.pricePeriod}>/ ay</Text>
-                  </View>
-                  
-                  <Divider style={styles.divider} />
-                  
-                  <View style={styles.featuresContainer}>
-                    {renderFeatures(plan.features)}
-                  </View>
-                </Card.Content>
-              </Card>
-            </TouchableOpacity>
-          ))}
+                  </Card.Content>
+                </Card>
+              </TouchableOpacity>
+            );
+          })}
         </View>
         
         <View style={styles.subscribeButtonContainer}>
-          <Button
-            title={isSubscribed ? "Mevcut Plan" : "Abone Ol"}
-            onPress={handleSubscribe}
-            loading={isLoading}
-            disabled={isSubscribed}
-            fullWidth
-            variant="primary"
-          />
+          {!isSubscribed && (
+            <Button
+              title="Seçili Plan ile Devam Et"
+              onPress={handleSubscribe}
+              loading={isLoading}
+              disabled={isLoading}
+              fullWidth
+              variant="primary"
+            />
+          )}
           
           {isSubscribed && (
-            <TouchableOpacity style={styles.cancelLink}>
-              <Text style={[styles.cancelText, { color: theme.colors.error }]}>
-                Aboneliği İptal Et
-              </Text>
-            </TouchableOpacity>
+            <View>
+              <Button
+                title="Abonelik Yönetimi"
+                onPress={() => navigation.navigate('SubscriptionManagement' as never)}
+                style={styles.manageSubscriptionButton}
+                variant="outline"
+              />
+              
+              <TouchableOpacity 
+                style={styles.cancelLink}
+                onPress={() => navigation.navigate('SubscriptionManagement' as never)}
+              >
+                <Text style={[styles.cancelText, { color: theme.colors.error }]}>
+                  Aboneliği İptal Et
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
         
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoTitle}>Abonelik Hakkında:</Text>
-          <Text style={styles.infoText}>• Abonelikler aylık olarak ücretlendirilir</Text>
-          <Text style={styles.infoText}>• İptal edilmediği sürece otomatik olarak yenilenir</Text>
-          <Text style={styles.infoText}>• App Store / Google Play üzerinden yönetilir</Text>
-          <Text style={styles.infoText}>• Aboneliği istediğiniz zaman iptal edebilirsiniz</Text>
+        <View style={[styles.infoContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
+          <Text style={[styles.infoTitle, { color: theme.colors.onSurface }]}>Abonelik Hakkında:</Text>
+          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Abonelikler aylık olarak ücretlendirilir</Text>
+          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• İptal edilmediği sürece otomatik olarak yenilenir</Text>
+          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• {Platform.OS === 'ios' ? 'App Store' : 'Google Play'} üzerinden yönetilir</Text>
+          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Aboneliği istediğiniz zaman iptal edebilirsiniz</Text>
+          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Sorularınız için destek ekibimizle iletişime geçebilirsiniz</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -202,7 +256,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: typography.fontSize.xxl,
     fontWeight: 'bold',
-    marginBottom: spacing.xs,
     textAlign: 'center',
   },
   headerSubtitle: {
@@ -215,19 +268,50 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.l,
     padding: spacing.s,
-    backgroundColor: '#f5f5f5',
     borderRadius: 8,
   },
   statusText: {
     fontSize: typography.fontSize.medium,
     fontWeight: '500',
+    flex: 1,
   },
   plansContainer: {
     marginBottom: spacing.l,
   },
+  premiumPlanContainer: {
+    transform: [{ scale: 1.05 }],
+    zIndex: 1,
+    marginVertical: spacing.m,
+  },
   planCard: {
     marginBottom: spacing.m,
     elevation: 2,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  premiumPlanCard: {
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+  premiumCardContent: {
+    paddingTop: spacing.l,
+  },
+  popularBadgeContainer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    left: 0,
+    paddingVertical: spacing.xs,
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  popularBadgeText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: typography.fontSize.small,
   },
   planHeader: {
     flexDirection: 'row',
@@ -256,7 +340,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.m,
   },
   featuresContainer: {
-    marginBottom: spacing.s,
+    marginBottom: spacing.m,
   },
   featureItem: {
     flexDirection: 'row',
@@ -270,19 +354,24 @@ const styles = StyleSheet.create({
   featureText: {
     fontSize: typography.fontSize.medium,
   },
+  planButton: {
+    marginTop: spacing.s,
+  },
   subscribeButtonContainer: {
     marginBottom: spacing.xl,
   },
+  manageSubscriptionButton: {
+    marginBottom: spacing.s,
+  },
   cancelLink: {
     alignItems: 'center',
-    marginTop: spacing.m,
+    marginTop: spacing.s,
   },
   cancelText: {
     fontSize: typography.fontSize.medium,
     fontWeight: '500',
   },
   infoContainer: {
-    backgroundColor: '#f5f5f5',
     padding: spacing.m,
     borderRadius: 8,
     marginBottom: spacing.l,
@@ -295,6 +384,16 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: typography.fontSize.small,
     marginBottom: spacing.xs,
+  },
+  manageButton: {
+    borderRadius: 4,
+    paddingHorizontal: spacing.s,
+    paddingVertical: spacing.xs,
+    marginLeft: spacing.s,
+  },
+  manageButtonText: {
+    fontSize: typography.fontSize.small,
+    fontWeight: 'bold',
   },
 });
 

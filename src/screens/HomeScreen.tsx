@@ -8,7 +8,8 @@ import { useFoodStore, FoodItem } from '../store/foodStore';
 import { useActivityStore } from '../store/activityStore';
 import { ActivityItem, ActivityType } from '../types/activity';
 import { useCalorieGoalStore } from '../store/calorieGoalStore';
-import { useTheme, Menu, Divider, Card } from 'react-native-paper';
+import { useSubscriptionStore } from '../store/subscriptionStore';
+import { useTheme, Menu, Divider, Card, Badge } from 'react-native-paper';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import CaloriesCard from '../components/CaloriesCard';
 import MacrosCard from '../components/MacrosCard';
@@ -38,6 +39,9 @@ const HomeScreen = () => {
   const [dailyActivities, setDailyActivities] = useState<ActivityItem[]>([]);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const theme = useTheme();
+  
+  // Abonelik bilgisini al
+  const { selectedPlan } = useSubscriptionStore();
   
   // FlatList için referans oluştur
   const flatListRef = useRef<FlatList<FoodItem | ActivityItem>>(null);
@@ -439,12 +443,35 @@ const HomeScreen = () => {
         <View style={styles.todayContainer}>
           <Text style={styles.todayText}>{getDayLabel()}</Text>
           <View style={styles.headerButtons}>
-            <TouchableOpacity 
-              style={styles.iconButton}
-              onPress={handleOpenStats}
-            >
-              <Text style={styles.themeIcon}>📊</Text>
-            </TouchableOpacity>
+            <View style={styles.statsButtonContainer}>
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={handleOpenStats}
+              >
+                <Text style={styles.themeIcon}>📊</Text>
+              </TouchableOpacity>
+              
+              {/* Abonelik türü badge - absolute positioning ile konumlandırılıyor */}
+              <Badge 
+                style={[
+                  styles.subscriptionBadge, 
+                  { 
+                    backgroundColor: selectedPlan === 'premium' 
+                      ? theme.colors.primary 
+                      : selectedPlan === 'pro'
+                        ? theme.colors.tertiary
+                        : 'rgba(255, 255, 255, 0.8)'
+                  }
+                ]}
+              >
+                {selectedPlan === 'premium' 
+                  ? 'Premium' 
+                  : selectedPlan === 'pro' 
+                    ? 'Pro' 
+                    : 'Free'}
+              </Badge>
+            </View>
+            
             <TouchableOpacity 
               style={styles.iconButton}
               onPress={handleOpenThemeSettings}
@@ -749,6 +776,25 @@ const makeStyles = (colors: any) => StyleSheet.create({
     marginTop: 0,
     paddingTop: 0,
     width: '100%',
+  },
+  statsButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
+    position: 'relative',
+  },
+  subscriptionBadge: {
+    position: 'absolute',
+    left: -45,
+    top: 10,
+    height: 24,
+    fontSize: 11,
+    fontWeight: 'bold',
+    minWidth: 50,
+    paddingHorizontal: 4,
+    color: '#000',
+    zIndex: 1,
   },
 });
 

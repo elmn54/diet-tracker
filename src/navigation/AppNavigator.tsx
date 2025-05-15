@@ -5,6 +5,7 @@ import { useTheme } from 'react-native-paper';
 import HomeScreen from '../screens/HomeScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import LoginScreen from '../screens/LoginScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import FoodEntryScreen from '../screens/FoodEntryScreen';
 import ActivityEntryScreen from '../screens/ActivityEntryScreen';
 import DailySummaryScreen from '../screens/DailySummaryScreen';
@@ -22,6 +23,7 @@ export type RootStackParamList = {
   'Ana Sayfa': undefined;
   'Login': undefined;
   'Register': undefined;
+  'ForgotPassword': undefined;
   'FoodEntry': { 
     editMode?: boolean; 
     foodItem?: {
@@ -181,7 +183,19 @@ const AppNavigator = () => {
         component={PricingScreen}
         options={{
           ...screenOptions,
-          title: '',
+          title: 'Abonelik Planları',
+          contentStyle: {
+            ...screenOptions.contentStyle,
+            paddingTop: spacing.s,
+          }
+        }}
+      />
+      <Stack.Screen 
+        name="ForgotPassword" 
+        component={ForgotPasswordScreen}
+        options={{
+          ...screenOptions,
+          title: 'Şifremi Unuttum',
           contentStyle: {
             ...screenOptions.contentStyle,
             paddingTop: spacing.s,

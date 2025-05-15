@@ -254,130 +254,70 @@ __tests__/            # Test dosyaları (src yapısını yansıtır)
 - [x] Kalan/fazla kalori gösterimi
 - [x] Görsel geri bildirim
 
-## 12. Abonelik ve Kullanıcı Yönetimi (Hafta 12-14)
+## 12. Abonelik ve Kullanıcı Yönetimi - UI ve Navigasyon Odaklı (Hafta 12-13)
 
-### 12.1 Firebase Entegrasyonu
+### 12.1 UI Bileşenleri ve Ekranları
+- [ ] Oturum Açma ve Kayıt Ekranları Geliştirmeleri
+  - [ ] `LoginScreen` UI iyileştirmeleri
+  - [ ] `RegisterScreen` UI iyileştirmeleri
+  - [ ] `ForgotPasswordScreen` UI iyileştirmeleri
+  - [ ] Sosyal medya giriş butonları (Google, Apple) UI
+- [ ] Abonelik Ekranları
+  - [ ] `PricingScreen` UI geliştirmesi
+    - [ ] Fiyat tablosu/karşılaştırma kartları
+    - [ ] Abonelik paketleri arasında geçiş efektleri
+    - [ ] Öne çıkan paket vurgusu
+- [ ] Kullanıcı Profil Ekranı Geliştirmeleri
+  - [ ] `ProfileScreen` UI iyileştirmeleri
+  - [ ] Avatar ve profil fotoğrafı seçimi
+  - [ ] Kullanıcı bilgileri form tasarımı
+  - [x] Abonelik durumu rozeti/göstergesi
+
+### 12.2 Navigasyon Yapısı
+- [ ] Kimlik Doğrulama Navigasyonu
+  - [ ] `AuthNavigator` güncellemeleri
+  - [ ] Oturumsuz durumda gezinme kısıtlamaları
+- [ ] Abonelik Akışı Navigasyonu
+  - [ ] Abonelik ekranlarının ana navigasyon yapısına entegrasyonu
+  - [ ] Kısıtlı özelliklere erişim kontrolü için navigasyon koruyucuları
+- [ ] Uygulama İçi Satın Alma Akışı Navigasyonu
+  - [ ] Satın alma akışı için navigasyon yapısı
+  - [ ] Başarılı/başarısız ödeme sonrası yönlendirmeler
+
+### 12.3 Premium Özellik UI Göstergeleri
+- [ ] Kilitlenen Özellikler UI Tasarımı
+  - [ ] Premium özellik kilit ikonları/göstergeleri
+  - [ ] Premium içerik teaser UI bileşenleri
+  - [ ] "Premium'a Yükselt" çağrı butonları (Call-to-action)
+- [ ] Ücretli/Ücretsiz İçerik Ayrımı
+  - [ ] Tema ve stil farklılaştırması
+  - [x] Premium kullanıcı rozeti/göstergesi
+
+### 12.4 Reklam Yerleşimleri (Ücretsiz Tier)
+- [ ] Reklam Alanları UI Tasarımı
+  - [ ] Banner reklam konumları (ekranlar arası geçişte)
+  - [ ] Ekran içi reklam alanları
+  - [ ] Reklamı kaldırmak için premium abonelik promosyonu
+
+### 12.5 Test ve Geliştirme
+- [ ] UI/UX Test Yaklaşımı
+  - [ ] Tasarım tutarlılığı değerlendirmesi
+  - [ ] Düğmelerin ve etkileşimlerin erişilebilirlik kontrolü
+  - [ ] Farklı cihaz boyutlarında duyarlı tasarım testleri
+
+## Sonraki Geliştirme Aşamaları (Hafta 14+)
+
+### Firebase ve Backend Entegrasyonu
 - [ ] Firebase projesinin oluşturulması ve yapılandırılması
-- [ ] Firebase SDK'nın kurulması ve inicialize edilmesi
-- [ ] Firestore ve Firebase Auth bağlantılarının kurulması
-- [ ] Firebase Yapılandırma Dosyalarının Oluşturulması
-  - [ ] `firebaseConfig.ts` (yapılandırma bilgileri)
-  - [ ] `firebaseService.ts` (genel Firebase servisleri)
+- [ ] Authentication, Firestore ve diğer Firebase hizmetlerinin kurulumu
+- [ ] Kullanıcı kimlik doğrulama işlevselliğinin uygulanması
 
-### 12.2 Kullanıcı Kimlik Doğrulama Sistemi
-- [ ] `authService.ts` Oluşturulması
-  - [ ] Kayıt fonksiyonu (e-posta/şifre)
-  - [ ] Giriş fonksiyonu
-  - [ ] Şifre sıfırlama
-  - [ ] Sosyal medya ile giriş (İleride)
-- [ ] `userStore.ts` Güncellenmesi
-  - [ ] Firebase Auth durumunun yönetimi
-  - [ ] Kullanıcı oturum bilgilerinin tutulması
-  - [ ] Kullanıcı profil bilgilerinin Firestore ile senkronizasyonu
+### Abonelik Sistemi İşlevselliği
+- [ ] RevenueCat veya alternatif ödeme sistemi entegrasyonu
+- [ ] Abonelik işleme mantığı
+- [ ] Ödeme doğrulama ve abonelik durumu yönetimi
 
-### 12.3 Abonelik Sistemi
-- [ ] `subscriptionService.ts` Oluşturulması
-  - [ ] RevenueCat entegrasyonu (veya alternatif sistem)
-  - [ ] Abonelik durumu yönetimi
-  - [ ] Satın alma işlemleri
-  - [ ] Abonelik yenileme ve iptal yönetimi
-- [ ] `subscriptionStore.ts` Güncellenmesi
-  - [ ] Kullanıcı abonelik durumunun izlenmesi
-  - [ ] Tier'a göre özellik bayraklarının ayarlanması
-  - [ ] Abonelik durumu değişikliklerinin takibi
-
-### 12.4 Veri Senkronizasyon Sistemi
-- [ ] `syncService.ts` Oluşturulması
-  - [ ] Yerel veri - bulut veri senkronizasyonu (Tier 3)
-  - [ ] Çevrimdışı destek
-  - [ ] Çakışma çözümleme stratejileri
-- [ ] Mevcut store'ların senkronizasyon için güncellenmesi
-  - [ ] `foodStore.ts` senkronizasyon desteği
-  - [ ] `calorieGoalStore.ts` senkronizasyon desteği
-  - [ ] Diğer gerekli store'ların güncellenmesi
-
-### 12.5 Reklam Entegrasyonu (Tier 1)
-- [ ] AdMob kurulumu ve yapılandırması
-- [ ] `adService.ts` Oluşturulması
-  - [ ] Banner reklamlar yönetimi
-  - [ ] Interstitial reklamlar yönetimi
-  - [ ] Kullanıcı deneyimini bozmayan reklam stratejileri
-- [ ] Tier 2+ kullanıcılar için reklamların devre dışı bırakılması
-
-### 12.6 Abonelik UI ve Akışları
-- [ ] Geliştirilmiş `PricingScreen` Ekranı
-  - [ ] Tier 1, 2 ve 3 özelliklerinin detaylı karşılaştırması
-  - [ ] Satın alma düğmeleri ve işlem akışı
-  - [ ] Deneme süresi teklifi
-- [ ] Abonelik Yönetim Ekranı (`SubscriptionManagementScreen`)
-  - [ ] Mevcut abonelik durumu
-  - [ ] Yükseltme/düşürme seçenekleri
-  - [ ] Faturalandırma bilgileri ve geçmişi
-- [ ] İptal Akışı Yönetimi
-  - [ ] Abonelik iptal akışı
-  - [ ] Kullanıcı geri bildirimi toplama
-
-### 12.7 Veri Güvenliği ve Gizlilik
-- [ ] GDPR/KVKK Uyumluluğu
-  - [ ] Veri işleme izinleri
-  - [ ] Veri silme hakları
-  - [ ] Verilerin taşınabilirliği
-- [ ] Firestore Güvenlik Kuralları
-  - [ ] Kullanıcılarının sadece kendi verilerine erişmesi
-  - [ ] Yetkilendirme kontrolleri
-- [ ] Hassas veri şifreleme stratejileri
-
-## 13. Aktivite Takip Sistemi (Hafta 15-16)
-
-### 13.1 Aktivite Veri Modeli
-- [x] `ActivityItem` arayüzünün oluşturulması
-  - [x] Gerekli alanların tanımlanması (id, name, calories, duration, date)
-  - [x] FoodItem'dan farklılaşan özelliklerin belirlenmesi
-- [x] `activityStore.ts` oluşturulması
-  - [x] Aktivite ekleme, silme, güncelleme işlevleri
-  - [x] Günlük yakılan kalori hesaplama
-  - [x] FoodStore ile entegrasyon: net kalori hesaplama
-
-### 13.2 Aktivite Girişi Kullanıcı Arayüzü
-- [x] `FoodEntryBar` bileşeninin genişletilmesi
-  - [x] Yemek ve aktivite algılama için metin analizi güncellenmesi
-  - [x] Aktivite algılandığında farklı işlem akışı
-  - [x] Kullanıcı giriş ipuçlarının güncellenmesi
-- [x] `ActivityEntryScreen` ekranının oluşturulması
-  - [x] Aktivite bilgileri formu (ad, süre, yoğunluk)
-  - [x] Kalori hesaplama mantığı
-  - [x] Store entegrasyonu
-
-### 13.3 Gelişmiş Giriş Seçenekleri
-- [x] Seçim modalı/diyaloğu oluşturulması
-  - [x] Yemek veya aktivite seçim arayüzü
-  - [x] İlgili ekrana yönlendirme
-- [ ] Canlı öneriler ve AI entegrasyonu
-  - [ ] Aktivite tahminleri için AI prompt'larının güncellenmesi
-  - [ ] Egzersiz süresi ve şiddeti analizi
-
-### 13.4 Aktivite Gösterimi ve Düzenleme
-- [x] `HomeScreen` ve `DailySummaryScreen` güncellemeleri
-  - [x] Aktivite gösterim tasarımı (yemeklerden farklı stillenme)
-  - [x] Negatif kalori gösterimi
-  - [x] Aktivite düzenleme işlevselliği
-- [x] Aktivite öğesi bileşeni tasarımı
-  - [x] Farklı aktivite türleri için özel ikonlar/emojiler
-  - [x] Süre ve yakılan kalori gösterimi
-
-### 13.5 İstatistik ve Grafik Entegrasyonu
-- [x] İstatistik ekranı güncellemeleri
-  - [x] Aktivite kalorileri dahil hesaplamalar
-  - [x] Alınan ve yakılan kalori dengesi grafiği
-  - [x] Aktivite geçmişi görünümü
-- [ ] Performans analizi eklentileri
-  - [ ] Zaman içinde aktivite eğilimleri
-  - [ ] Hedef belirleme ve takip
-
-### 13.6 Test ve Optimizasyon
-- [ ] Birim testleri
-  - [ ] `activityStore.ts` testleri
-  - [ ] Aktivite algılama ve hesaplama testleri
-- [ ] Kullanıcı arayüzü testleri
-  - [ ] Aktivite giriş ve düzenleme akışı testleri
-  - [ ] Görsel gösterim testleri
+### Veri Senkronizasyon Sistemi
+- [ ] Bulut senkronizasyon işlevselliği
+- [ ] Çevrimdışı destek
+- [ ] Veri yedekleme ve geri yükleme özellikleri

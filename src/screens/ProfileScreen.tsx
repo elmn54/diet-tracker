@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Image, Linking } from 'react-native';
-import { Text, Card, Divider, List, Avatar, useTheme } from 'react-native-paper';
+import { Text, Card, Divider, List, Avatar, useTheme, Badge } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../components/Button';
 import { useNavigation } from '@react-navigation/native';
@@ -8,6 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, typography, metrics } from '../constants/theme';
 import { useUIStore } from '../store/uiStore';
+import { useSubscriptionStore } from '../store/subscriptionStore';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
@@ -16,6 +17,26 @@ const ProfileScreen = () => {
   const theme = useTheme();
   const { showAlert } = useUIStore();
   const [loading, setLoading] = useState(false);
+  
+  // Abonelik bilgisini al
+  const { selectedPlan } = useSubscriptionStore();
+  
+  // Abonelik türüne göre renk ve metin
+  const getSubscriptionColor = () => {
+    switch (selectedPlan) {
+      case 'premium': return theme.colors.primary;
+      case 'pro': return theme.colors.tertiary;
+      default: return theme.colors.surfaceVariant;
+    }
+  };
+  
+  const getSubscriptionLabel = () => {
+    switch (selectedPlan) {
+      case 'premium': return 'Premium';
+      case 'pro': return 'Pro';
+      default: return 'Ücretsiz';
+    }
+  };
   
   // Burada kullanıcı bilgilerini çekebilirsiniz
   // Örnek kullanıcı profil bilgileri
@@ -83,6 +104,17 @@ const ProfileScreen = () => {
             source={require('../../assets/icon.png')} 
             style={styles.avatar}
           />
+          
+          {/* Abonelik durumu badge */}
+          <Badge
+            style={[
+              styles.subscriptionBadge,
+              { backgroundColor: getSubscriptionColor() }
+            ]}
+          >
+            {getSubscriptionLabel()}
+          </Badge>
+          
           <Text style={[styles.userName, { color: theme.colors.onBackground }]}>{userProfile.name}</Text>
           <Text style={[styles.userEmail, { color: theme.colors.onBackground }]}>{userProfile.email}</Text>
           <Text style={[styles.joinDate, { color: theme.colors.onBackground }]}>
@@ -111,6 +143,20 @@ const ProfileScreen = () => {
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{userProfile.totalLogsCount}</Text>
                 <Text style={styles.statLabel}>Toplam Kayıt</Text>
+              </View>
+              
+              <View style={styles.statItem}>
+                <View style={styles.planContainer}>
+                  <Text 
+                    style={[
+                      styles.planValue, 
+                      { color: getSubscriptionColor() }
+                    ]}
+                  >
+                    {getSubscriptionLabel()}
+                  </Text>
+                  <Text style={styles.statLabel}>Abonelik</Text>
+                </View>
               </View>
             </View>
           </Card.Content>
@@ -144,6 +190,15 @@ const ProfileScreen = () => {
               left={props => <List.Icon {...props} icon="cash" />}
               onPress={() => navigation.navigate('Pricing')}
             />
+            
+            <Divider style={styles.divider} />
+            
+            <List.Item
+              title="API Ayarları"
+              description="AI yemek tanıma servislerini yapılandırın"
+              left={props => <List.Icon {...props} icon="api" />}
+              onPress={() => navigation.navigate('ApiSettings')}
+            />
           </Card.Content>
         </Card>
         
@@ -172,6 +227,28 @@ const ProfileScreen = () => {
               left={props => <List.Icon {...props} icon="logout" color={colors.error} />}
               onPress={handleLogout}
               titleStyle={{ color: colors.error }}
+            />
+          </Card.Content>
+        </Card>
+        
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Hesap</Text>
+            
+            <List.Item
+              title="Giriş Yap"
+              description="Mevcut hesabınıza giriş yapın"
+              left={props => <List.Icon {...props} icon="login" />}
+              onPress={() => navigation.navigate('Login')}
+            />
+            
+            <Divider style={styles.divider} />
+            
+            <List.Item
+              title="Kayıt Ol"
+              description="Yeni bir hesap oluşturun"
+              left={props => <List.Icon {...props} icon="account-plus" />}
+              onPress={() => navigation.navigate('Register')}
             />
           </Card.Content>
         </Card>
@@ -248,6 +325,24 @@ const styles = StyleSheet.create({
   },
   extraSpace: {
     height: 60,
+  },
+  subscriptionBadge: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    fontSize: 12,
+    height: 28,
+    minWidth: 80,
+    paddingHorizontal: 4,
+  },
+  
+  planContainer: {
+    alignItems: 'center',
+  },
+  
+  planValue: {
+    fontSize: typography.fontSize.xxl,
+    fontWeight: 'bold',
   },
 });
 
