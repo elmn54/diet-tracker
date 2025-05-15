@@ -472,101 +472,92 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     return InputType.Food;
   };
 
-  // Metin tabanlı aktivite analizi için AI çağrısı
-  const analyzeActivityWithAI = async (text: string): Promise<any> => {
-    const apiKey = apiKeys[preferredProvider];
-    if (!apiKey) {
-      throw new Error('API anahtarı bulunamadı');
-    }
-    
-    console.log(`Analyzing activity with ${preferredProvider} API: "${text}"`);
-    
+  // Arama besin değeri verilerini çıkar
+  const extractNutritionData = (result: any): { foodData?: any, activityData?: any } => {
     try {
-      // Aktivite promtu oluştur
-      const prompt = `Aşağıdaki aktivite için yakılan kalori değerini ve süresini JSON formatında ver: ${text}
-      
-      Yanıtını şu formatta ver:
-      {
-        "name": "Aktivite adı",
-        "activityType": "walking veya running veya cycling veya swimming veya workout veya other",
-        "duration": süre (dakika cinsinden),
-        "intensity": "low veya medium veya high",
-        "caloriesBurned": yakılan kalori miktarı
+      // Yanıt boş veya geçersizse
+      if (!result || typeof result !== 'object') {
+        console.error('Geçersiz AI yanıtı:', result);
+        return {};
       }
       
-      Örnek:
-      Eğer girdi "30 dakika tempolu yürüyüş yaptım" ise, yanıt:
-      {
-        "name": "Tempolu Yürüyüş",
-        "activityType": "walking",
-        "duration": 30,
-        "intensity": "medium",
-        "caloriesBurned": 150
-      }
-      
-      Yanıtını yalnızca JSON olarak ver, başka açıklama ekleme.`;
-      
-      // createCompletion fonksiyonunu kullan
-      const completion = await createCompletion(
-        preferredProvider,
-        prompt,
-        apiKey
-      );
-      
-      console.log("AI yanıtı:", completion);
-      
-      // JSON yanıtını çıkar - daha sağlam bir yaklaşım
-      try {
-        // Önce direkt olarak yanıtın kendisini JSON olarak ayrıştırmayı dene
-        return JSON.parse(completion.trim());
-      } catch (parseError) {
-        // Direkt parse başarısız olursa, regex ile JSON'ı bulmayı dene
-        const jsonMatch = completion.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            return JSON.parse(jsonMatch[0]);
-          } catch (nestedParseError) {
-            console.error("Bulunan JSON ayrıştırılamadı:", nestedParseError);
-          }
+      // Yemek analizi olma durumu
+      if (result.nutritionFacts || 
+          (result.calories !== undefined && 
+          (result.protein !== undefined || result.carbs !== undefined || result.fat !== undefined))) {
+        
+        let name = result.name || 'Bilinmeyen Yemek';
+        let calories = 0;
+        let protein = 0;
+        let carbs = 0;
+        let fat = 0;
+        
+        // Besin değerleri nutritionFacts içinde mi yoksa direkt objede mi
+        if (result.nutritionFacts) {
+          calories = result.nutritionFacts.calories || 0;
+          protein = result.nutritionFacts.protein || 0;
+          carbs = result.nutritionFacts.carbs || 0;
+          fat = result.nutritionFacts.fat || 0;
+        } else {
+          // Direkt objede
+          calories = result.calories || 0;
+          protein = result.protein || 0;
+          carbs = result.carbs || 0;
+          fat = result.fat || 0;
         }
         
-        // Regex de başarısız olursa, varsayılan değerleri döndür
-        console.error("JSON formatı bulunamadı, varsayılan değerler kullanılıyor.");
         return {
-          name: text,
-          activityType: "other",
-          duration: 30,
-          intensity: "medium",
-          caloriesBurned: 100
+          foodData: {
+            name,
+            calories,
+            protein,
+            carbs,
+            fat
+          }
         };
       }
+      
+      // Aktivite analizi olma durumu
+      if (result.activityType !== undefined || 
+          result.duration !== undefined || 
+          result.caloriesBurned !== undefined) {
+        
+        return {
+          activityData: {
+            name: result.name || 'Bilinmeyen Aktivite',
+            activityType: result.activityType || 'other',
+            duration: result.duration || 30,
+            intensity: result.intensity || ActivityIntensity.Medium,
+            caloriesBurned: result.caloriesBurned || 100
+          }
+        };
+      }
+      
+      // Belirlenemedi, boş döndür
+      return {};
+      
     } catch (error) {
-      console.error('AI analizi sırasında hata:', error);
-      // Varsayılan değerleri döndür
-      return {
-        name: text,
-        activityType: "other",
-        duration: 30,
-        intensity: "medium",
-        caloriesBurned: 100
-      };
+      console.error('Veri çıkarma hatası:', error);
+      return {};
     }
   };
 
-  // Metin tabanlı yemek analizi için AI çağrısı
-  const analyzeTextWithAI = async (text: string): Promise<any> => {
+  // Tek bir AI isteği ile girdi analizi 
+  const analyzeInputWithAI = async (text: string): Promise<{ type: InputType, data: any }> => {
     const apiKey = apiKeys[preferredProvider];
     if (!apiKey) {
       throw new Error('API anahtarı bulunamadı');
     }
     
-    console.log(`Analyzing text with ${preferredProvider} API: "${text}"`);
+    console.log(`Analyzing input with AI: "${text}"`);
     
     try {
-      // Text promtu oluştur
-      const prompt = `Aşağıdaki yemek için besin değerlerini JSON formatında ver: ${text}
+      // Hem yemek hem aktivite analizi için birleştirilmiş prompt
+      const prompt = `Aşağıdaki girdiyi analiz et ve bir yemek mi yoksa fiziksel aktivite mi olduğunu belirle:
       
-      Yanıtını şu formatta ver:
+      "${text}"
+      
+      Eğer bu bir yemek veya içecekse, şu JSON formatında yanıt ver:
       {
         "name": "Yemek adı",
         "nutritionFacts": {
@@ -577,6 +568,15 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         }
       }
       
+      Eğer bu bir fiziksel aktivite veya egzersizse, şu JSON formatında yanıt ver:
+      {
+        "name": "Aktivite adı",
+        "activityType": "walking veya running veya cycling veya swimming veya workout veya other",
+        "duration": süre (dakika cinsinden),
+        "intensity": "low veya medium veya high",
+        "caloriesBurned": yakılan kalori miktarı
+      }
+      
       Yanıtını yalnızca JSON olarak ver, başka açıklama ekleme.`;
       
       // createCompletion fonksiyonunu kullan
@@ -586,47 +586,95 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         apiKey
       );
       
-      console.log("AI yanıtı:", completion);
+      console.log("AI unified response:", completion);
       
       // JSON yanıtını çıkar - daha sağlam bir yaklaşım
+      let parsedResult;
       try {
         // Önce direkt olarak yanıtın kendisini JSON olarak ayrıştırmayı dene
-        return JSON.parse(completion.trim());
+        parsedResult = JSON.parse(completion.trim());
       } catch (parseError) {
         // Direkt parse başarısız olursa, regex ile JSON'ı bulmayı dene
         const jsonMatch = completion.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           try {
-            return JSON.parse(jsonMatch[0]);
+            parsedResult = JSON.parse(jsonMatch[0]);
           } catch (nestedParseError) {
             console.error("Bulunan JSON ayrıştırılamadı:", nestedParseError);
+            throw new Error("JSON yanıtı ayrıştırılamadı");
           }
+        } else {
+          throw new Error("Geçerli JSON yanıtı bulunamadı");
         }
-        
-        // Regex de başarısız olursa, varsayılan değerleri döndür
-        console.error("JSON formatı bulunamadı, varsayılan değerler kullanılıyor.");
-        return {
-          name: text,
-          nutritionFacts: {
+      }
+      
+      // Veri çıkarma ve tür belirleme
+      const extractedData = extractNutritionData(parsedResult);
+      
+      if (extractedData.foodData) {
+        return { type: InputType.Food, data: extractedData.foodData };
+      } else if (extractedData.activityData) {
+        return { type: InputType.Activity, data: extractedData.activityData };
+      }
+      
+      // Tür belirlenemezse basit algılama fonksiyonuna geri dön
+      console.log("AI yanıtından tür belirlenemedi, basit algılama kullanılıyor");
+      const backupType = detectInputType(text);
+      
+      // Varsayılan veriler
+      if (backupType === InputType.Food) {
+        return { 
+          type: InputType.Food, 
+          data: {
+            name: text,
             calories: 100,
             protein: 5,
             carbs: 15,
             fat: 2
-          }
+          } 
+        };
+      } else {
+        return { 
+          type: InputType.Activity, 
+          data: {
+            name: text,
+            activityType: "other",
+            duration: 30,
+            intensity: ActivityIntensity.Medium,
+            caloriesBurned: 100
+          } 
         };
       }
+      
     } catch (error) {
       console.error('AI analizi sırasında hata:', error);
-      // Varsayılan değerleri döndür
-      return {
-        name: text,
-        nutritionFacts: {
-          calories: 100,
-          protein: 5,
-          carbs: 15,
-          fat: 2
-        }
-      };
+      
+      // Hata durumunda basit algılama ve varsayılan değerler
+      const fallbackType = detectInputType(text);
+      
+      if (fallbackType === InputType.Food) {
+        return { 
+          type: InputType.Food, 
+          data: {
+            name: text,
+            calories: 100,
+            protein: 5,
+            carbs: 15,
+            fat: 2
+          } 
+        };
+      } else {
+        return { 
+          type: InputType.Activity, 
+          data: {
+            name: text,
+            activityType: "other",
+            duration: 30,
+            intensity: ActivityIntensity.Medium,
+            caloriesBurned: 100
+          } 
+        };
+      }
     }
   };
 
@@ -641,23 +689,22 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       try {
         setIsAnalyzing(true);
         
-        // Girdi türünü belirle
-        const detectedType = detectInputType(inputText);
-        setInputType(detectedType);
+        // Tek seferde girdiyi analiz et
+        const analysisResult = await analyzeInputWithAI(inputText);
+        setInputType(analysisResult.type);
         
-        if (detectedType === InputType.Activity) {
+        if (analysisResult.type === InputType.Activity) {
           // Aktivite girişi
-          console.log("Aktivite analizi başlıyor:", inputText);
-          const result = await analyzeActivityWithAI(inputText);
+          console.log("Aktivite analiz sonucu:", analysisResult.data);
           
           // AI sonuçlarını kullanarak yeni aktivite oluştur
           const newActivity: ActivityItem = {
             id: Date.now().toString(),
-            name: result.name || inputText,
-            calories: result.caloriesBurned || 0,
-            activityType: result.activityType || 'other',
-            duration: result.duration || 30,
-            intensity: result.intensity || ActivityIntensity.Medium,
+            name: analysisResult.data.name || inputText,
+            calories: analysisResult.data.caloriesBurned || 0,
+            activityType: analysisResult.data.activityType || 'other',
+            duration: analysisResult.data.duration || 30,
+            intensity: analysisResult.data.intensity || ActivityIntensity.Medium,
             date: selectedDate.toISOString(),
           };
           
@@ -667,25 +714,16 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
           showToast(`${newActivity.name} eklendi (-${newActivity.calories} kcal)`, 'success');
         } else {
           // Yemek girişi
-          console.log("Yemek analizi başlıyor:", inputText);
-          const result = await analyzeTextWithAI(inputText);
-          
-          // AI sonuçlarını güvenli bir şekilde al
-          const name = result.name || inputText;
-          const nutritionFacts = result.nutritionFacts || {};
-          const calories = nutritionFacts.calories || 0;
-          const protein = nutritionFacts.protein || 0;
-          const carbs = nutritionFacts.carbs || 0;
-          const fat = nutritionFacts.fat || 0;
+          console.log("Yemek analiz sonucu:", analysisResult.data);
           
           // AI sonuçlarını kullanarak yeni yemek oluştur
           const newFood: FoodItem = {
             id: Date.now().toString(),
-            name: name,
-            calories: calories,
-            protein: protein,
-            carbs: carbs,
-            fat: fat,
+            name: analysisResult.data.name || inputText,
+            calories: analysisResult.data.calories || 0,
+            protein: analysisResult.data.protein || 0,
+            carbs: analysisResult.data.carbs || 0,
+            fat: analysisResult.data.fat || 0,
             date: selectedDate.toISOString(),
             mealType: 'lunch', // Varsayılan öğün tipi
           };
