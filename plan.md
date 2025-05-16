@@ -257,40 +257,40 @@ __tests__/            # Test dosyaları (src yapısını yansıtır)
 ## 12. Abonelik ve Kullanıcı Yönetimi - UI ve Navigasyon Odaklı (Hafta 12-13)
 
 ### 12.1 UI Bileşenleri ve Ekranları
-- [ ] Oturum Açma ve Kayıt Ekranları Geliştirmeleri
-  - [ ] `LoginScreen` UI iyileştirmeleri
-  - [ ] `RegisterScreen` UI iyileştirmeleri
-  - [ ] `ForgotPasswordScreen` UI iyileştirmeleri
-  - [ ] Sosyal medya giriş butonları (Google, Apple) UI
-- [ ] Abonelik Ekranları
-  - [ ] `PricingScreen` UI geliştirmesi
-    - [ ] Fiyat tablosu/karşılaştırma kartları
-    - [ ] Abonelik paketleri arasında geçiş efektleri
-    - [ ] Öne çıkan paket vurgusu
-- [ ] Kullanıcı Profil Ekranı Geliştirmeleri
-  - [ ] `ProfileScreen` UI iyileştirmeleri
-  - [ ] Avatar ve profil fotoğrafı seçimi
-  - [ ] Kullanıcı bilgileri form tasarımı
+- [x] Oturum Açma ve Kayıt Ekranları Geliştirmeleri
+  - [x] `LoginScreen` UI iyileştirmeleri
+  - [x] `RegisterScreen` UI iyileştirmeleri
+  - [x] `ForgotPasswordScreen` UI iyileştirmeleri
+  - [x] Sosyal medya giriş butonları (Google) UI
+- [x] Abonelik Ekranları
+  - [x] `PricingScreen` UI geliştirmesi
+    - [x] Fiyat tablosu/karşılaştırma kartları
+    - [x] Abonelik paketleri arasında geçiş efektleri
+    - [x] Öne çıkan paket vurgusu
+- [x] Kullanıcı Profil Ekranı Geliştirmeleri
+  - [x] `ProfileScreen` UI iyileştirmeleri
+  - [x] Avatar ve profil fotoğrafı seçimi
+  - [x] Kullanıcı bilgileri form tasarımı
   - [x] Abonelik durumu rozeti/göstergesi
 
 ### 12.2 Navigasyon Yapısı
-- [ ] Kimlik Doğrulama Navigasyonu
-  - [ ] `AuthNavigator` güncellemeleri
-  - [ ] Oturumsuz durumda gezinme kısıtlamaları
-- [ ] Abonelik Akışı Navigasyonu
-  - [ ] Abonelik ekranlarının ana navigasyon yapısına entegrasyonu
-  - [ ] Kısıtlı özelliklere erişim kontrolü için navigasyon koruyucuları
-- [ ] Uygulama İçi Satın Alma Akışı Navigasyonu
-  - [ ] Satın alma akışı için navigasyon yapısı
-  - [ ] Başarılı/başarısız ödeme sonrası yönlendirmeler
+- [x] Kimlik Doğrulama Navigasyonu
+  - [x] `AuthNavigator` güncellemeleri
+  - [x] Oturumsuz durumda gezinme kısıtlamaları
+- [x] Abonelik Akışı Navigasyonu
+  - [x] Abonelik ekranlarının ana navigasyon yapısına entegrasyonu
+  - [x] Kısıtlı özelliklere erişim kontrolü için navigasyon koruyucuları
+- [x] Uygulama İçi Satın Alma Akışı Navigasyonu
+  - [x] Satın alma akışı için navigasyon yapısı
+  - [x] Başarılı/başarısız ödeme sonrası yönlendirmeler
 
 ### 12.3 Premium Özellik UI Göstergeleri
-- [ ] Kilitlenen Özellikler UI Tasarımı
-  - [ ] Premium özellik kilit ikonları/göstergeleri
-  - [ ] Premium içerik teaser UI bileşenleri
-  - [ ] "Premium'a Yükselt" çağrı butonları (Call-to-action)
-- [ ] Ücretli/Ücretsiz İçerik Ayrımı
-  - [ ] Tema ve stil farklılaştırması
+- [x] Kilitlenen Özellikler UI Tasarımı
+  - [x] Premium özellik kilit ikonları/göstergeleri
+  - [x] Premium içerik teaser UI bileşenleri
+  - [x] "Premium'a Yükselt" çağrı butonları (Call-to-action)
+- [x] Ücretli/Ücretsiz İçerik Ayrımı
+  - [x] Tema ve stil farklılaştırması
   - [x] Premium kullanıcı rozeti/göstergesi
 
 ### 12.4 Reklam Yerleşimleri (Ücretsiz Tier)

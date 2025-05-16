@@ -15,6 +15,9 @@ import StatsScreen from '../screens/StatsScreen';
 import ApiSettingsScreen from '../screens/ApiSettingsScreen';
 import PricingScreen from '../screens/PricingScreen';
 import CalorieGoalScreen from '../screens/CalorieGoalScreen';
+import PaymentScreen from '../screens/PaymentScreen';
+import PaymentSuccessScreen from '../screens/PaymentSuccessScreen';
+import PaymentFailureScreen from '../screens/PaymentFailureScreen';
 import { spacing } from '../constants/theme';
 import { ActivityItem } from '../types/activity';
 
@@ -54,6 +57,19 @@ export type RootStackParamList = {
   'ApiSettings': undefined;
   'Pricing': undefined;
   'CalorieGoal': undefined;
+  'Payment': { 
+    planId: string;
+    planName: string;
+    price: number;
+  };
+  'PaymentSuccess': {
+    planId: string;
+    transactionId: string;
+  };
+  'PaymentFailure': {
+    error: string;
+    planId?: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -208,6 +224,43 @@ const AppNavigator = () => {
         options={{
           ...screenOptions,
           title: '',
+          contentStyle: {
+            ...screenOptions.contentStyle,
+            paddingTop: spacing.s,
+          }
+        }}
+      />
+      <Stack.Screen 
+        name="Payment" 
+        component={PaymentScreen}
+        options={{
+          ...screenOptions,
+          title: 'Ödeme',
+          contentStyle: {
+            ...screenOptions.contentStyle,
+            paddingTop: spacing.s,
+          }
+        }}
+      />
+      <Stack.Screen 
+        name="PaymentSuccess" 
+        component={PaymentSuccessScreen}
+        options={{
+          ...screenOptions,
+          title: 'Ödeme Başarılı',
+          contentStyle: {
+            ...screenOptions.contentStyle,
+            paddingTop: spacing.s,
+          },
+          headerLeft: () => null, // Geri düğmesini kaldır
+        }}
+      />
+      <Stack.Screen 
+        name="PaymentFailure" 
+        component={PaymentFailureScreen}
+        options={{
+          ...screenOptions,
+          title: 'Ödeme Hatası',
           contentStyle: {
             ...screenOptions.contentStyle,
             paddingTop: spacing.s,

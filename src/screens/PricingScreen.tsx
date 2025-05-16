@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
 import { Text, useTheme, Card, IconButton, Badge, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Button from '../components/Button';
 import { useSubscriptionStore } from '../store/subscriptionStore';
 import { spacing, typography } from '../constants/theme';
+import { RootStackParamList } from '../navigation/AppNavigator';
+
+// TypeScript için navigasyon tipi tanımı
+type PricingScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const PricingScreen = () => {
   const theme = useTheme();
-  const navigation = useNavigation();
+  const navigation = useNavigation<PricingScreenNavigationProp>();
   const { 
     plans, 
     selectedPlan, 
@@ -17,7 +22,8 @@ const PricingScreen = () => {
     isTrialActive, 
     selectPlan, 
     subscribe, 
-    getRemainingTrialDays 
+    getRemainingTrialDays,
+    cancelSubscription
   } = useSubscriptionStore();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -36,13 +42,6 @@ const PricingScreen = () => {
           <Text style={[styles.statusText, { color: theme.colors.primary }]}>
             Aktif Abonelik: {activePlan?.name}
           </Text>
-          
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('SubscriptionManagement' as never)}
-            style={styles.manageButton}
-          >
-            <Text style={[styles.manageButtonText, { color: theme.colors.primary }]}>Yönet</Text>
-          </TouchableOpacity>
         </View>
       );
     }
@@ -81,11 +80,20 @@ const PricingScreen = () => {
   const handleSubscribe = async () => {
     setIsLoading(true);
     try {
-      await subscribe();
-      // Abonelik başarılı olursa yönetim ekranına yönlendir
-      navigation.navigate('SubscriptionManagement' as never);
+      const selectedPlanObj = plans.find(plan => plan.id === selectedPlan);
+      if (!selectedPlanObj) {
+        throw new Error('Seçili plan bulunamadı');
+      }
+      
+      // Ödeme ekranına yönlendir
+      navigation.navigate('Payment', {
+        planId: selectedPlan,
+        planName: selectedPlanObj.name,
+        price: selectedPlanObj.price
+      });
     } catch (error) {
       console.error('Abonelik işlemi sırasında hata oluştu:', error);
+      Alert.alert('Hata', 'İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setIsLoading(false);
     }
@@ -211,15 +219,36 @@ const PricingScreen = () => {
           {isSubscribed && (
             <View>
               <Button
-                title="Abonelik Yönetimi"
-                onPress={() => navigation.navigate('SubscriptionManagement' as never)}
+                title="Abonelik Ayrıntıları"
+                onPress={() => navigation.navigate('Profile')}
                 style={styles.manageSubscriptionButton}
                 variant="outline"
               />
               
               <TouchableOpacity 
                 style={styles.cancelLink}
-                onPress={() => navigation.navigate('SubscriptionManagement' as never)}
+                onPress={() => {
+                  Alert.alert(
+                    'Abonelik İptali',
+                    'Aboneliğinizi iptal etmek istediğinize emin misiniz?',
+                    [
+                      { text: 'Vazgeç', style: 'cancel' },
+                      { 
+                        text: 'İptal Et', 
+                        onPress: async () => {
+                          try {
+                            await cancelSubscription();
+                            Alert.alert('Başarılı', 'Aboneliğiniz iptal edildi.');
+                          } catch (error) {
+                            console.error('Abonelik iptal edilirken hata oluştu:', error);
+                            Alert.alert('Hata', 'İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+                          }
+                        },
+                        style: 'destructive'
+                      }
+                    ]
+                  );
+                }}
               >
                 <Text style={[styles.cancelText, { color: theme.colors.error }]}>
                   Aboneliği İptal Et
@@ -384,16 +413,6 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: typography.fontSize.small,
     marginBottom: spacing.xs,
-  },
-  manageButton: {
-    borderRadius: 4,
-    paddingHorizontal: spacing.s,
-    paddingVertical: spacing.xs,
-    marginLeft: spacing.s,
-  },
-  manageButtonText: {
-    fontSize: typography.fontSize.small,
-    fontWeight: 'bold',
   },
 });
 
