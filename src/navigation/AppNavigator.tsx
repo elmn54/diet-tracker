@@ -15,6 +15,7 @@ import StatsScreen from '../screens/StatsScreen';
 import ApiSettingsScreen from '../screens/ApiSettingsScreen';
 import PricingScreen from '../screens/PricingScreen';
 import CalorieGoalScreen from '../screens/CalorieGoalScreen';
+import CalorieCalculatorScreen from '../screens/CalorieCalculatorScreen';
 import PaymentScreen from '../screens/PaymentScreen';
 import PaymentSuccessScreen from '../screens/PaymentSuccessScreen';
 import PaymentFailureScreen from '../screens/PaymentFailureScreen';
@@ -58,6 +59,9 @@ export type RootStackParamList = {
   'ApiSettings': undefined;
   'Pricing': undefined;
   'CalorieGoal': undefined;
+  'CalorieCalculator': {
+    onCalculate?: (calories: number) => void;
+  };
   'Payment': { 
     planId: string;
     planName: string;
@@ -207,6 +211,18 @@ const AppNavigator = () => {
             options={{
               ...screenOptions,
               title: '',
+              contentStyle: {
+                ...screenOptions.contentStyle,
+                paddingTop: spacing.s,
+              }
+            }}
+          />
+          <Stack.Screen 
+            name="CalorieCalculator" 
+            component={CalorieCalculatorScreen}
+            options={{
+              ...screenOptions,
+              title: 'Kalori Hesaplayıcı',
               contentStyle: {
                 ...screenOptions.contentStyle,
                 paddingTop: spacing.s,

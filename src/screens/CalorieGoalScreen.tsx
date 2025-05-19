@@ -7,6 +7,9 @@ import Button from '../components/Button';
 import { useCalorieGoalStore } from '../store/calorieGoalStore';
 import { useUIStore } from '../store/uiStore';
 import { spacing, typography } from '../constants/theme';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
 // Besin değerleri için kalori sabitleri
 const PROTEIN_CALORIES_PER_GRAM = 4;
@@ -18,8 +21,11 @@ const DEFAULT_PROTEIN_RATIO = 0.30; // %30
 const DEFAULT_FAT_RATIO = 0.25;     // %25
 const DEFAULT_CARBS_RATIO = 0.45;   // %45
 
+type CalorieGoalScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CalorieGoal'>;
+
 const CalorieGoalScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation<CalorieGoalScreenNavigationProp>();
   const { calorieGoal, nutrientGoals, setCalorieGoal, setNutrientGoals, loadGoals } = useCalorieGoalStore();
   const { showToast } = useUIStore();
   
@@ -186,6 +192,28 @@ const CalorieGoalScreen = () => {
     return isValid;
   };
   
+  // Hesaplanan kaloriyi form state'e uygula
+  const handleCalculatedCalories = (calculatedCalories: number) => {
+    // Kalori değerini güncelle
+    setFormState(prev => ({ ...prev, calories: calculatedCalories.toString() }));
+    
+    // Makro besin değerlerini de güncelle
+    const newMacros = calculateMacros(calculatedCalories);
+    setFormState(prev => ({
+      ...prev,
+      protein: newMacros.protein.toString(),
+      carbs: newMacros.carbs.toString(),
+      fat: newMacros.fat.toString(),
+    }));
+  };
+  
+  // Kalori hesaplayıcı ekranına git
+  const navigateToCalorieCalculator = () => {
+    navigation.navigate('CalorieCalculator', {
+      onCalculate: handleCalculatedCalories
+    });
+  };
+  
   // Hedefleri kaydet
   const handleSave = async () => {
     if (!validateForm()) return;
@@ -253,6 +281,14 @@ const CalorieGoalScreen = () => {
             <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
               Günlük hedeflediğiniz kalori miktarını belirleyin
             </Text>
+            
+            <Button
+              title="Kalori İhtiyacımı Hesapla"
+              onPress={navigateToCalorieCalculator}
+              variant="outline"
+              icon="calculator"
+              style={styles.calculatorButton}
+            />
             
             <Input
               label="Kalori Hedefi"
@@ -362,7 +398,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: spacing.m,
     paddingBottom: spacing.xl,
-    paddingTop: 0,
+    paddingTop: spacing.s,
   },
   section: {
     marginBottom: spacing.l,
@@ -374,6 +410,9 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: typography.fontSize.small,
+    marginBottom: spacing.m,
+  },
+  calculatorButton: {
     marginBottom: spacing.m,
   },
   inputContainer: {
