@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigation } from '@react-navigation/native';
@@ -9,12 +9,15 @@ import Button from '../components/Button';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme, Divider } from 'react-native-paper';
+import { useAuth } from '../context/AuthContext';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const theme = useTheme();
+  const { signIn, signInWithGoogle, error, isLoading, resetError } = useAuth();
+  
   const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -22,18 +25,36 @@ const LoginScreen = () => {
       password: '',
     },
   });
+  
+  // Reset any auth errors when component mounts
+  useEffect(() => {
+    resetError();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const onSubmit = (data: LoginFormData) => {
-    // Normalde burada API çağrısı yapılırdı, şimdilik mock işlem
-    console.log('Giriş bilgileri:', data);
-    
-    // Başarılı girişten sonra ana sayfaya yönlendirme
-    navigation.navigate('Ana Sayfa');
+  const onSubmit = async (data: LoginFormData) => {
+    // Ensure all required fields are present before passing to signIn
+    if (data.email && data.password) {
+      await signIn({
+        email: data.email,
+        password: data.password,
+      });
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.log('Google sign in error:', error);
+    }
   };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Text style={[styles.title, { color: theme.colors.onSurface }]}>Giriş Yap</Text>
+      
+      {error && <Text style={styles.errorText}>{error}</Text>}
       
       <Controller
         control={control}
@@ -75,9 +96,10 @@ const LoginScreen = () => {
       </TouchableOpacity>
       
       <Button 
-        title="Giriş Yap"
+        title={isLoading ? "Giriş Yapılıyor..." : "Giriş Yap"}
         onPress={handleSubmit(onSubmit)}
         style={styles.button}
+        disabled={isLoading}
       />
       
       <View style={styles.dividerContainer}>
@@ -89,10 +111,11 @@ const LoginScreen = () => {
       <View style={styles.socialButtonsContainer}>
         <Button 
           title="Google ile Giriş Yap"
-          onPress={() => console.log('Google ile giriş')}
+          onPress={handleGoogleSignIn}
           style={styles.socialButton}
           variant="outline"
           icon="google"
+          disabled={isLoading}
         />
       </View>
       
@@ -158,6 +181,11 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontWeight: 'bold',
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 16,
+    textAlign: 'center',
   },
 });
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigation } from '@react-navigation/native';
@@ -7,30 +7,67 @@ import { registerSchema, RegisterFormData } from '../utils/validationSchemas';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { useTheme, Divider } from 'react-native-paper';
+import { useAuth } from '../context/AuthContext';
 
 const RegisterScreen = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
+  const { signUp, signInWithGoogle, error, isLoading, resetError } = useAuth();
+  
   const { control, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      displayName: '',
       email: '',
       password: '',
       confirmPassword: '',
     },
   });
+  
+  // Reset any auth errors when component mounts
+  useEffect(() => {
+    resetError();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const onSubmit = (data: RegisterFormData) => {
-    // Normalde burada API çağrısı yapılırdı, şimdilik mock işlem
-    console.log('Kayıt bilgileri:', data);
-    
-    // Başarılı kayıttan sonra giriş ekranına yönlendirme
-    navigation.navigate('Login');
+  const onSubmit = async (data: RegisterFormData) => {
+    // Ensure all required fields are present before passing to signUp
+    if (data.displayName && data.email && data.password) {
+      await signUp({
+        displayName: data.displayName,
+        email: data.email,
+        password: data.password,
+      });
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.log('Google sign in error:', error);
+    }
   };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Text style={[styles.title, { color: theme.colors.onSurface }]}>Hesap Oluştur</Text>
+      
+      {error && <Text style={styles.errorText}>{error}</Text>}
+      
+      <Controller
+        control={control}
+        name="displayName"
+        render={({ field: { onChange, value } }) => (
+          <Input
+            label="Ad Soyad"
+            placeholder="Ad Soyad"
+            value={value}
+            onChangeText={onChange}
+            error={errors.displayName?.message}
+          />
+        )}
+      />
       
       <Controller
         control={control}
@@ -78,9 +115,10 @@ const RegisterScreen = () => {
       />
       
       <Button 
-        title="Kayıt Ol"
+        title={isLoading ? "Kayıt Yapılıyor..." : "Kayıt Ol"}
         onPress={handleSubmit(onSubmit)}
         style={styles.button}
+        disabled={isLoading}
       />
       
       <View style={styles.dividerContainer}>
@@ -92,10 +130,11 @@ const RegisterScreen = () => {
       <View style={styles.socialButtonsContainer}>
         <Button 
           title="Google ile Kayıt Ol"
-          onPress={() => console.log('Google ile kayıt')}
+          onPress={handleGoogleSignIn}
           style={styles.socialButton}
           variant="outline"
           icon="google"
+          disabled={isLoading}
         />
       </View>
       
@@ -162,6 +201,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 16,
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 16,
+    textAlign: 'center',
   },
 });
 

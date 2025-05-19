@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 // Kayıt formu validasyon şeması
 export const registerSchema = z.object({
+  displayName: z
+    .string()
+    .min(1, { message: 'Ad Soyad gereklidir' }),
   email: z
     .string()
     .min(1, { message: 'E-posta adresi gereklidir' })

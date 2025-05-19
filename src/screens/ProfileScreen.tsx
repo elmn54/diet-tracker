@@ -9,6 +9,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, typography, metrics } from '../constants/theme';
 import { useUIStore } from '../store/uiStore';
 import { useSubscriptionStore } from '../store/subscriptionStore';
+import { useAuth } from '../context/AuthContext';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
@@ -17,6 +18,7 @@ const ProfileScreen = () => {
   const theme = useTheme();
   const { showAlert } = useUIStore();
   const [loading, setLoading] = useState(false);
+  const { user, signOut } = useAuth();
   
   // Abonelik bilgisini al
   const { selectedPlan } = useSubscriptionStore();
@@ -38,11 +40,10 @@ const ProfileScreen = () => {
     }
   };
   
-  // Burada kullanıcı bilgilerini çekebilirsiniz
-  // Örnek kullanıcı profil bilgileri
+  // Kullanıcı bilgilerini Firebase'den alıyoruz
   const userProfile = {
-    name: 'Kullanıcı Adı',
-    email: 'kullanici@email.com',
+    name: user?.displayName || 'Misafir Kullanıcı',
+    email: user?.email || 'misafir@example.com',
     joinDate: new Date(2023, 0, 15),
     streakDays: 42,
     totalLogsCount: 153,
@@ -57,9 +58,17 @@ const ProfileScreen = () => {
         { text: 'İptal', onPress: () => {}, style: 'cancel' },
         { 
           text: 'Çıkış Yap', 
-          onPress: () => {
-            // Çıkış işlemleri (token silme vb.)
-            navigation.navigate('Login');
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await signOut();
+              // AuthNavigator sayesinde otomatik olarak Login ekranına yönlendirilecek
+            } catch (error) {
+              console.error('Çıkış yaparken hata:', error);
+              Alert.alert('Hata', 'Çıkış yapılırken bir hata oluştu.');
+            } finally {
+              setLoading(false);
+            }
           },
           style: 'destructive' 
         }

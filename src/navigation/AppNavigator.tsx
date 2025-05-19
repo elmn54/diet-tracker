@@ -20,6 +20,7 @@ import PaymentSuccessScreen from '../screens/PaymentSuccessScreen';
 import PaymentFailureScreen from '../screens/PaymentFailureScreen';
 import { spacing } from '../constants/theme';
 import { ActivityItem } from '../types/activity';
+import { useAuth } from '../context/AuthContext';
 
 // Stack navigator tipini tanımlıyoruz
 export type RootStackParamList = {
@@ -77,6 +78,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const AppNavigator = () => {
   // Tema renklerini al
   const theme = useTheme();
+  // Kullanıcı oturum durumunu al
+  const { user, isLoading } = useAuth();
   
   // Basit bir statusBar yüksekliği hesaplama
   const statusBarHeight = StatusBar.currentHeight || 0;
@@ -96,177 +99,190 @@ const AppNavigator = () => {
       backgroundColor: theme.colors.background,
     }
   };
+
+  // Kullanıcı yükleniyor ise boş sayfa göster
+  if (isLoading) {
+    return null;
+  }
   
   return (
     <Stack.Navigator 
-      initialRouteName="Ana Sayfa"
+      initialRouteName={user ? "Ana Sayfa" : "Login"}
       id={undefined}
     >
-      <Stack.Screen 
-        name="Ana Sayfa" 
-        component={HomeScreen}
-        options={{
-          ...screenOptions,
-          headerShown: false
-        }}
-      />
-      <Stack.Screen 
-        name="Login" 
-        component={LoginScreen}
-        options={{
-          ...screenOptions,
-          title: 'Giriş Yap'
-        }}
-      />
-      <Stack.Screen 
-        name="Register" 
-        component={RegisterScreen}
-        options={{
-          ...screenOptions,
-          title: 'Kayıt Ol'
-        }}
-      />
-      <Stack.Screen 
-        name="FoodEntry" 
-        component={FoodEntryScreen}
-        options={({ route }) => ({
-          ...screenOptions,
-          title: route.params?.editMode ? 'Yemeği Düzenle' : 'Yemek Ekle'
-        })}
-      />
-      <Stack.Screen 
-        name="ActivityEntry" 
-        component={ActivityEntryScreen}
-        options={({ route }) => ({
-          ...screenOptions,
-          title: route.params?.editMode ? 'Aktiviteyi Düzenle' : 'Aktivite Ekle'
-        })}
-      />
-      <Stack.Screen 
-        name="DailySummary" 
-        component={DailySummaryScreen}
-        options={{
-          ...screenOptions,
-          title: 'Günlük Özet',
-          contentStyle: {
-            ...screenOptions.contentStyle,
-            paddingTop: spacing.s,
-          }
-        }}
-      />
-      <Stack.Screen 
-        name="Profile" 
-        component={ProfileScreen}
-        options={{
-          ...screenOptions,
-          title: 'Profil'
-        }}
-      />
-      <Stack.Screen 
-        name="ThemeSettings" 
-        component={ThemeSettingsScreen}
-        options={{
-          ...screenOptions,
-          title: 'Tema Ayarları'
-        }}
-      />
-      <Stack.Screen 
-        name="Stats" 
-        component={StatsScreen}
-        options={{
-          ...screenOptions,
-          title: '',
-          contentStyle: {
-            ...screenOptions.contentStyle,
-            paddingTop: 0,
-          }
-        }}
-      />
-      <Stack.Screen 
-        name="ApiSettings" 
-        component={ApiSettingsScreen}
-        options={{
-          ...screenOptions,
-          title: '',
-          contentStyle: {
-            ...screenOptions.contentStyle,
-            paddingTop: 0,
-          }
-        }}
-      />
-      <Stack.Screen 
-        name="Pricing" 
-        component={PricingScreen}
-        options={{
-          ...screenOptions,
-          title: 'Abonelik Planları',
-          contentStyle: {
-            ...screenOptions.contentStyle,
-            paddingTop: spacing.s,
-          }
-        }}
-      />
-      <Stack.Screen 
-        name="ForgotPassword" 
-        component={ForgotPasswordScreen}
-        options={{
-          ...screenOptions,
-          title: 'Şifremi Unuttum',
-          contentStyle: {
-            ...screenOptions.contentStyle,
-            paddingTop: spacing.s,
-          }
-        }}
-      />
-      <Stack.Screen 
-        name="CalorieGoal" 
-        component={CalorieGoalScreen}
-        options={{
-          ...screenOptions,
-          title: '',
-          contentStyle: {
-            ...screenOptions.contentStyle,
-            paddingTop: spacing.s,
-          }
-        }}
-      />
-      <Stack.Screen 
-        name="Payment" 
-        component={PaymentScreen}
-        options={{
-          ...screenOptions,
-          title: 'Ödeme',
-          contentStyle: {
-            ...screenOptions.contentStyle,
-            paddingTop: spacing.s,
-          }
-        }}
-      />
-      <Stack.Screen 
-        name="PaymentSuccess" 
-        component={PaymentSuccessScreen}
-        options={{
-          ...screenOptions,
-          title: 'Ödeme Başarılı',
-          contentStyle: {
-            ...screenOptions.contentStyle,
-            paddingTop: spacing.s,
-          },
-          headerLeft: () => null, // Geri düğmesini kaldır
-        }}
-      />
-      <Stack.Screen 
-        name="PaymentFailure" 
-        component={PaymentFailureScreen}
-        options={{
-          ...screenOptions,
-          title: 'Ödeme Hatası',
-          contentStyle: {
-            ...screenOptions.contentStyle,
-            paddingTop: spacing.s,
-          }
-        }}
-      />
+      {user ? (
+        // Kullanıcı oturum açmış ise Ana Uygulama Ekranları
+        <>
+          <Stack.Screen 
+            name="Ana Sayfa" 
+            component={HomeScreen}
+            options={{
+              ...screenOptions,
+              headerShown: false
+            }}
+          />
+          <Stack.Screen 
+            name="FoodEntry" 
+            component={FoodEntryScreen}
+            options={({ route }) => ({
+              ...screenOptions,
+              title: route.params?.editMode ? 'Yemeği Düzenle' : 'Yemek Ekle'
+            })}
+          />
+          <Stack.Screen 
+            name="ActivityEntry" 
+            component={ActivityEntryScreen}
+            options={({ route }) => ({
+              ...screenOptions,
+              title: route.params?.editMode ? 'Aktiviteyi Düzenle' : 'Aktivite Ekle'
+            })}
+          />
+          <Stack.Screen 
+            name="DailySummary" 
+            component={DailySummaryScreen}
+            options={{
+              ...screenOptions,
+              title: 'Günlük Özet',
+              contentStyle: {
+                ...screenOptions.contentStyle,
+                paddingTop: spacing.s,
+              }
+            }}
+          />
+          <Stack.Screen 
+            name="Profile" 
+            component={ProfileScreen}
+            options={{
+              ...screenOptions,
+              title: 'Profil'
+            }}
+          />
+          <Stack.Screen 
+            name="ThemeSettings" 
+            component={ThemeSettingsScreen}
+            options={{
+              ...screenOptions,
+              title: 'Tema Ayarları'
+            }}
+          />
+          <Stack.Screen 
+            name="Stats" 
+            component={StatsScreen}
+            options={{
+              ...screenOptions,
+              title: '',
+              contentStyle: {
+                ...screenOptions.contentStyle,
+                paddingTop: 0,
+              }
+            }}
+          />
+          <Stack.Screen 
+            name="ApiSettings" 
+            component={ApiSettingsScreen}
+            options={{
+              ...screenOptions,
+              title: '',
+              contentStyle: {
+                ...screenOptions.contentStyle,
+                paddingTop: 0,
+              }
+            }}
+          />
+          <Stack.Screen 
+            name="Pricing" 
+            component={PricingScreen}
+            options={{
+              ...screenOptions,
+              title: 'Abonelik Planları',
+              contentStyle: {
+                ...screenOptions.contentStyle,
+                paddingTop: spacing.s,
+              }
+            }}
+          />
+          <Stack.Screen 
+            name="CalorieGoal" 
+            component={CalorieGoalScreen}
+            options={{
+              ...screenOptions,
+              title: '',
+              contentStyle: {
+                ...screenOptions.contentStyle,
+                paddingTop: spacing.s,
+              }
+            }}
+          />
+          <Stack.Screen 
+            name="Payment" 
+            component={PaymentScreen}
+            options={{
+              ...screenOptions,
+              title: 'Ödeme',
+              contentStyle: {
+                ...screenOptions.contentStyle,
+                paddingTop: spacing.s,
+              }
+            }}
+          />
+          <Stack.Screen 
+            name="PaymentSuccess" 
+            component={PaymentSuccessScreen}
+            options={{
+              ...screenOptions,
+              title: 'Ödeme Başarılı',
+              contentStyle: {
+                ...screenOptions.contentStyle,
+                paddingTop: spacing.s,
+              }
+            }}
+          />
+          <Stack.Screen 
+            name="PaymentFailure" 
+            component={PaymentFailureScreen}
+            options={{
+              ...screenOptions,
+              title: 'Ödeme Başarısız',
+              contentStyle: {
+                ...screenOptions.contentStyle,
+                paddingTop: spacing.s,
+              }
+            }}
+          />
+        </>
+      ) : (
+        // Kullanıcı oturum açmamış ise Kimlik Doğrulama Ekranları
+        <>
+          <Stack.Screen 
+            name="Login" 
+            component={LoginScreen}
+            options={{
+              ...screenOptions,
+              title: 'Giriş Yap'
+            }}
+          />
+          <Stack.Screen 
+            name="Register" 
+            component={RegisterScreen}
+            options={{
+              ...screenOptions,
+              title: 'Kayıt Ol'
+            }}
+          />
+          <Stack.Screen 
+            name="ForgotPassword" 
+            component={ForgotPasswordScreen}
+            options={{
+              ...screenOptions,
+              title: 'Şifremi Unuttum',
+              contentStyle: {
+                ...screenOptions.contentStyle,
+                paddingTop: spacing.s,
+              }
+            }}
+          />
+        </>
+      )}
     </Stack.Navigator>
   );
 };
