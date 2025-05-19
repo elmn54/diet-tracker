@@ -27,7 +27,7 @@ const ProfileScreen = () => {
   const [joinDateError, setJoinDateError] = useState(false);
   
   // Abonelik bilgisini al
-  const { selectedPlan } = useSubscriptionStore();
+  const { selectedPlan, isSubscribed } = useSubscriptionStore();
   
   // Kullanıcı katılma tarihini Firebase'den al
   useEffect(() => {
@@ -63,18 +63,26 @@ const ProfileScreen = () => {
   
   // Abonelik türüne göre renk ve metin
   const getSubscriptionColor = () => {
+    if (!isSubscribed) {
+      return theme.dark ? '#585858' : 'rgba(255, 255, 255, 0.8)';
+    }
+    
     switch (selectedPlan) {
       case 'premium': return theme.colors.primary;
-      case 'pro': return theme.colors.tertiary;
-      default: return theme.colors.surfaceVariant;
+      case 'basic': return theme.dark ? '#686868' : theme.colors.surfaceVariant;
+      default: return theme.dark ? '#686868' : theme.colors.surfaceVariant;
     }
   };
   
   const getSubscriptionLabel = () => {
+    if (!isSubscribed) {
+      return 'Ücretsiz';
+    }
+    
     switch (selectedPlan) {
       case 'premium': return 'Premium';
-      case 'pro': return 'Pro';
-      default: return 'Ücretsiz';
+      case 'basic': return 'Temel';
+      default: return selectedPlan; // Fallback to plan ID if unknown
     }
   };
   
@@ -143,7 +151,10 @@ const ProfileScreen = () => {
           <Badge
             style={[
               styles.subscriptionBadge,
-              { backgroundColor: getSubscriptionColor() }
+              { 
+                backgroundColor: getSubscriptionColor(),
+                color: theme.dark ? '#FFFFFF' : '#000000'
+              }
             ]}
           >
             {getSubscriptionLabel()}
@@ -176,7 +187,13 @@ const ProfileScreen = () => {
                   <Text 
                     style={[
                       styles.planValue, 
-                      { color: getSubscriptionColor() }
+                      { 
+                        color: !isSubscribed
+                          ? theme.dark ? '#FFFFFF' : '#7F7F7F'
+                          : (selectedPlan === 'premium' 
+                              ? theme.colors.primary 
+                              : theme.dark ? '#FFFFFF' : getSubscriptionColor()) 
+                      }
                     ]}
                   >
                     {getSubscriptionLabel()}

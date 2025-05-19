@@ -41,7 +41,7 @@ const HomeScreen = () => {
   const theme = useTheme();
   
   // Abonelik bilgisini al
-  const { selectedPlan } = useSubscriptionStore();
+  const { selectedPlan, isSubscribed } = useSubscriptionStore();
   
   // FlatList için referans oluştur
   const flatListRef = useRef<FlatList<FoodItem | ActivityItem>>(null);
@@ -456,19 +456,22 @@ const HomeScreen = () => {
                 style={[
                   styles.subscriptionBadge, 
                   { 
-                    backgroundColor: selectedPlan === 'premium' 
-                      ? theme.colors.primary 
-                      : selectedPlan === 'pro'
-                        ? theme.colors.tertiary
-                        : 'rgba(255, 255, 255, 0.8)'
+                    backgroundColor: isSubscribed 
+                      ? (selectedPlan === 'premium' 
+                          ? theme.colors.primary 
+                          : theme.dark ? '#686868' : theme.colors.surfaceVariant)
+                      : theme.dark ? '#585858' : 'rgba(255, 255, 255, 0.8)',
+                    color: theme.dark 
+                      ? '#FFFFFF' 
+                      : '#000000'
                   }
                 ]}
               >
-                {selectedPlan === 'premium' 
-                  ? 'Premium' 
-                  : selectedPlan === 'pro' 
-                    ? 'Pro' 
-                    : 'Free'}
+                {isSubscribed 
+                  ? (selectedPlan === 'premium' 
+                      ? 'Premium' 
+                      : 'Temel')
+                  : 'Ücretsiz'}
               </Badge>
             </View>
             

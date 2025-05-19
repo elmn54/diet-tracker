@@ -39,10 +39,11 @@ interface SubscriptionState {
 // Varsayılan abonelik planları
 const DEFAULT_PLANS: SubscriptionPlan[] = [
   {
-    id: 'free',
-    name: 'Ücretsiz',
-    price: 0,
+    id: 'basic',
+    name: 'Temel',
+    price: 39.99,
     features: [
+      'Reklamsız deneyim',
       'Günlük kalori takibi',
       'Temel besin değerleri',
       'Haftalık özet'
@@ -54,30 +55,17 @@ const DEFAULT_PLANS: SubscriptionPlan[] = [
   {
     id: 'premium',
     name: 'Premium',
-    price: 9.99,
+    price: 164.99,
     features: [
+      'Reklamsız deneyim',
+      'Bulut yedekleme',
+      'Birden fazla cihaz senkronizasyonu',
       'Sınırsız yemek takibi',
-      '20 AI yemek tanıma/ay',
       'Detaylı besin analizleri',
       'Hedef takibi',
-      'Reklamsız deneyim'
+      '7/24 öncelikli destek'
     ],
     requestLimit: 20,
-    imageRecognitionEnabled: true,
-    advancedStatsEnabled: true
-  },
-  {
-    id: 'pro',
-    name: 'Profesyonel',
-    price: 19.99,
-    features: [
-      'Tüm Premium özellikleri',
-      'Sınırsız AI yemek tanıma',
-      'Kişisel beslenme tavsiyeleri',
-      'Egzersiz entegrasyonu',
-      'Öncelikli destek'
-    ],
-    requestLimit: Infinity,
     imageRecognitionEnabled: true,
     advancedStatsEnabled: true
   }
@@ -87,7 +75,7 @@ const DEFAULT_PLANS: SubscriptionPlan[] = [
 export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   // Başlangıç değerleri
   plans: DEFAULT_PLANS,
-  selectedPlan: 'free',
+  selectedPlan: 'basic',
   isSubscribed: false,
   isTrialActive: false,
   trialEndDate: null,
@@ -175,10 +163,10 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     
     // Özellik erişimi için abonelik veya deneme sürümü aktif olmalı
     if (!isSubscribed && !isTrialActive) {
-      // Ücretsiz plan bazı özelliklere izin verebilir
-      const freePlan = plans.find(plan => plan.id === 'free');
-      if (freePlan && featureKey in freePlan) {
-        return Boolean(freePlan[featureKey as keyof SubscriptionPlan]);
+      // Temel plan bazı özelliklere izin verebilir
+      const basicPlan = plans.find(plan => plan.id === 'basic');
+      if (basicPlan && featureKey in basicPlan) {
+        return Boolean(basicPlan[featureKey as keyof SubscriptionPlan]);
       }
       return false;
     }
@@ -222,7 +210,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   reset: async () => {
     try {
       set({
-        selectedPlan: 'free',
+        selectedPlan: 'basic',
         isSubscribed: false,
         isTrialActive: false,
         trialEndDate: null

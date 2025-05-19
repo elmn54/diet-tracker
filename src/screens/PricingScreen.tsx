@@ -28,6 +28,13 @@ const PricingScreen = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   
+  // Başlangıçta seçili planı 'basic' olarak ayarla
+  useEffect(() => {
+    if (!selectedPlan || !plans.some(p => p.id === selectedPlan)) {
+      selectPlan('basic');
+    }
+  }, []);
+  
   // Abonelik durumunu göster
   const renderSubscriptionStatus = () => {
     if (isSubscribed) {
@@ -125,7 +132,7 @@ const PricingScreen = () => {
             Abonelik Planları
           </Text>
           <Text style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Beslenme hedeflerinize ulaşmak için size en uygun planı seçin
+            Premium özelliklere erişim için size en uygun planı seçin
           </Text>
         </View>
     
@@ -142,7 +149,6 @@ const PricingScreen = () => {
                 onPress={() => selectPlan(plan.id)}
                 testID={`plan-${plan.id}`}
                 disabled={isSubscribed}
-                style={isPremium ? styles.premiumPlanContainer : undefined}
               >
                 <Card
                   style={[
@@ -160,11 +166,11 @@ const PricingScreen = () => {
                     </View>
                   )}
                   
-                  <Card.Content style={isPremium ? styles.premiumCardContent : undefined}>
+                  <Card.Content style={isPremium ? styles.premiumCardContent : styles.cardContent}>
                     <View style={styles.planHeader}>
                       <Text style={[
                         styles.planName, 
-                        isPremium && { color: theme.colors.primary, fontSize: typography.fontSize.xl }
+                        isPremium && { color: theme.colors.primary }
                       ]}>
                         {plan.name}
                       </Text>
@@ -173,7 +179,7 @@ const PricingScreen = () => {
                     <View style={styles.priceContainer}>
                       <Text style={[
                         styles.price,
-                        isPremium && { color: theme.colors.primary, fontSize: typography.fontSize.xxxl }
+                        isPremium && { color: theme.colors.primary }
                       ]}>
                         {plan.price} TL
                       </Text>
@@ -188,10 +194,10 @@ const PricingScreen = () => {
                     
                     {!isSubscribed && (
                       <Button
-                        title={isPremium ? "Şimdi Abone Ol" : "Seç"}
+                        title="Abone Ol"
                         onPress={() => {
                           selectPlan(plan.id);
-                          if (isPremium) handleSubscribe();
+                          handleSubscribe();
                         }}
                         style={styles.planButton}
                         variant={isPremium ? "primary" : "outline"}
@@ -204,59 +210,46 @@ const PricingScreen = () => {
           })}
         </View>
         
-        <View style={styles.subscribeButtonContainer}>
-          {!isSubscribed && (
+        {isSubscribed && (
+          <View style={styles.subscribeButtonContainer}>
             <Button
-              title="Seçili Plan ile Devam Et"
-              onPress={handleSubscribe}
-              loading={isLoading}
-              disabled={isLoading}
-              fullWidth
-              variant="primary"
+              title="Abonelik Ayrıntıları"
+              onPress={() => navigation.navigate('Profile')}
+              style={styles.manageSubscriptionButton}
+              variant="outline"
             />
-          )}
-          
-          {isSubscribed && (
-            <View>
-              <Button
-                title="Abonelik Ayrıntıları"
-                onPress={() => navigation.navigate('Profile')}
-                style={styles.manageSubscriptionButton}
-                variant="outline"
-              />
-              
-              <TouchableOpacity 
-                style={styles.cancelLink}
-                onPress={() => {
-                  Alert.alert(
-                    'Abonelik İptali',
-                    'Aboneliğinizi iptal etmek istediğinize emin misiniz?',
-                    [
-                      { text: 'Vazgeç', style: 'cancel' },
-                      { 
-                        text: 'İptal Et', 
-                        onPress: async () => {
-                          try {
-                            await cancelSubscription();
-                            Alert.alert('Başarılı', 'Aboneliğiniz iptal edildi.');
-                          } catch (error) {
-                            console.error('Abonelik iptal edilirken hata oluştu:', error);
-                            Alert.alert('Hata', 'İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
-                          }
-                        },
-                        style: 'destructive'
-                      }
-                    ]
-                  );
-                }}
-              >
-                <Text style={[styles.cancelText, { color: theme.colors.error }]}>
-                  Aboneliği İptal Et
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+            
+            <TouchableOpacity 
+              style={styles.cancelLink}
+              onPress={() => {
+                Alert.alert(
+                  'Abonelik İptali',
+                  'Aboneliğinizi iptal etmek istediğinize emin misiniz?',
+                  [
+                    { text: 'Vazgeç', style: 'cancel' },
+                    { 
+                      text: 'İptal Et', 
+                      onPress: async () => {
+                        try {
+                          await cancelSubscription();
+                          Alert.alert('Başarılı', 'Aboneliğiniz iptal edildi.');
+                        } catch (error) {
+                          console.error('Abonelik iptal edilirken hata oluştu:', error);
+                          Alert.alert('Hata', 'İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+                        }
+                      },
+                      style: 'destructive'
+                    }
+                  ]
+                );
+              }}
+            >
+              <Text style={[styles.cancelText, { color: theme.colors.error }]}>
+                Aboneliği İptal Et
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
         
         <View style={[styles.infoContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
           <Text style={[styles.infoTitle, { color: theme.colors.onSurface }]}>Abonelik Hakkında:</Text>
@@ -308,8 +301,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.l,
   },
   premiumPlanContainer: {
-    transform: [{ scale: 1.05 }],
-    zIndex: 1,
     marginVertical: spacing.m,
   },
   planCard: {
@@ -317,6 +308,8 @@ const styles = StyleSheet.create({
     elevation: 2,
     position: 'relative',
     overflow: 'hidden',
+    borderRadius: 12,
+    minHeight: 300,
   },
   premiumPlanCard: {
     elevation: 4,
@@ -324,9 +317,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
+    borderColor: '#5D5FEF',
+    borderWidth: 1.5,
   },
   premiumCardContent: {
     paddingTop: spacing.l,
+  },
+  cardContent: {
+    paddingTop: spacing.s,
   },
   popularBadgeContainer: {
     position: 'absolute',
