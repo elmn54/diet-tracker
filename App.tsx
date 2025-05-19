@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
 import { toggleTheme, LightTheme, DarkTheme } from './src/constants/theme';
 import { useFoodStore } from './src/store/foodStore';
+import { useActivityStore } from './src/store/activityStore';
 import { useThemeStore } from './src/store/themeStore';
 import { useApiKeyStore } from './src/store/apiKeyStore';
 import { useSubscriptionStore } from './src/store/subscriptionStore';
@@ -39,6 +40,7 @@ export default function App() {
   
   // Uygulamanın ilk başlatılmasında verileri yükle
   const loadFoods = useFoodStore(state => state.loadFoods);
+  const loadActivities = useActivityStore(state => state.loadActivities);
   const loadApiKeys = useApiKeyStore(state => state.loadApiKeys);
   const loadGoals = useCalorieGoalStore(state => state.loadGoals);
   
@@ -65,10 +67,11 @@ export default function App() {
   // Verileri yükleme
   useEffect(() => {
     loadFoods();
+    loadActivities();
     loadThemePreference();
     loadApiKeys();
     loadGoals();
-  }, [loadFoods, loadThemePreference, loadApiKeys, loadGoals]);
+  }, [loadFoods, loadActivities, loadThemePreference, loadApiKeys, loadGoals]);
 
   // Tema değişikliklerini takip etme
   useEffect(() => {

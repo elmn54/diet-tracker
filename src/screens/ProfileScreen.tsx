@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Image, Linking } from 'react-native';
-import { Text, Card, Divider, List, Avatar, useTheme, Badge } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Alert, Linking } from 'react-native';
+import { Text, Card, Divider, List, useTheme, Badge } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Button from '../components/Button';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -10,6 +9,10 @@ import { colors, spacing, typography, metrics } from '../constants/theme';
 import { useUIStore } from '../store/uiStore';
 import { useSubscriptionStore } from '../store/subscriptionStore';
 import { useAuth } from '../context/AuthContext';
+import { useUserStatsStore } from '../store/userStatsStore';
+import { getFirestore, collection, doc, getDoc } from '@react-native-firebase/firestore';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
@@ -19,9 +22,44 @@ const ProfileScreen = () => {
   const { showAlert } = useUIStore();
   const [loading, setLoading] = useState(false);
   const { user, signOut } = useAuth();
+  const { calculateStreakDays, calculateTotalLogsCount } = useUserStatsStore();
+  const [joinDate, setJoinDate] = useState<Date | null>(null);
+  const [joinDateError, setJoinDateError] = useState(false);
   
   // Abonelik bilgisini al
   const { selectedPlan } = useSubscriptionStore();
+  
+  // Kullanıcı katılma tarihini Firebase'den al
+  useEffect(() => {
+    if (user && user.uid) {
+      const fetchUserData = async () => {
+        try {
+          // Modular API kullanımı
+          const db = getFirestore();
+          const usersCollection = collection(db, 'users');
+          const userDocRef = doc(usersCollection, user.uid);
+          const userSnapshot = await getDoc(userDocRef);
+          
+          if (userSnapshot.exists() && userSnapshot.data()?.createdAt) {
+            // Firebase Timestamp'i Date'e çevir
+            const createdAtTimestamp = userSnapshot.data()?.createdAt;
+            setJoinDate(createdAtTimestamp.toDate());
+            setJoinDateError(false);
+          } else {
+            // Veri yoksa
+            setJoinDate(null);
+            setJoinDateError(true);
+          }
+        } catch (error) {
+          console.error('Kullanıcı verisi alınırken hata oluştu:', error);
+          setJoinDate(null);
+          setJoinDateError(true);
+        }
+      };
+      
+      fetchUserData();
+    }
+  }, [user]);
   
   // Abonelik türüne göre renk ve metin
   const getSubscriptionColor = () => {
@@ -38,15 +76,6 @@ const ProfileScreen = () => {
       case 'pro': return 'Pro';
       default: return 'Ücretsiz';
     }
-  };
-  
-  // Kullanıcı bilgilerini Firebase'den alıyoruz
-  const userProfile = {
-    name: user?.displayName || 'Misafir Kullanıcı',
-    email: user?.email || 'misafir@example.com',
-    joinDate: new Date(2023, 0, 15),
-    streakDays: 42,
-    totalLogsCount: 153,
   };
   
   const handleLogout = () => {
@@ -76,13 +105,6 @@ const ProfileScreen = () => {
     );
   };
   
-  const handleEditProfile = () => {
-    // Profil düzenleme ekranına gitme işlemleri
-    // EditProfile ekranı oluşturulduğunda ve RootStackParamList'e eklendiğinde aktif hale getirin
-    Alert.alert('Bilgi', 'Profil düzenleme özelliği yakında eklenecektir.');
-    // navigation.navigate('EditProfile');
-  };
-  
   const handleOpenCalorieGoalScreen = () => {
     navigation.navigate('CalorieGoal');
   };
@@ -92,11 +114,20 @@ const ProfileScreen = () => {
   };
   
   const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('tr-TR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    return format(date, 'd MMMM yyyy', { locale: tr });
+  };
+
+  // İstatistikleri hesapla
+  const streakDays = calculateStreakDays();
+  const totalLogsCount = calculateTotalLogsCount();
+
+  // Üyelik tarihini gösterme fonksiyonu
+  const getMembershipDateText = () => {
+    if (joinDateError) {
+      return '-';
+    }
+    
+    return joinDate ? formatDate(joinDate) : 'Yükleniyor...';
   };
 
   return (
@@ -108,12 +139,6 @@ const ProfileScreen = () => {
         showsVerticalScrollIndicator={true}
       >
         <View style={styles.header}>
-          <Avatar.Image 
-            size={120} 
-            source={require('../../assets/icon.png')} 
-            style={styles.avatar}
-          />
-          
           {/* Abonelik durumu badge */}
           <Badge
             style={[
@@ -124,19 +149,11 @@ const ProfileScreen = () => {
             {getSubscriptionLabel()}
           </Badge>
           
-          <Text style={[styles.userName, { color: theme.colors.onBackground }]}>{userProfile.name}</Text>
-          <Text style={[styles.userEmail, { color: theme.colors.onBackground }]}>{userProfile.email}</Text>
+          <Text style={[styles.userName, { color: theme.colors.onBackground }]}>{user?.displayName || 'Misafir Kullanıcı'}</Text>
+          <Text style={[styles.userEmail, { color: theme.colors.onBackground }]}>{user?.email || 'misafir@example.com'}</Text>
           <Text style={[styles.joinDate, { color: theme.colors.onBackground }]}>
-            Üyelik: {formatDate(userProfile.joinDate)}
+            Üyelik: {getMembershipDateText()}
           </Text>
-          
-          <Button
-            title="Profili Düzenle"
-            onPress={handleEditProfile}
-            style={styles.editButton}
-            variant="outline"
-            loading={loading}
-          />
         </View>
         
         <Card style={styles.card}>
@@ -145,12 +162,12 @@ const ProfileScreen = () => {
             
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{userProfile.streakDays}</Text>
+                <Text style={styles.statValue}>{streakDays}</Text>
                 <Text style={styles.statLabel}>Seri Gün</Text>
               </View>
               
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{userProfile.totalLogsCount}</Text>
+                <Text style={styles.statValue}>{totalLogsCount}</Text>
                 <Text style={styles.statLabel}>Toplam Kayıt</Text>
               </View>
               
@@ -228,37 +245,42 @@ const ProfileScreen = () => {
               left={props => <List.Icon {...props} icon="shield-account" />}
               onPress={() => Linking.openURL('https://example.com/privacy')}
             />
-            
-            <Divider style={styles.divider} />
-            
-            <List.Item
-              title="Çıkış Yap"
-              left={props => <List.Icon {...props} icon="logout" color={colors.error} />}
-              onPress={handleLogout}
-              titleStyle={{ color: colors.error }}
-            />
           </Card.Content>
         </Card>
         
+        {/* Kullanıcı giriş durumuna göre hesap kartı */}
         <Card style={styles.card}>
           <Card.Content>
             <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Hesap</Text>
             
-            <List.Item
-              title="Giriş Yap"
-              description="Mevcut hesabınıza giriş yapın"
-              left={props => <List.Icon {...props} icon="login" />}
-              onPress={() => navigation.navigate('Login')}
-            />
-            
-            <Divider style={styles.divider} />
-            
-            <List.Item
-              title="Kayıt Ol"
-              description="Yeni bir hesap oluşturun"
-              left={props => <List.Icon {...props} icon="account-plus" />}
-              onPress={() => navigation.navigate('Register')}
-            />
+            {user ? (
+              // Kullanıcı giriş yapmışsa
+              <List.Item
+                title="Çıkış Yap"
+                left={props => <List.Icon {...props} icon="logout" color={colors.error} />}
+                onPress={handleLogout}
+                titleStyle={{ color: colors.error }}
+              />
+            ) : (
+              // Kullanıcı giriş yapmamışsa
+              <>
+                <List.Item
+                  title="Giriş Yap"
+                  description="Mevcut hesabınıza giriş yapın"
+                  left={props => <List.Icon {...props} icon="login" />}
+                  onPress={() => navigation.navigate('Login')}
+                />
+                
+                <Divider style={styles.divider} />
+                
+                <List.Item
+                  title="Kayıt Ol"
+                  description="Yeni bir hesap oluşturun"
+                  left={props => <List.Icon {...props} icon="account-plus" />}
+                  onPress={() => navigation.navigate('Register')}
+                />
+              </>
+            )}
           </Card.Content>
         </Card>
         
@@ -277,9 +299,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.m,
   },
-  avatar: {
-    marginBottom: spacing.m,
-  },
   userName: {
     fontSize: typography.fontSize.xl,
     fontWeight: 'bold',
@@ -294,10 +313,6 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.small,
     opacity: 0.6,
     marginBottom: spacing.m,
-  },
-  editButton: {
-    marginTop: spacing.s,
-    width: '50%',
   },
   card: {
     marginHorizontal: spacing.m,
@@ -344,11 +359,9 @@ const styles = StyleSheet.create({
     minWidth: 80,
     paddingHorizontal: 4,
   },
-  
   planContainer: {
     alignItems: 'center',
   },
-  
   planValue: {
     fontSize: typography.fontSize.xxl,
     fontWeight: 'bold',
