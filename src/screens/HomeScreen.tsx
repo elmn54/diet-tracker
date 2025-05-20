@@ -475,13 +475,6 @@ const HomeScreen = () => {
               </Badge>
             </View>
             
-            <TouchableOpacity 
-              style={styles.iconButton}
-              onPress={handleOpenThemeSettings}
-            >
-              <Text style={styles.themeIcon}>{theme.dark ? '🌙' : '☀️'}</Text>
-            </TouchableOpacity>
-            
             <Menu
               visible={menuVisible}
               onDismiss={() => setMenuVisible(false)}
@@ -491,6 +484,14 @@ const HomeScreen = () => {
                 </TouchableOpacity>
               }
             >
+              <Menu.Item 
+                onPress={() => {
+                  handleOpenThemeSettings();
+                  setMenuVisible(false);
+                }}
+                title="Tema Ayarları"
+                leadingIcon={theme.dark ? "weather-night" : "weather-sunny"}
+              />
               <Menu.Item 
                 onPress={handleOpenCalorieGoalScreen} 
                 title="Kalori Hedefi" 

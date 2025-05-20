@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Switch, ScrollView } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { useThemeStore } from '../store/themeStore';
 
 const ThemeSettingsScreen = () => {
   const theme = useTheme();
-  const { isDarkMode, isSystemTheme, toggleDarkMode, setUseSystemTheme } = useThemeStore();
+  const { isDarkMode, toggleDarkMode } = useThemeStore();
   
   const styles = makeStyles(theme.colors);
 
@@ -15,44 +15,24 @@ const ThemeSettingsScreen = () => {
         <Text style={styles.sectionTitle}>Görünüm Ayarları</Text>
         
         <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Sistem temasını kullan</Text>
+          <Text style={styles.settingLabel}>Karanlık tema</Text>
           <Switch
-            value={isSystemTheme}
-            onValueChange={setUseSystemTheme}
+            value={isDarkMode}
+            onValueChange={toggleDarkMode}
             trackColor={{ false: '#767577', true: theme.colors.primary }}
             thumbColor="#fff"
           />
         </View>
-        
-        {!isSystemTheme && (
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Karanlık tema</Text>
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleDarkMode}
-              trackColor={{ false: '#767577', true: theme.colors.primary }}
-              thumbColor="#fff"
-            />
-          </View>
-        )}
       </View>
       
-      <View style={styles.infoSection}>
-        <Text style={styles.infoText}>
-          Sistem temasını kullanırsanız, cihazınızın tema ayarlarına göre otomatik olarak açık/koyu tema geçişi yapılır.
-        </Text>
-      </View>
-      
-      {!isSystemTheme && (
-        <View style={styles.previewSection}>
-          <Text style={styles.previewTitle}>Önizleme</Text>
-          <View style={[styles.previewBox, { backgroundColor: theme.colors.surface }]}>
-            <Text style={[styles.previewText, { color: theme.colors.text }]}>
-              Şu anda {isDarkMode ? 'karanlık' : 'açık'} temayı kullanıyorsunuz.
-            </Text>
-          </View>
+      <View style={styles.previewSection}>
+        <Text style={styles.previewTitle}>Önizleme</Text>
+        <View style={[styles.previewBox, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.previewText, { color: theme.colors.onSurface }]}>
+            Şu anda {isDarkMode ? 'karanlık' : 'açık'} temayı kullanıyorsunuz.
+          </Text>
         </View>
-      )}
+      </View>
     </ScrollView>
   );
 };
@@ -74,7 +54,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: colors.text,
+    color: colors.onSurface,
   },
   settingRow: {
     flexDirection: 'row',
@@ -86,19 +66,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   },
   settingLabel: {
     fontSize: 16,
-    color: colors.text,
-  },
-  infoSection: {
-    padding: 16,
-    backgroundColor: colors.surfaceVariant || colors.surface,
-    marginBottom: 16,
-    borderRadius: 8,
-    marginHorizontal: 16,
-  },
-  infoText: {
-    fontSize: 14,
-    color: colors.textLight || colors.placeholder,
-    lineHeight: 20,
+    color: colors.onSurface,
   },
   previewSection: {
     padding: 16,
@@ -108,7 +76,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 12,
-    color: colors.text,
+    color: colors.onSurface,
   },
   previewBox: {
     padding: 16,
@@ -123,8 +91,8 @@ const makeStyles = (colors: any) => StyleSheet.create({
   previewText: {
     fontSize: 14,
     textAlign: 'center',
-    color: colors.text,
-  },
+    color: colors.onSurface,
+  }
 });
 
 export default ThemeSettingsScreen; 

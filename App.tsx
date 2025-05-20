@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, useColorScheme, AppState, AppStateStatus, StyleSheet } from 'react-native';
+import { StatusBar, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -18,17 +18,14 @@ import { AuthProvider } from './src/context/AuthContext';
 
 // Tema uygulanmış ve veri yükleme mantığı içeren uygulama
 export default function App() {
-  // Sistem temasını al
-  const colorScheme = useColorScheme();
-  const [currentTheme, setCurrentTheme] = useState(colorScheme === 'dark' ? DarkTheme : LightTheme);
-  
-  // Tema tercihleri ve yükleme
+  // Tema tercihleri
   const { 
-    isDarkMode, 
-    isSystemTheme,
-    loadThemePreference,
-    setIsDarkMode
+    isDarkMode,
+    loadThemePreference
   } = useThemeStore();
+  
+  // Tema nesnesi state'i
+  const [currentTheme, setCurrentTheme] = useState(isDarkMode ? DarkTheme : LightTheme);
   
   // UI state
   const { 
@@ -44,53 +41,23 @@ export default function App() {
   const loadApiKeys = useApiKeyStore(state => state.loadApiKeys);
   const loadGoals = useCalorieGoalStore(state => state.loadGoals);
   
-  // AppState değişikliklerini izlemek için
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active' && isSystemTheme) {
-        // Uygulama aktif olduğunda ve sistem teması kullanılıyorsa
-        // Sistemi kontrol et ve tema güncellenmesi gerekiyorsa güncelle
-        const systemIsDark = colorScheme === 'dark';
-        if (isDarkMode !== systemIsDark) {
-          setIsDarkMode(systemIsDark);
-        }
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-
-    return () => {
-      subscription.remove();
-    };
-  }, [isSystemTheme, colorScheme, isDarkMode, setIsDarkMode]);
-  
   // Verileri yükleme
   useEffect(() => {
-    loadFoods();
-    loadActivities();
-    loadThemePreference();
-    loadApiKeys();
-    loadGoals();
-  }, [loadFoods, loadActivities, loadThemePreference, loadApiKeys, loadGoals]);
-
-  // Tema değişikliklerini takip etme
-  useEffect(() => {
-    if (isSystemTheme) {
-      // Sistem teması kullanılıyorsa, sistem temasını kontrol et
-      const systemIsDark = colorScheme === 'dark';
-      
-      // Eğer mevcut tema sistem temasından farklıysa güncelle
-      if (isDarkMode !== systemIsDark) {
-        setIsDarkMode(systemIsDark);
-      }
-      
-      // Tema nesnesini güncelle
-      setCurrentTheme(systemIsDark ? DarkTheme : LightTheme);
-    } else {
-      // Kullanıcı tercihini kullan
-      setCurrentTheme(isDarkMode ? DarkTheme : LightTheme);
+    async function loadInitialData() {
+      await loadFoods();
+      await loadActivities();
+      await loadThemePreference();
+      await loadApiKeys();
+      await loadGoals();
     }
-  }, [isDarkMode, isSystemTheme, colorScheme, setIsDarkMode]);
+    
+    loadInitialData();
+  }, []); // Sadece uygulama ilk açıldığında çalıştır
+  
+  // isDarkMode değişikliklerini izle ve tema nesnesini güncelle
+  useEffect(() => {
+    setCurrentTheme(isDarkMode ? DarkTheme : LightTheme);
+  }, [isDarkMode]);
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -99,7 +66,7 @@ export default function App() {
           <NavigationContainer>
             <AppNavigator />
             <StatusBar 
-              barStyle={(isSystemTheme ? colorScheme === 'dark' : isDarkMode) ? 'light-content' : 'dark-content'} 
+              barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
               backgroundColor={currentTheme.colors.background}
               translucent
             />
