@@ -7,13 +7,17 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "jsEngine": "hermes",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +25,9 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.emreliman.diettracker"
+      "package": "com.emreliman.diettracker",
+      "proguard": true,
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,6 +36,9 @@
       "eas": {
         "projectId": "8d2651ae-e12c-4dd1-ab9b-0c523c24962d"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8d2651ae-e12c-4dd1-ab9b-0c523c24962d"
     }
   }
 }

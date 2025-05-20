@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 5.9.3"
+    "version": ">= 5.9.3",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -15,6 +16,19 @@
       "android": {
         "buildType": "apk"
       }
+    },
+    "optimized-apk": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "withoutCredentials": true,
+        "image": "latest",
+        "env": {
+          "EXPO_USE_HERMES": "1"
+        }
+      },
+      "autoIncrement": true,
+      "channel": "optimized"
     }
   }
-} 
+}
