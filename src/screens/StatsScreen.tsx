@@ -334,9 +334,19 @@ const StatsScreen = () => {
       
       <Card style={styles.summaryContainer}>
         <View style={styles.summaryContent}>
-          <View>
-            <Text style={styles.summaryTitle}>Toplam Kalori</Text>
-            <Text style={styles.calorieCount}>{Math.round(calories.food)} kcal</Text>
+          <View style={styles.calorieDetailsContainer}>
+            <View style={styles.calorieItem}>
+              <Text style={styles.summaryTitle}>Alınan Kalori</Text>
+              <Text style={styles.calorieValue}>{Math.round(calories.food)} kcal</Text>
+            </View>
+            <View style={styles.calorieItem}>
+              <Text style={styles.summaryTitle}>Yakılan Kalori</Text>
+              <Text style={styles.calorieValue}>{Math.round(calories.burned)} kcal</Text>
+            </View>
+            <View style={styles.calorieItem}>
+              <Text style={styles.summaryTitle}>Net Kalori</Text>
+              <Text style={styles.calorieValue}>{Math.round(calories.net)} kcal</Text>
+            </View>
           </View>
           
           <View style={styles.goalStatusContainer}>
@@ -351,7 +361,6 @@ const StatsScreen = () => {
       <Divider style={styles.divider} />
       
       <Card style={styles.chartCard}>
-        <Text style={styles.chartTitle}>Besin Dağılımı</Text>
         <NutritionChart data={nutrients} />
       </Card>
       
@@ -462,15 +471,26 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  calorieDetailsContainer: {
+    flex: 1,
+    marginRight: 10,
+  },
+  calorieItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   summaryTitle: {
     fontSize: 16,
     color: theme.colors.onSurface,
     opacity: 0.8,
   },
-  calorieCount: {
-    fontSize: 32,
+  calorieValue: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: theme.colors.primary,
+    textAlign: 'right',
   },
   goalStatusContainer: {
     alignItems: 'flex-end',
