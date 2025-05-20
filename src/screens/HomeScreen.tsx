@@ -785,7 +785,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 4,
+    marginRight: -10,
     position: 'relative',
   },
   subscriptionBadge: {
