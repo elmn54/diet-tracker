@@ -81,7 +81,7 @@ const HomeScreen = () => {
   const netCalories = foodCalories - burnedCalories;
   
   // Kalan kalorileri hesapla
-  const remainingCalories = Math.max(0, calorieGoal - netCalories);
+  const remainingCalories = calorieGoal - netCalories;
 
   // Seçilen tarihe göre yemekleri ve aktiviteleri filtreleme
   useEffect(() => {

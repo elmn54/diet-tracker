@@ -40,7 +40,14 @@ const CaloriesCard: React.FC<CaloriesCardProps> = ({ food, exercise, remaining }
         <View style={styles.divider} />
         
         <View style={styles.stat}>
-          <Text style={[styles.statValue, styles.remainingValue]}>{remaining}</Text>
+          <Text style={[
+            styles.statValue, 
+            remaining < -50 ? styles.negativeRemaining : 
+            remaining >= -50 && remaining <= 50 ? styles.toleranceRemaining : 
+            styles.remainingValue
+          ]}>
+            {remaining}
+          </Text>
           <Text style={styles.statLabel}>Remaining</Text>
         </View>
       </View>
@@ -94,6 +101,16 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   remainingValue: {
     fontSize: 16,
     color: theme.dark ? '#7C8BFF' : '#4169E1',
+    textAlign: 'center',
+  },
+  negativeRemaining: {
+    fontSize: 16,
+    color: theme.colors.error,
+    textAlign: 'center',
+  },
+  toleranceRemaining: {
+    fontSize: 16,
+    color: theme.colors.tertiary,
     textAlign: 'center',
   },
   statLabel: {

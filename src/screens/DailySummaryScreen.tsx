@@ -53,7 +53,7 @@ const DailySummaryScreen = () => {
   const dailyNutrients = calculateDailyNutrients(date.toISOString());
 
   // Kalan kalori hesapla
-  const remainingCalories = Math.max(0, calorieGoal - dailyCalories);
+  const remainingCalories = calorieGoal - dailyCalories;
   
   // Kalori hedefi durumu
   const getCalorieStatus = () => {
@@ -294,7 +294,13 @@ const DailySummaryScreen = () => {
                 <Text style={styles.calorieLabel}>Alınan</Text>
               </View>
               <View style={styles.calorieInfo}>
-                <Text style={styles.calorieValue}>{remainingCalories}</Text>
+                <Text style={[
+                  styles.calorieValue, 
+                  remainingCalories < 0 && { color: theme.colors.error },
+                  (remainingCalories >= -50 && remainingCalories <= 50) && { color: theme.colors.tertiary }
+                ]}>
+                  {remainingCalories}
+                </Text>
                 <Text style={styles.calorieLabel}>Kalan</Text>
               </View>
               <View style={styles.calorieInfo}>
