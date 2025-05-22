@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { setItem, getItem } from '../storage/asyncStorage';
 import { ActivityItem, ActivityType, ActivityIntensity } from '../types/activity';
+import { v4 as uuidv4 } from 'uuid'; // ID üretimi için
+import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 
 // Anahtar sabitler
 const ACTIVITIES_STORAGE_KEY = 'activities';
@@ -8,17 +10,18 @@ const ACTIVITIES_STORAGE_KEY = 'activities';
 // Arayüz tanımlamaları
 interface ActivityState {
   activities: ActivityItem[];
-  addActivity: (activity: ActivityItem) => Promise<void>;
+  addActivity: (activity: Omit<ActivityItem, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<ActivityItem>;
   removeActivity: (id: string) => Promise<void>;
   updateActivity: (activity: ActivityItem) => Promise<void>;
   calculateDailyBurnedCalories: (date: string) => number;
   reset: () => Promise<void>;
   loadActivities: () => Promise<void>;
   isLoading: boolean;
+  setActivities: (activities: ActivityItem[]) => void; // Firestore'dan yükleme için
 }
 
 // Tarih karşılaştırma yardımcı fonksiyonu
-const isSameDay = (date1: string, date2: string): boolean => {
+const isSameDateActivity = (date1: string, date2: string): boolean => {
   const d1 = new Date(date1);
   const d2 = new Date(date2);
   return (
@@ -28,14 +31,13 @@ const isSameDay = (date1: string, date2: string): boolean => {
   );
 };
 
-// Egzersiz kalori hesaplama - basit bir versiyon (daha sonra geliştirilebilir)
+// Egzersiz kalori hesaplama
 export const calculateCaloriesBurned = (
   activityType: ActivityType, 
   intensity: ActivityIntensity, 
   durationMinutes: number, 
-  weightKg: number = 70
+  weightKg: number = 70 // Varsayılan ağırlık, idealde kullanıcı profilinden alınmalı
 ): number => {
-  // MET (Metabolic Equivalent of Task) değerleri - aktivite tipine ve yoğunluğuna göre
   const metValues: Record<ActivityType, Record<ActivityIntensity, number>> = {
     walking: { low: 2.5, medium: 3.5, high: 4.5 },
     running: { low: 7.0, medium: 9.0, high: 12.0 },
@@ -45,26 +47,17 @@ export const calculateCaloriesBurned = (
     other: { low: 3.0, medium: 5.0, high: 7.0 }
   };
 
-  // MET değerini belirle
-  const met = metValues[activityType][intensity];
-
-  // Kalori hesaplama formülü: MET * ağırlık (kg) * süre (saat)
-  // Süreyi saatten dakikaya çevir
+  const met = metValues[activityType]?.[intensity] || metValues.other.medium; // Güvenli erişim
   const durationHours = durationMinutes / 60;
-  
-  // Yakılan kalori hesapla (negatif değer olarak döndür - kalori çıkışı)
   const caloriesBurned = Math.round(met * weightKg * durationHours);
-  
   return caloriesBurned;
 };
 
 // Zustand store
 export const useActivityStore = create<ActivityState>((set, get) => ({
-  // Başlangıç değerleri
   activities: [],
   isLoading: true,
   
-  // AsyncStorage'dan verileri yükle
   loadActivities: async () => {
     set({ isLoading: true });
     try {
@@ -76,55 +69,60 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     }
   },
   
-  // Aktivite ekle
-  addActivity: async (activity: ActivityItem) => {
+  addActivity: async (activityInput) => {
+    const newActivityItem: ActivityItem = {
+      ...activityInput,
+      id: activityInput.id || uuidv4(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
     const { activities } = get();
-    const newActivities = [...activities, activity];
+    const newActivities = [...activities, newActivityItem];
     
-    // Önce state'i güncelle
     set({ activities: newActivities });
-    
-    // Sonra AsyncStorage'a kaydet
     await setItem(ACTIVITIES_STORAGE_KEY, newActivities);
+    // TODO: Premium kullanıcı ise Firestore'a da ekle
+    return newActivityItem;
   },
   
-  // Aktivite sil
   removeActivity: async (id: string) => {
     const { activities } = get();
     const newActivities = activities.filter((activity) => activity.id !== id);
     
-    // Önce state'i güncelle
     set({ activities: newActivities });
-    
-    // Sonra AsyncStorage'a kaydet
     await setItem(ACTIVITIES_STORAGE_KEY, newActivities);
+    // TODO: Premium kullanıcı ise Firestore'dan da sil
   },
   
-  // Aktivite güncelle
   updateActivity: async (updatedActivity: ActivityItem) => {
+    const activityWithTimestamp = {
+      ...updatedActivity,
+      updatedAt: new Date().toISOString(),
+    };
     const { activities } = get();
     const newActivities = activities.map((activity) => 
-      activity.id === updatedActivity.id ? updatedActivity : activity
+      activity.id === activityWithTimestamp.id ? activityWithTimestamp : activity
     );
     
-    // Önce state'i güncelle
     set({ activities: newActivities });
-    
-    // Sonra AsyncStorage'a kaydet
     await setItem(ACTIVITIES_STORAGE_KEY, newActivities);
+    // TODO: Premium kullanıcı ise Firestore'da da güncelle
   },
   
-  // Günlük yakılan kalori hesapla
   calculateDailyBurnedCalories: (date: string) => {
     const { activities } = get();
     return activities
-      .filter((activity) => isSameDay(activity.date, date))
+      .filter((activity) => isSameDateActivity(activity.date, date))
       .reduce((total, activity) => total + activity.calories, 0);
   },
   
-  // Test için store'u sıfırla
   reset: async () => {
-    set({ activities: [] });
+    set({ activities: [], isLoading: false });
     await setItem(ACTIVITIES_STORAGE_KEY, []);
   },
-})); 
+
+  setActivities: (loadedActivities: ActivityItem[]) => {
+    set({ activities: loadedActivities, isLoading: false });
+    setItem(ACTIVITIES_STORAGE_KEY, loadedActivities);
+  }
+}));

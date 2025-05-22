@@ -1,21 +1,25 @@
 import { create } from 'zustand';
 import { setItem, getItem } from '../storage/asyncStorage';
 import { useActivityStore } from './activityStore';
+import { v4 as uuidv4 } from 'uuid'; // ID üretimi için
+import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 
 // Anahtar sabitler
 const FOODS_STORAGE_KEY = 'foods';
 
 // Tür tanımlamaları
 export interface FoodItem {
-  id: string;
+  id: string; // UUID ile oluşturulacak, Firestore'da doküman ID'si olarak kullanılacak
   name: string;
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
-  date: string;
+  date: string; // ISO string formatında tarih
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   imageUri?: string; // Yemek fotoğrafının URI'si (opsiyonel)
+  createdAt?: string | FirebaseFirestoreTypes.Timestamp; // ISO string veya Firestore Timestamp
+  updatedAt?: string | FirebaseFirestoreTypes.Timestamp; // ISO string veya Firestore Timestamp
 }
 
 export interface Nutrients {
@@ -26,7 +30,7 @@ export interface Nutrients {
 
 interface FoodState {
   foods: FoodItem[];
-  addFood: (food: FoodItem) => Promise<void>;
+  addFood: (food: Omit<FoodItem, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<FoodItem>;
   removeFood: (id: string) => Promise<void>;
   updateFood: (food: FoodItem) => Promise<void>;
   calculateDailyCalories: (date: string) => number;
@@ -35,10 +39,11 @@ interface FoodState {
   reset: () => Promise<void>;
   loadFoods: () => Promise<void>;
   isLoading: boolean;
+  setFoods: (foods: FoodItem[]) => void; // Firestore'dan yükleme için
 }
 
 // Tarih karşılaştırma yardımcı fonksiyonu
-const isSameDay = (date1: string, date2: string): boolean => {
+const isSameDate = (date1: string, date2: string): boolean => {
   const d1 = new Date(date1);
   const d2 = new Date(date2);
   return (
@@ -67,15 +72,21 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   },
   
   // Yemek ekle
-  addFood: async (food: FoodItem) => {
+  addFood: async (foodInput) => {
+    const newFoodItem: FoodItem = {
+      ...foodInput,
+      id: foodInput.id || uuidv4(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
     const { foods } = get();
-    const newFoods = [...foods, food];
+    const newFoods = [...foods, newFoodItem];
     
-    // Önce state'i güncelle
     set({ foods: newFoods });
-    
-    // Sonra AsyncStorage'a kaydet
     await setItem(FOODS_STORAGE_KEY, newFoods);
+    // TODO: Premium kullanıcı ise Firestore'a da ekle (syncService aracılığıyla)
+    return newFoodItem;
   },
   
   // Yemek sil
@@ -83,44 +94,39 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     const { foods } = get();
     const newFoods = foods.filter((food) => food.id !== id);
     
-    // Önce state'i güncelle
     set({ foods: newFoods });
-    
-    // Sonra AsyncStorage'a kaydet
     await setItem(FOODS_STORAGE_KEY, newFoods);
+    // TODO: Premium kullanıcı ise Firestore'dan da sil (syncService aracılığıyla)
   },
   
   // Yemek güncelle
   updateFood: async (updatedFood: FoodItem) => {
+    const foodWithTimestamp = {
+      ...updatedFood,
+      updatedAt: new Date().toISOString(),
+    };
     const { foods } = get();
     const newFoods = foods.map((food) => 
-      food.id === updatedFood.id ? updatedFood : food
+      food.id === foodWithTimestamp.id ? foodWithTimestamp : food
     );
     
-    // Önce state'i güncelle
     set({ foods: newFoods });
-    
-    // Sonra AsyncStorage'a kaydet
     await setItem(FOODS_STORAGE_KEY, newFoods);
+    // TODO: Premium kullanıcı ise Firestore'da da güncelle (syncService aracılığıyla)
   },
   
   // Günlük kalori hesapla
   calculateDailyCalories: (date: string) => {
     const { foods } = get();
     return foods
-      .filter((food) => isSameDay(food.date, date))
+      .filter((food) => isSameDate(food.date, date))
       .reduce((total, food) => total + food.calories, 0);
   },
   
   // Net kalori hesapla (yemekler - aktiviteler)
   calculateNetCalories: (date: string) => {
-    // Yemeklerden alınan kalori
     const foodCalories = get().calculateDailyCalories(date);
-    
-    // Aktivitelerden yakılan kalori
     const burnedCalories = useActivityStore.getState().calculateDailyBurnedCalories(date);
-    
-    // Net kalori (alınan - yakılan)
     return foodCalories - burnedCalories;
   },
   
@@ -128,7 +134,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   calculateDailyNutrients: (date: string) => {
     const { foods } = get();
     return foods
-      .filter((food) => isSameDay(food.date, date))
+      .filter((food) => isSameDate(food.date, date))
       .reduce(
         (nutrients, food) => ({
           protein: nutrients.protein + food.protein,
@@ -141,7 +147,16 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   
   // Test için store'u sıfırla
   reset: async () => {
-    set({ foods: [] });
+    set({ foods: [], isLoading: false });
     await setItem(FOODS_STORAGE_KEY, []);
   },
-})); 
+
+  // Firestore'dan gelen verilerle store'u güncellemek için
+  setFoods: (loadedFoods: FoodItem[]) => {
+    set({ foods: loadedFoods, isLoading: false });
+    // İsteğe bağlı olarak AsyncStorage'a da yazılabilir, ancak Firestore ana kaynak olacaksa
+    // ve lokal sadece cache/çevrimdışı ise bu adım atlanabilir veya farklı yönetilebilir.
+    // Şimdilik AsyncStorage'a da yazalım.
+    setItem(FOODS_STORAGE_KEY, loadedFoods);
+  }
+}));
