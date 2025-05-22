@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useCallback, useState } from 'react';
 import { firebaseAuth, firebaseFirestore } from '../firebase/firebase.config';
-import { doc, setDoc, getDoc, serverTimestamp, Timestamp } from '@react-native-firebase/firestore'; // Timestamp hala Firestore'dan okuma için gerekli
+import { doc, setDoc, getDoc, serverTimestamp, Timestamp, updateDoc } from '@react-native-firebase/firestore';
 import {
   AuthContextProps,
   SignInCredentials,
@@ -13,6 +13,7 @@ import { useSubscriptionStore } from '../store/subscriptionStore';
 import { useFoodStore } from '../store/foodStore';
 import { useActivityStore } from '../store/activityStore';
 import { useCalorieGoalStore } from '../store/calorieGoalStore';
+import { fetchAllDataForUser, syncDownstreamDataToStores } from '../services/syncService';
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
@@ -31,9 +32,9 @@ const initialState: {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState(initialState);
   const { loadUserSubscription, reset: resetSubscriptionStore } = useSubscriptionStore.getState();
-  const { reset: resetFoodStore, loadFoods } = useFoodStore.getState();
-  const { reset: resetActivityStore, loadActivities } = useActivityStore.getState();
-  const { reset: resetCalorieGoalStore, loadGoals: loadCalorieGoals } = useCalorieGoalStore.getState();
+  const { reset: resetFoodStore, loadFoods, setFoods } = useFoodStore.getState();
+  const { reset: resetActivityStore, loadActivities, setActivities } = useActivityStore.getState();
+  const { reset: resetCalorieGoalStore, loadGoals: loadCalorieGoals, setCalorieGoal, setNutrientGoals } = useCalorieGoalStore.getState();
 
   useEffect(() => {
     GoogleAuthService.init();
@@ -56,14 +57,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (userDocSnap.exists()) {
             const rawData = userDocSnap.data();
+            const createdAtDate = rawData.createdAt instanceof Timestamp
+              ? rawData.createdAt.toDate()
+              : (rawData.createdAt ? new Date(rawData.createdAt as any) : new Date());
             
-            // UserData tipi artık Date beklediği için dönüşüm doğru
-            const createdAtDate = rawData.createdAt instanceof Timestamp 
-              ? rawData.createdAt.toDate() 
-              : (rawData.createdAt ? new Date(rawData.createdAt) : new Date()); // Fallback
-            
-            const subscriptionEndDateDate = rawData.subscriptionEndDate instanceof Timestamp 
-              ? rawData.subscriptionEndDate.toDate() 
+            const subscriptionEndDateDate = rawData.subscriptionEndDate instanceof Timestamp
+              ? rawData.subscriptionEndDate.toDate()
               : null;
 
             let userSettingsWithDate: UserData['userSettings'] = undefined;
@@ -72,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     ...rawData.userSettings,
                     updatedAt: rawData.userSettings.updatedAt instanceof Timestamp
                         ? rawData.userSettings.updatedAt.toDate()
-                        : (rawData.userSettings.updatedAt ? new Date(rawData.userSettings.updatedAt) : undefined)
+                        : (rawData.userSettings.updatedAt ? new Date(rawData.userSettings.updatedAt as any) : undefined)
                 };
             }
 
@@ -90,23 +89,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           setState(prevState => ({ ...prevState, user, userData: firestoreUserData, isLoading: false, error: null }));
           
-          await loadUserSubscription(); // Bu fonksiyon da UserData'daki Date tipine göre ayarlanmalı
+          await loadUserSubscription();
           
-          const currentPlan = useSubscriptionStore.getState().activePlanId;
-          if (currentPlan === 'premium' && firestoreUserData) {
-            console.log("Premium user detected, should sync from Firestore (TODO)");
-            await loadFoods();
-            await loadActivities();
-            await loadCalorieGoals();
+          const currentActivePlanId = useSubscriptionStore.getState().activePlanId;
+
+          if (currentActivePlanId === 'premium') {
+            console.log("Premium user detected. Fetching data from Firestore.");
+            const firestoreSyncData = await fetchAllDataForUser();
+            syncDownstreamDataToStores(firestoreSyncData);
           } else {
-            console.log("Free/Basic user or no specific userData, loading data from local storage.");
+            console.log("Free/Basic user. Loading data from local storage.");
             await loadFoods();
             await loadActivities();
             await loadCalorieGoals();
           }
 
         } catch (error) {
-          console.error("Error fetching user data from Firestore:", error);
+          console.error("Error during onAuthStateChanged processing:", error);
           setState(prevState => ({ ...prevState, user, isLoading: false, error: (error as Error).message }));
           await loadFoods();
           await loadActivities();
@@ -123,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => unsubscribe();
-  }, [loadUserSubscription, resetSubscriptionStore, resetFoodStore, loadFoods, resetActivityStore, loadActivities, resetCalorieGoalStore, loadCalorieGoals]);
+  }, [loadUserSubscription, resetSubscriptionStore, resetFoodStore, loadFoods, setFoods, resetActivityStore, loadActivities, setActivities, resetCalorieGoalStore, loadCalorieGoals, setCalorieGoal, setNutrientGoals]);
 
 
   const signIn = useCallback(async (credentials: SignInCredentials): Promise<void> => {
@@ -157,17 +156,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         const userDocRef = doc(firebaseFirestore, 'users', userCredential.user.uid);
-        // UserData Firestore'a yazılırken createdAt serverTimestamp olmalı,
-        // subscriptionEndDate ise Timestamp.fromDate veya null olmalı.
-        // Ancak UserData tipimiz artık Date bekliyor, bu yüzden yazarken FieldValue kullanacağız.
+        // Firestore'a yazılacak veri, serverTimestamp() ve null içerebilir.
+        // UserData tipi Date beklese de, yazma sırasında bu dönüşümler firestoreService'de veya
+        // serverTimestamp() gibi FieldValue'lar kullanılarak yönetilir.
         const userDataForFirestore = {
           uid: userCredential.user.uid,
           email: userCredential.user.email,
           displayName: credentials.displayName,
           photoURL: userCredential.user.photoURL,
-          createdAt: serverTimestamp(), // Firestore'a serverTimestamp olarak yazılacak
+          createdAt: serverTimestamp(), // FieldValue
           activePlanId: 'free' as 'free' | 'basic' | 'premium',
-          subscriptionEndDate: null, // Firestore'a null olarak yazılacak
+          subscriptionEndDate: null, // null
+          userSettings: {
+            calorieGoal: 2000,
+            nutrientGoals: { protein: 100, carbs: 250, fat: 65 },
+            updatedAt: serverTimestamp(), // FieldValue
+          }
         };
         await setDoc(userDocRef, userDataForFirestore);
       }
@@ -189,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userDocRef = doc(firebaseFirestore, 'users', googleUserCredential.user.uid);
         const userDocSnap = await getDoc(userDocRef);
         if (!userDocSnap.exists()) {
-          const userDataForFirestore = { // Firestore'a yazılacak tip
+          const userDataForFirestore = {
             uid: googleUserCredential.user.uid,
             email: googleUserCredential.user.email,
             displayName: googleUserCredential.user.displayName,
@@ -197,6 +201,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             createdAt: serverTimestamp(),
             activePlanId: 'free' as 'free' | 'basic' | 'premium',
             subscriptionEndDate: null,
+            userSettings: {
+              calorieGoal: 2000,
+              nutrientGoals: { protein: 100, carbs: 250, fat: 65 },
+              updatedAt: serverTimestamp(),
+            }
           };
           await setDoc(userDocRef, userDataForFirestore);
         }

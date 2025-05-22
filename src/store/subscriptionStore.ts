@@ -87,7 +87,6 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          // activePlanId için varsayılan değer
           const planId = (userData?.activePlanId as 'free' | 'basic' | 'premium') || 'free';
           
           let subEndDate: Date | null = null;
@@ -110,7 +109,6 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
           }
 
         } else {
-          // Kullanıcı dokümanı yoksa (yeni kullanıcı olabilir, AuthContext'te oluşturulacak)
           set({ activePlanId: 'free', subscriptionEndDate: null, isSubscriptionLoading: false });
           await AsyncStorage.setItem(ACTIVE_PLAN_ID_KEY, 'free');
           await AsyncStorage.removeItem(SUBSCRIPTION_END_DATE_KEY);
@@ -120,7 +118,6 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         set({ isSubscriptionLoading: false, activePlanId: 'free', subscriptionEndDate: null });
       }
     } else {
-      // Kullanıcı giriş yapmamışsa, lokalden yükle
       const storedPlanId = (await AsyncStorage.getItem(ACTIVE_PLAN_ID_KEY) as 'free' | 'basic' | 'premium' | null) || 'free';
       const storedEndDate = await AsyncStorage.getItem(SUBSCRIPTION_END_DATE_KEY);
       set({

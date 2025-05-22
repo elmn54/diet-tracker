@@ -1,25 +1,25 @@
-import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore'; // Sadece Timestamp.fromDate vb. için gerekirse kalır
+import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 
-export interface User { // Firebase Auth'dan gelen temel kullanıcı bilgisi
+export interface User {
   uid: string;
   email: string | null;
   displayName: string | null;
   photoURL?: string | null;
 }
 
-export interface UserData { // Firestore'da saklanan ve uygulamada kullanılan kullanıcı verisi
+export interface UserData {
   uid: string;
   email: string | null;
   displayName: string | null;
   photoURL?: string | null;
-  createdAt: Date; // Firestore'dan okununca Date objesine çevrilecek
+  createdAt: Date; 
   activePlanId: 'free' | 'basic' | 'premium';
-  subscriptionEndDate: Date | null; // Firestore'dan okununca Date objesine çevrilecek (null olabilir)
+  subscriptionEndDate: Date | null;
   userSettings?: {
     calorieGoal?: number;
     nutrientGoals?: { protein: number; carbs: number; fat: number };
     preferredTheme?: string;
-    updatedAt?: Date; // Bu da Date olabilir
+    updatedAt?: Date; 
   };
 }
 
