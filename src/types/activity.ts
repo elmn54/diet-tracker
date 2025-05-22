@@ -8,6 +8,7 @@ export enum ActivityIntensity {
   High = 'high'
 }
 
+// DÜZELTME: ActivityItem interface'ini export et
 export interface ActivityItem {
   id: string;
   name: string;
@@ -17,6 +18,6 @@ export interface ActivityItem {
   intensity: ActivityIntensity;
   date: string;
   imageUri?: string;
-  createdAt?: string | Date | FirebaseFirestoreTypes.Timestamp; // Date eklendi
-  updatedAt?: string | Date | FirebaseFirestoreTypes.Timestamp; // Date eklendi
+  createdAt?: string | Date | FirebaseFirestoreTypes.Timestamp;
+  updatedAt?: string | Date | FirebaseFirestoreTypes.Timestamp;
 }

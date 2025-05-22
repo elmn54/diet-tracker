@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { syncUserSettingsUpstream } from '../services/syncService'; // Eklenecek
-import { useSubscriptionStore } from './subscriptionStore'; // Eklenecek
-
+// DÜZELTME: syncService'den doğru fonksiyonu import et
+import { syncUserSettingsUpstream } from '../services/syncService';
+import { useSubscriptionStore } from './subscriptionStore';
+import { firebaseAuth } from '../firebase/firebase.config';
 
 const CALORIE_GOAL_KEY = 'calorie_goal';
 const NUTRIENT_GOALS_KEY = 'nutrient_goals';
-// const CONSUMED_CALORIES_KEY = 'consumed_calories'; // Bu store'dan kaldırılabilir, foodStore hesaplıyor
 
 export interface NutrientGoals {
   protein: number;
@@ -17,14 +17,10 @@ export interface NutrientGoals {
 interface CalorieGoalState {
   calorieGoal: number;
   nutrientGoals: NutrientGoals;
-  // consumedCalories: number; // Kaldırıldı
-  // remainingCalories: number; // Kaldırıldı, anlık hesaplanabilir
   isLoading: boolean;
   
   setCalorieGoal: (goal: number) => Promise<void>;
   setNutrientGoals: (goals: NutrientGoals) => Promise<void>;
-  // setConsumedCalories: (calories: number) => Promise<void>; // Kaldırıldı
-  // calculateRemainingCalories: () => number; // Kaldırıldı
   loadGoals: () => Promise<void>;
   reset: () => Promise<void>;
 }
@@ -48,13 +44,14 @@ export const useCalorieGoalStore = create<CalorieGoalState>((set, get) => ({
         return;
       }
       
-      const currentNutrientGoals = get().nutrientGoals; // Mevcut makroları al
+      const currentNutrientGoals = get().nutrientGoals;
       set({ calorieGoal: goal });
       await AsyncStorage.setItem(CALORIE_GOAL_KEY, goal.toString());
 
-      // Premium kullanıcı ise Firestore'a da senkronize et
-      if (useSubscriptionStore.getState().activePlanId === 'premium') {
-        await syncUserSettingsUpstream({ calorieGoal: goal, nutrientGoals: currentNutrientGoals });
+      const { activePlanId } = useSubscriptionStore.getState();
+      const userId = firebaseAuth.currentUser?.uid;
+      if (activePlanId === 'premium' && userId) {
+        await syncUserSettingsUpstream(userId, { calorieGoal: goal, nutrientGoals: currentNutrientGoals });
       }
 
     } catch (error) {
@@ -72,13 +69,14 @@ export const useCalorieGoalStore = create<CalorieGoalState>((set, get) => ({
         console.error('Geçersiz besin değerleri hedefleri:', goals);
         return;
       }
-      const currentCalorieGoal = get().calorieGoal; // Mevcut kalori hedefini al
+      const currentCalorieGoal = get().calorieGoal;
       set({ nutrientGoals: goals });
       await AsyncStorage.setItem(NUTRIENT_GOALS_KEY, JSON.stringify(goals));
 
-       // Premium kullanıcı ise Firestore'a da senkronize et
-      if (useSubscriptionStore.getState().activePlanId === 'premium') {
-        await syncUserSettingsUpstream({ calorieGoal: currentCalorieGoal, nutrientGoals: goals });
+      const { activePlanId } = useSubscriptionStore.getState();
+      const userId = firebaseAuth.currentUser?.uid;
+      if (activePlanId === 'premium' && userId) {
+        await syncUserSettingsUpstream(userId, { calorieGoal: currentCalorieGoal, nutrientGoals: goals });
       }
 
     } catch (error) {
@@ -87,13 +85,8 @@ export const useCalorieGoalStore = create<CalorieGoalState>((set, get) => ({
   },
   
   loadGoals: async () => {
-    // Bu fonksiyon AuthContext'teki userSettings yüklemesiyle çakışabilir.
-    // Öncelik Firestore'dan gelen userSettings olmalı.
-    // Eğer AuthContext userSettings'i yüklüyorsa, bu fonksiyon sadece lokal fallback için kalabilir
-    // veya AuthContext yüklendikten sonra çağrılabilir.
-    // Şimdilik AuthContext'teki yüklemeye güveniyoruz.
-    // Premium olmayan kullanıcılar için lokalden yükleme devam etmeli.
-    if (useSubscriptionStore.getState().activePlanId !== 'premium') {
+    const { activePlanId } = useSubscriptionStore.getState();
+    if (activePlanId !== 'premium') {
         set({ isLoading: true });
         try {
             const storedCalorieGoal = await AsyncStorage.getItem(CALORIE_GOAL_KEY);
@@ -122,9 +115,6 @@ export const useCalorieGoalStore = create<CalorieGoalState>((set, get) => ({
             set({ isLoading: false });
         }
     } else {
-        // Premium kullanıcı için userSettings AuthContext tarafından yüklenecek
-        // ve syncDownstreamDataToStores ile bu store güncellenecek.
-        // Bu yüzden burada bir şey yapmaya gerek yok veya sadece isLoading=false ayarlanabilir.
         set({ isLoading: false });
     }
   },

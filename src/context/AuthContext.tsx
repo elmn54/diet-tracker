@@ -1,3 +1,4 @@
+// src/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useCallback, useState } from 'react';
 import { firebaseAuth, firebaseFirestore } from '../firebase/firebase.config';
 import { doc, setDoc, getDoc, serverTimestamp, Timestamp, updateDoc } from '@react-native-firebase/firestore';
@@ -10,14 +11,15 @@ import {
 } from '../types/auth';
 import GoogleAuthService from '../firebase/google-auth';
 import { useSubscriptionStore } from '../store/subscriptionStore';
-import { useFoodStore } from '../store/foodStore';
+import { useFoodStore, FoodItem } from '../store/foodStore';
 import { useActivityStore } from '../store/activityStore';
-import { useCalorieGoalStore } from '../store/calorieGoalStore';
-import { fetchAllDataForUser, syncDownstreamDataToStores } from '../services/syncService';
+import { useCalorieGoalStore, NutrientGoals } from '../store/calorieGoalStore';
+import { fetchAllDataForUser, processFirestoreDataForStores } from '../services/syncService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-const initialState: {
+const authInitialState: {
   user: User | null;
   userData: UserData | null;
   isLoading: boolean;
@@ -30,17 +32,23 @@ const initialState: {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useState(initialState);
-  const { loadUserSubscription, reset: resetSubscriptionStore } = useSubscriptionStore.getState();
-  const { reset: resetFoodStore, loadFoods, setFoods } = useFoodStore.getState();
-  const { reset: resetActivityStore, loadActivities, setActivities } = useActivityStore.getState();
-  const { reset: resetCalorieGoalStore, loadGoals: loadCalorieGoals, setCalorieGoal, setNutrientGoals } = useCalorieGoalStore.getState();
+  const [state, setState] = useState(authInitialState);
+  // Store action'larını useEffect dışında alalım veya doğrudan getState() ile çağıralım.
+  // useEffect'in bağımlılık dizisini olabildiğince sabit tutmaya çalışalım.
 
   useEffect(() => {
     GoogleAuthService.init();
   }, []);
 
   useEffect(() => {
+    // Bu fonksiyonlar useEffect dışında tanımlı olmadığı için,
+    // her renderda yeniden oluşturulmuyorlar ve bağımlılık dizisinde sorun yaratmazlar.
+    // Ancak, store'lardan doğrudan getState() ile erişmek daha temiz olabilir.
+    const subStoreActions = useSubscriptionStore.getState();
+    const foodStoreActions = useFoodStore.getState();
+    const activityStoreActions = useActivityStore.getState();
+    const calorieStoreActions = useCalorieGoalStore.getState();
+
     const unsubscribe = firebaseAuth.onAuthStateChanged(async (authUser) => {
       if (authUser) {
         const user: User = {
@@ -74,7 +82,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         : (rawData.userSettings.updatedAt ? new Date(rawData.userSettings.updatedAt as any) : undefined)
                 };
             }
-
             firestoreUserData = {
               uid: rawData.uid,
               email: rawData.email,
@@ -89,40 +96,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           setState(prevState => ({ ...prevState, user, userData: firestoreUserData, isLoading: false, error: null }));
           
-          await loadUserSubscription();
+          // Doğrudan getState() üzerinden action'ları çağır
+          await useSubscriptionStore.getState().loadUserSubscription();
           
-          const currentActivePlanId = useSubscriptionStore.getState().activePlanId;
+          const activePlan = useSubscriptionStore.getState().activePlanId;
 
-          if (currentActivePlanId === 'premium') {
+          if (activePlan === 'premium') {
             console.log("Premium user detected. Fetching data from Firestore.");
-            const firestoreSyncData = await fetchAllDataForUser();
-            syncDownstreamDataToStores(firestoreSyncData);
+            const firestoreSyncData = await fetchAllDataForUser(authUser.uid);
+            
+            const localFoods = useFoodStore.getState().foods;
+            const localActivities = useActivityStore.getState().activities;
+
+            const processedData = processFirestoreDataForStores(localFoods, localActivities, firestoreSyncData);
+            
+            useFoodStore.getState().setFoods(processedData.mergedMeals);
+            useActivityStore.getState().setActivities(processedData.mergedActivities);
+            if (processedData.newCalorieGoal !== undefined) {
+              useCalorieGoalStore.setState({ calorieGoal: processedData.newCalorieGoal });
+              await AsyncStorage.setItem('calorie_goal', processedData.newCalorieGoal.toString());
+            }
+            if (processedData.newNutrientGoals) {
+              useCalorieGoalStore.setState({ nutrientGoals: processedData.newNutrientGoals });
+              await AsyncStorage.setItem('nutrient_goals', JSON.stringify(processedData.newNutrientGoals));
+            }
+
           } else {
             console.log("Free/Basic user. Loading data from local storage.");
-            await loadFoods();
-            await loadActivities();
-            await loadCalorieGoals();
+            await useFoodStore.getState().loadFoods();
+            await useActivityStore.getState().loadActivities();
+            await useCalorieGoalStore.getState().loadGoals();
           }
 
         } catch (error) {
           console.error("Error during onAuthStateChanged processing:", error);
           setState(prevState => ({ ...prevState, user, isLoading: false, error: (error as Error).message }));
-          await loadFoods();
-          await loadActivities();
-          await loadCalorieGoals();
+          await useFoodStore.getState().loadFoods();
+          await useActivityStore.getState().loadActivities();
+          await useCalorieGoalStore.getState().loadGoals();
         }
 
       } else {
         setState({ user: null, userData: null, isLoading: false, error: null });
-        await resetSubscriptionStore();
-        await resetFoodStore();
-        await resetActivityStore();
-        await resetCalorieGoalStore();
+        await useSubscriptionStore.getState().reset();
+        await useFoodStore.getState().reset();
+        await useActivityStore.getState().reset();
+        await useCalorieGoalStore.getState().reset();
       }
     });
 
     return () => unsubscribe();
-  }, [loadUserSubscription, resetSubscriptionStore, resetFoodStore, loadFoods, setFoods, resetActivityStore, loadActivities, setActivities, resetCalorieGoalStore, loadCalorieGoals, setCalorieGoal, setNutrientGoals]);
+  }, []); // Bağımlılık dizisini boş bırakmayı deneyelim. Store action'ları zaten global.
 
 
   const signIn = useCallback(async (credentials: SignInCredentials): Promise<void> => {
@@ -156,21 +180,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         const userDocRef = doc(firebaseFirestore, 'users', userCredential.user.uid);
-        // Firestore'a yazılacak veri, serverTimestamp() ve null içerebilir.
-        // UserData tipi Date beklese de, yazma sırasında bu dönüşümler firestoreService'de veya
-        // serverTimestamp() gibi FieldValue'lar kullanılarak yönetilir.
         const userDataForFirestore = {
           uid: userCredential.user.uid,
           email: userCredential.user.email,
           displayName: credentials.displayName,
           photoURL: userCredential.user.photoURL,
-          createdAt: serverTimestamp(), // FieldValue
+          createdAt: serverTimestamp(),
           activePlanId: 'free' as 'free' | 'basic' | 'premium',
-          subscriptionEndDate: null, // null
+          subscriptionEndDate: null,
           userSettings: {
             calorieGoal: 2000,
             nutrientGoals: { protein: 100, carbs: 250, fat: 65 },
-            updatedAt: serverTimestamp(), // FieldValue
+            updatedAt: serverTimestamp(),
           }
         };
         await setDoc(userDocRef, userDataForFirestore);

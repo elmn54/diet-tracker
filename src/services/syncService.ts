@@ -1,10 +1,7 @@
 // src/services/syncService.ts
-import { FoodItem, useFoodStore } from '../store/foodStore';
-import { ActivityItem } from '../types/activity'; // types/activity.ts'den import et
-import { useActivityStore } from '../store/activityStore';
-import { NutrientGoals, useCalorieGoalStore } from '../store/calorieGoalStore';
-import { useSubscriptionStore } from '../store/subscriptionStore';
-// UserData tipine ihtiyaç yok gibi, UserSettingsFirestore yeterli
+import { FoodItem } from '../store/foodStore';
+import { ActivityItem } from '../types/activity';
+import { NutrientGoals } from '../store/calorieGoalStore';
 import {
   addOrSetDocument,
   deleteDocument,
@@ -12,34 +9,27 @@ import {
   getCollection,
   updateDocument,
   getCurrentUserId,
-  Timestamp, // Timestamp'i firestoreService'den (veya direkt Firebase'den) al
+  Timestamp,
   FieldValue, // FieldValue'yu firestoreService'den import et
-} from './firestoreService'; // serverTimestamp zaten firestoreService içinde kullanılıyor
+} from './firestoreService';
 
 interface UserSettingsFirestore {
   calorieGoal?: number;
   nutrientGoals?: NutrientGoals;
   preferredTheme?: string;
-  updatedAt?: FieldValue | Timestamp | Date; // Date eklendi (okuma sonrası için)
+  updatedAt?: FieldValue | Timestamp | Date;
 }
 
-const isPremiumUser = (): boolean => {
-  return useSubscriptionStore.getState().activePlanId === 'premium';
-};
-
+// DÜZELTME: Tüm fonksiyonları export et
 export const syncItemUpstream = async (
   collectionName: 'meals' | 'activities',
-  item: FoodItem | ActivityItem // Store'dan gelen item Date objeleri içermeli
+  item: FoodItem | ActivityItem
 ): Promise<void> => {
-  if (!isPremiumUser()) return;
   const userId = getCurrentUserId();
-  if (!userId || !item.id) return;
+  if (!userId || !item.id) return; // Premium kontrolü çağıran yerde yapılacak
 
   const docPath = `users/${userId}/${collectionName}/${item.id}`;
   try {
-    // `item` objesi zaten Date objelerini içeriyor olmalı (createdAt, updatedAt).
-    // `addOrSetDocument` bu Date'leri Firestore Timestamp'lerine çevirecek
-    // ve `serverTimestamp()` kullanarak eksikse createdAt'i, her zaman updatedAt'i ayarlayacak.
     await addOrSetDocument(docPath, { ...item }, item.id, { merge: true });
     console.log(`${collectionName} item ${item.id} synced upstream for user ${userId}`);
   } catch (error) {
@@ -51,9 +41,8 @@ export const deleteItemFromFirestore = async (
   collectionName: 'meals' | 'activities',
   itemId: string
 ): Promise<void> => {
-  if (!isPremiumUser()) return;
   const userId = getCurrentUserId();
-  if (!userId) return;
+  if (!userId) return; // Premium kontrolü çağıran yerde yapılacak
 
   const docPath = `users/${userId}/${collectionName}/${itemId}`;
   try {
@@ -64,26 +53,24 @@ export const deleteItemFromFirestore = async (
   }
 };
 
-export const syncUserSettingsUpstream = async (settings: {
-  calorieGoal: number;
-  nutrientGoals: NutrientGoals;
-}): Promise<void> => {
-  if (!isPremiumUser()) return;
-  const userId = getCurrentUserId();
-  if (!userId) return;
+export const syncUserSettingsUpstream = async (
+  userId: string,
+  settings: {
+    calorieGoal: number;
+    nutrientGoals: NutrientGoals;
+  }
+): Promise<void> => {
+  if (!userId) return; // Premium kontrolü çağıran yerde yapılacak
 
   const userDocPath = `users/${userId}`;
   const settingsToUpdate = {
     userSettings: {
       calorieGoal: settings.calorieGoal,
       nutrientGoals: settings.nutrientGoals,
-      // updatedAt: serverTimestamp(), // updateDocument bunu otomatik ekler
     },
   };
 
   try {
-    // updateDocument içinde data objesi Partial<T> olmalı.
-    // userSettings alanı UserData'da opsiyonel olduğu için bu şekilde göndermek uygun.
     await updateDocument<{ userSettings?: Partial<UserSettingsFirestore> }>(userDocPath, settingsToUpdate);
     console.log(`User settings synced upstream for user ${userId}`);
   } catch (error) {
@@ -91,13 +78,14 @@ export const syncUserSettingsUpstream = async (settings: {
   }
 };
 
-export const fetchAllDataForUser = async (): Promise<{
+export const fetchAllDataForUser = async (
+  userId: string
+): Promise<{
   meals: FoodItem[];
   activities: ActivityItem[];
   userSettings: UserSettingsFirestore | null;
 }> => {
-  const userId = getCurrentUserId();
-  if (!userId || !isPremiumUser()) {
+  if (!userId) { // Premium kontrolü çağıran yerde yapılacak
     return { meals: [], activities: [], userSettings: null };
   }
 
@@ -107,9 +95,6 @@ export const fetchAllDataForUser = async (): Promise<{
     const activitiesPath = `users/${userId}/activities`;
     const userDocPath = `users/${userId}`;
 
-    // firestoreService.getDocument UserData'nın userSettings alanını dönecek
-    // Bu alan zaten UserSettingsFirestore tipinde (veya ona uyumlu) olmalı
-    // ve içindeki Timestamp'ler Date'e çevrilmiş olmalı.
     const [mealsData, activitiesData, userDocData] = await Promise.all([
       getCollection<FoodItem>(mealsPath),
       getCollection<ActivityItem>(activitiesPath),
@@ -119,9 +104,9 @@ export const fetchAllDataForUser = async (): Promise<{
     const userSettings = userDocData?.userSettings || null;
 
     return {
-      meals: mealsData, // Zaten Date objeleri içermeli
-      activities: activitiesData, // Zaten Date objeleri içermeli
-      userSettings, // Zaten Date objeleri içermeli (updatedAt)
+      meals: mealsData,
+      activities: activitiesData,
+      userSettings,
     };
   } catch (error) {
     console.error(`Error fetching all data for user ${userId}:`, error);
@@ -129,35 +114,41 @@ export const fetchAllDataForUser = async (): Promise<{
   }
 };
 
-export const syncDownstreamDataToStores = (data: {
-  meals: FoodItem[]; // Date objeleri içermeli
-  activities: ActivityItem[]; // Date objeleri içermeli
-  userSettings: UserSettingsFirestore | null; // Date objeleri içermeli
-}) => {
-  const { setFoods, foods: localFoods } = useFoodStore.getState();
-  const { setActivities, activities: localActivities } = useActivityStore.getState();
-
+export const processFirestoreDataForStores = (
+  localFoods: FoodItem[],
+  localActivities: ActivityItem[],
+  data: {
+    meals: FoodItem[];
+    activities: ActivityItem[];
+    userSettings: UserSettingsFirestore | null;
+  }
+): {
+  mergedMeals: FoodItem[];
+  mergedActivities: ActivityItem[];
+  newCalorieGoal?: number;
+  newNutrientGoals?: NutrientGoals;
+} => {
   const mergedMeals = mergeData(localFoods, data.meals);
-  setFoods(mergedMeals); // setFoods Date objelerini alıp AsyncStorage'a string olarak yazar
-
   const mergedActivities = mergeData(localActivities, data.activities);
-  setActivities(mergedActivities);
+
+  let newCalorieGoal: number | undefined;
+  let newNutrientGoals: NutrientGoals | undefined;
 
   if (data.userSettings) {
-    const { calorieGoal, nutrientGoals } = data.userSettings;
-    if (calorieGoal !== undefined) {
-      useCalorieGoalStore.setState({ calorieGoal });
+    if (data.userSettings.calorieGoal !== undefined) {
+      newCalorieGoal = data.userSettings.calorieGoal;
     }
-    if (nutrientGoals) {
-      useCalorieGoalStore.setState({ nutrientGoals });
+    if (data.userSettings.nutrientGoals) {
+      newNutrientGoals = data.userSettings.nutrientGoals;
     }
   }
-  console.log('Data synced downstream to stores.');
+  console.log('Firestore data processed for stores.');
+  return { mergedMeals, mergedActivities, newCalorieGoal, newNutrientGoals };
 };
 
 const mergeData = <T extends { id: string; updatedAt?: Date | Timestamp | string | FieldValue }>(
   localData: T[],
-  firestoreData: T[] // Bu veri firestoreService.getCollection'dan geldiği için Date objeleri içermeli
+  firestoreData: T[]
 ): T[] => {
   const firestoreMap = new Map(firestoreData.map(item => [item.id, item]));
   const merged: T[] = [];
@@ -172,17 +163,12 @@ const mergeData = <T extends { id: string; updatedAt?: Date | Timestamp | string
                 const d = new Date(dateVal);
                 return isNaN(d.getTime()) ? 0 : d.getTime();
             }
-            return 0; // FieldValue (örn: serverTimestamp()) veya undefined ise
+            return 0;
         };
 
         const localUpdatedAtTime = getTimestampTime(localItem.updatedAt);
         const firestoreUpdatedAtTime = getTimestampTime(firestoreItem.updatedAt);
 
-        // Eğer Firestore'dan gelenin updatedAt'i serverTimestamp() ise (getTimestampTime 0 döner),
-        // ve lokalde bir tarih varsa, lokaldeki daha güvenilir olabilir (çünkü henüz sunucuya yazılmamış).
-        // Ancak genel kural olarak, sunucudaki daha yeni kabul edilir.
-        // Bu mantık daha da karmaşıklaştırılabilir (örn: "pending writes" takibi).
-        // Şimdilik basit tutalım:
         if (firestoreUpdatedAtTime >= localUpdatedAtTime) {
             merged.push(firestoreItem);
         } else {
@@ -190,12 +176,10 @@ const mergeData = <T extends { id: string; updatedAt?: Date | Timestamp | string
         }
         firestoreMap.delete(localItem.id);
     } else {
-        // Lokal item Firestore'da yoksa, ekle (çevrimdışı oluşturulmuş olabilir)
         merged.push(localItem);
     }
   });
 
-  // Firestore'da olup lokalde olmayan item'ları ekle
   firestoreMap.forEach(firestoreItem => merged.push(firestoreItem));
   return merged;
 };

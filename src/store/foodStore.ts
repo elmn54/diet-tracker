@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { setItem, getItem } from '../storage/asyncStorage';
-import { useActivityStore } from './activityStore';
+// import { useActivityStore } from './activityStore'; // Bu import döngüye neden olabilir, doğrudan kullanmayalım
 import { v4 as uuidv4 } from 'uuid';
-import { FirebaseFirestoreTypes, Timestamp } from '@react-native-firebase/firestore'; // Timestamp eklendi
+import { FirebaseFirestoreTypes, Timestamp } from '@react-native-firebase/firestore';
+// DÜZELTME: syncService'den doğru fonksiyonları import et
 import { syncItemUpstream, deleteItemFromFirestore } from '../services/syncService';
 import { useSubscriptionStore } from './subscriptionStore';
+import { useActivityStore } from './activityStore'; // calculateNetCalories için gerekli
 
-// DÜZELTME: FOODS_STORAGE_KEY tanımlandı
 const FOODS_STORAGE_KEY = 'foods';
 
 export interface FoodItem {
@@ -36,7 +37,7 @@ interface FoodState {
   updateFood: (food: FoodItem) => Promise<void>;
   calculateDailyCalories: (date: string) => number;
   calculateDailyNutrients: (date: string) => Nutrients;
-  calculateNetCalories: (date: string) => number;
+  // calculateNetCalories: (date: string) => number; // Bu hala döngüye neden olabilir
   reset: () => Promise<void>;
   loadFoods: () => Promise<void>;
   isLoading: boolean;
@@ -61,7 +62,6 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     set({ isLoading: true });
     try {
       const storedFoods = await getItem<FoodItem[]>(FOODS_STORAGE_KEY, []);
-      // Lokalden yüklerken de timestamp'leri Date'e çevirelim (eğer string ise)
       const processedFoods = (storedFoods || []).map(food => ({
         ...food,
         createdAt: typeof food.createdAt === 'string' ? new Date(food.createdAt) : food.createdAt,
@@ -87,11 +87,10 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     const newFoods = [...foods, newFoodItem];
     
     set({ foods: newFoods });
-    await setItem(FOODS_STORAGE_KEY, newFoods.map(f => ({...f, createdAt: (f.createdAt as Date)?.toISOString(), updatedAt: (f.updatedAt as Date)?.toISOString() })) );
+    await setItem(FOODS_STORAGE_KEY, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
 
-
-    if (useSubscriptionStore.getState().activePlanId === 'premium') {
-      // syncItemUpstream Date objelerini Timestamp'e çevirecek olan firestoreService'i kullanır.
+    const { activePlanId } = useSubscriptionStore.getState();
+    if (activePlanId === 'premium') {
       await syncItemUpstream('meals', newFoodItem);
     }
     return newFoodItem;
@@ -102,10 +101,10 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     const newFoods = foods.filter((food) => food.id !== id);
     
     set({ foods: newFoods });
-    await setItem(FOODS_STORAGE_KEY, newFoods.map(f => ({...f, createdAt: (f.createdAt as Date)?.toISOString(), updatedAt: (f.updatedAt as Date)?.toISOString() })) );
+    await setItem(FOODS_STORAGE_KEY, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
 
-
-    if (useSubscriptionStore.getState().activePlanId === 'premium') {
+    const { activePlanId } = useSubscriptionStore.getState();
+    if (activePlanId === 'premium') {
       await deleteItemFromFirestore('meals', id);
     }
   },
@@ -121,10 +120,10 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     );
     
     set({ foods: newFoods });
-    await setItem(FOODS_STORAGE_KEY, newFoods.map(f => ({...f, createdAt: (f.createdAt as Date)?.toISOString(), updatedAt: (f.updatedAt as Date)?.toISOString() })) );
+    await setItem(FOODS_STORAGE_KEY, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
 
-
-    if (useSubscriptionStore.getState().activePlanId === 'premium') {
+    const { activePlanId } = useSubscriptionStore.getState();
+    if (activePlanId === 'premium') {
       await syncItemUpstream('meals', foodWithTimestamp);
     }
   },
@@ -134,12 +133,6 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     return foods
       .filter((food) => isSameDate(food.date, date))
       .reduce((total, food) => total + food.calories, 0);
-  },
-  
-  calculateNetCalories: (date: string) => {
-    const foodCalories = get().calculateDailyCalories(date);
-    const burnedCalories = useActivityStore.getState().calculateDailyBurnedCalories(date);
-    return foodCalories - burnedCalories;
   },
   
   calculateDailyNutrients: (date: string) => {
@@ -168,6 +161,14 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         updatedAt: food.updatedAt && !(food.updatedAt instanceof Date) && (food.updatedAt as FirebaseFirestoreTypes.Timestamp)?.toDate ? (food.updatedAt as FirebaseFirestoreTypes.Timestamp).toDate() : (typeof food.updatedAt === 'string' ? new Date(food.updatedAt) : food.updatedAt),
     }));
     set({ foods: processedFoods, isLoading: false });
-    setItem(FOODS_STORAGE_KEY, processedFoods.map(f => ({...f, createdAt: (f.createdAt as Date)?.toISOString(), updatedAt: (f.updatedAt as Date)?.toISOString() })) );
+    setItem(FOODS_STORAGE_KEY, processedFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
   }
 }));
+
+// calculateNetCalories'i store dışına taşıyarak veya ihtiyaç duyulan yerde hesaplayarak döngüyü kırabiliriz.
+// Şimdilik bu fonksiyonu yorum satırına alıyorum.
+// export const calculateNetCalories = (date: string): number => {
+//   const foodCalories = useFoodStore.getState().calculateDailyCalories(date);
+//   const burnedCalories = useActivityStore.getState().calculateDailyBurnedCalories(date);
+//   return foodCalories - burnedCalories;
+// };
