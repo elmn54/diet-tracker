@@ -3,15 +3,19 @@ import { FoodItem } from '../store/foodStore';
 import { ActivityItem } from '../types/activity';
 import { NutrientGoals } from '../store/calorieGoalStore';
 import {
-  addOrSetDocument,
+  addOrSetDocument, // Bu fonksiyonu kullanacağız
+  setDocument,      // Veya direkt setDocument da kullanılabilirdi
   deleteDocument,
   getDocument,
   getCollection,
   updateDocument,
   getCurrentUserId,
   Timestamp,
-  FieldValue, // FieldValue'yu firestoreService'den import et
+  FieldValue,
 } from './firestoreService';
+import { useFoodStore } from '../store/foodStore';
+import { useActivityStore } from '../store/activityStore';
+import { useCalorieGoalStore } from '../store/calorieGoalStore';
 
 interface UserSettingsFirestore {
   calorieGoal?: number;
@@ -20,29 +24,36 @@ interface UserSettingsFirestore {
   updatedAt?: FieldValue | Timestamp | Date;
 }
 
-// DÜZELTME: Tüm fonksiyonları export et
 export const syncItemUpstream = async (
   collectionName: 'meals' | 'activities',
   item: FoodItem | ActivityItem
 ): Promise<void> => {
   const userId = getCurrentUserId();
-  if (!userId || !item.id) return; // Premium kontrolü çağıran yerde yapılacak
+  if (!userId || !item.id) return;
 
-  const docPath = `users/${userId}/${collectionName}/${item.id}`;
+  const docPath = `users/${userId}/${collectionName}/${item.id}`; // Dokümanın tam yolu
   try {
-    await addOrSetDocument(docPath, { ...item }, item.id, { merge: true });
+    // DÜZELTME: addOrSetDocument yerine setDocument kullanalım çünkü ID zaten belli.
+    // addOrSetDocument(collectionPath, data, docId) şeklinde olmalıydı.
+    // Ya da direkt setDocument(fullDocPath, data)
+    // item objesi Date objelerini içeriyor (createdAt, updatedAt).
+    // firestoreService.setDocument bu Date'leri Firestore Timestamp'lerine çevirecek
+    // ve serverTimestamp() kullanarak eksikse createdAt'i, her zaman updatedAt'i ayarlayacak.
+    await setDocument(docPath, { ...item }, { merge: true }); // item.id'yi tekrar vermeye gerek yok, docPath içinde var.
     console.log(`${collectionName} item ${item.id} synced upstream for user ${userId}`);
   } catch (error) {
     console.error(`Error syncing item ${item.id} upstream:`, error);
   }
 };
 
+// deleteItemFromFirestore, syncUserSettingsUpstream, fetchAllDataForUser, processFirestoreDataForStores, mergeData
+// fonksiyonları bir önceki yanıttaki gibi kalabilir.
 export const deleteItemFromFirestore = async (
   collectionName: 'meals' | 'activities',
   itemId: string
 ): Promise<void> => {
   const userId = getCurrentUserId();
-  if (!userId) return; // Premium kontrolü çağıran yerde yapılacak
+  if (!userId) return;
 
   const docPath = `users/${userId}/${collectionName}/${itemId}`;
   try {
@@ -60,7 +71,7 @@ export const syncUserSettingsUpstream = async (
     nutrientGoals: NutrientGoals;
   }
 ): Promise<void> => {
-  if (!userId) return; // Premium kontrolü çağıran yerde yapılacak
+  if (!userId) return;
 
   const userDocPath = `users/${userId}`;
   const settingsToUpdate = {
@@ -85,7 +96,7 @@ export const fetchAllDataForUser = async (
   activities: ActivityItem[];
   userSettings: UserSettingsFirestore | null;
 }> => {
-  if (!userId) { // Premium kontrolü çağıran yerde yapılacak
+  if (!userId) {
     return { meals: [], activities: [], userSettings: null };
   }
 

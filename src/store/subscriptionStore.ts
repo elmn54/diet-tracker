@@ -1,3 +1,4 @@
+// src/store/subscriptionStore.ts
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { firebaseFirestore, firebaseAuth } from '../firebase/firebase.config';
@@ -5,6 +6,10 @@ import { doc, updateDoc, getDoc, Timestamp } from '@react-native-firebase/firest
 
 const ACTIVE_PLAN_ID_KEY = 'active_plan_id';
 const SUBSCRIPTION_END_DATE_KEY = 'subscription_end_date';
+// Deneme sürümü anahtarları kaldırıldı
+// const IS_TRIAL_ACTIVE_KEY = 'is_trial_active';
+// const TRIAL_END_DATE_KEY = 'trial_end_date_key';
+
 
 export interface SubscriptionPlan {
   id: 'free' | 'basic' | 'premium';
@@ -18,13 +23,23 @@ export interface SubscriptionPlan {
 interface SubscriptionState {
   plans: SubscriptionPlan[];
   activePlanId: 'free' | 'basic' | 'premium';
+  selectedPlanForPayment: 'free' | 'basic' | 'premium';
   subscriptionEndDate: Date | null;
   isSubscriptionLoading: boolean;
+  isSubscribed: boolean; // Gerçek abonelik durumu
+  // Deneme sürümü alanları kaldırıldı
+  // isTrialActive: boolean;
+  // trialEndDate: Date | null; 
+  
   loadUserSubscription: () => Promise<void>;
   updateSubscriptionInFirestore: (planId: 'free' | 'basic' | 'premium', endDate?: Date | null) => Promise<void>;
-  setActivePlanLocally: (planId: 'free' | 'basic' | 'premium', endDate?: Date | null) => void;
-  subscribeToPlan: (planId: 'basic' | 'premium') => Promise<boolean>;
+  setSelectedPlanForPaymentLocally: (planId: 'free' | 'basic' | 'premium') => void; 
+  activateSubscribedPlan: (planId: 'free' | 'basic' | 'premium', endDate?: Date | null) => Promise<void>;
   cancelUserSubscription: () => Promise<void>;
+  // Deneme sürümü fonksiyonları kaldırıldı
+  // getRemainingTrialDays: () => number;
+  // startTrial: () => Promise<void>;
+
   isFeatureAvailable: (featureKey: keyof Pick<SubscriptionPlan, 'isAdFree' | 'cloudSyncEnabled'>) => boolean;
   reset: () => Promise<void>;
 }
@@ -74,56 +89,79 @@ const DEFAULT_PLANS: SubscriptionPlan[] = [
 export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   plans: DEFAULT_PLANS,
   activePlanId: 'free',
+  selectedPlanForPayment: 'basic',
   subscriptionEndDate: null,
   isSubscriptionLoading: true,
+  isSubscribed: false,
+  // Deneme sürümü başlangıç değerleri kaldırıldı
+  // isTrialActive: false,
+  // trialEndDate: null,
   
   loadUserSubscription: async () => {
     set({ isSubscriptionLoading: true });
     const user = firebaseAuth.currentUser;
+
+    // Deneme sürümüyle ilgili mantık kaldırıldı
+    // ...
+
     if (user) {
       try {
         const userDocRef = doc(firebaseFirestore, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
+        let currentActivePlanId: 'free' | 'basic' | 'premium' = 'free';
+        let currentSubscriptionEndDate: Date | null = null;
+        let currentIsSubscribed = false;
+
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          const planId = (userData?.activePlanId as 'free' | 'basic' | 'premium') || 'free';
+          currentActivePlanId = (userData?.activePlanId as 'free' | 'basic' | 'premium') || 'free';
           
-          let subEndDate: Date | null = null;
           if (userData?.subscriptionEndDate && userData.subscriptionEndDate instanceof Timestamp) {
-            subEndDate = userData.subscriptionEndDate.toDate();
+            currentSubscriptionEndDate = userData.subscriptionEndDate.toDate();
           }
 
-          if (subEndDate && subEndDate < new Date() && planId !== 'free') {
+          if (currentSubscriptionEndDate && currentSubscriptionEndDate < new Date() && currentActivePlanId !== 'free') {
             console.log(`Subscription for ${user.uid} expired. Downgrading to free.`);
-            set({ activePlanId: 'free', subscriptionEndDate: null, isSubscriptionLoading: false });
+            currentActivePlanId = 'free';
+            currentSubscriptionEndDate = null;
             await get().updateSubscriptionInFirestore('free', null);
-          } else {
-            set({ activePlanId: planId, subscriptionEndDate: subEndDate, isSubscriptionLoading: false });
+            currentIsSubscribed = false;
+          } else if (currentActivePlanId !== 'free' && currentSubscriptionEndDate && currentSubscriptionEndDate >= new Date()) {
+            currentIsSubscribed = true;
           }
-          await AsyncStorage.setItem(ACTIVE_PLAN_ID_KEY, planId);
-          if (subEndDate) {
-            await AsyncStorage.setItem(SUBSCRIPTION_END_DATE_KEY, subEndDate.toISOString());
-          } else {
-            await AsyncStorage.removeItem(SUBSCRIPTION_END_DATE_KEY);
-          }
-
-        } else {
-          set({ activePlanId: 'free', subscriptionEndDate: null, isSubscriptionLoading: false });
-          await AsyncStorage.setItem(ACTIVE_PLAN_ID_KEY, 'free');
-          await AsyncStorage.removeItem(SUBSCRIPTION_END_DATE_KEY);
         }
+        
+        set({ 
+            activePlanId: currentActivePlanId, 
+            subscriptionEndDate: currentSubscriptionEndDate, 
+            isSubscribed: currentIsSubscribed,
+            selectedPlanForPayment: currentActivePlanId,
+            isSubscriptionLoading: false 
+        });
+        await AsyncStorage.setItem(ACTIVE_PLAN_ID_KEY, currentActivePlanId);
+        if (currentSubscriptionEndDate) await AsyncStorage.setItem(SUBSCRIPTION_END_DATE_KEY, currentSubscriptionEndDate.toISOString());
+        else await AsyncStorage.removeItem(SUBSCRIPTION_END_DATE_KEY);
+
       } catch (error) {
         console.error('Error loading user subscription from Firestore:', error);
-        set({ isSubscriptionLoading: false, activePlanId: 'free', subscriptionEndDate: null });
+        set({ isSubscriptionLoading: false, activePlanId: 'free', subscriptionEndDate: null, isSubscribed: false, selectedPlanForPayment: 'free' });
       }
     } else {
       const storedPlanId = (await AsyncStorage.getItem(ACTIVE_PLAN_ID_KEY) as 'free' | 'basic' | 'premium' | null) || 'free';
-      const storedEndDate = await AsyncStorage.getItem(SUBSCRIPTION_END_DATE_KEY);
+      const storedEndDateStr = await AsyncStorage.getItem(SUBSCRIPTION_END_DATE_KEY);
+      const storedEndDate = storedEndDateStr ? new Date(storedEndDateStr) : null;
+      let isLocallySubscribed = false;
+      if (storedPlanId !== 'free' && storedEndDate && storedEndDate >= new Date()) {
+        isLocallySubscribed = true;
+      }
+
       set({
         activePlanId: storedPlanId,
-        subscriptionEndDate: storedEndDate ? new Date(storedEndDate) : null,
+        subscriptionEndDate: storedEndDate,
+        isSubscribed: isLocallySubscribed,
         isSubscriptionLoading: false,
+        selectedPlanForPayment: storedPlanId,
       });
     }
   },
@@ -137,50 +175,61 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
           activePlanId: planId,
           subscriptionEndDate: endDate ? Timestamp.fromDate(endDate) : null,
         });
-        get().setActivePlanLocally(planId, endDate);
+        
+        const newIsSubscribed = planId !== 'free' && endDate !== null && endDate >= new Date();
+        set({ 
+            activePlanId: planId, 
+            subscriptionEndDate: endDate, 
+            selectedPlanForPayment: planId,
+            isSubscribed: newIsSubscribed,
+            // isTrialActive: false // Deneme sürümüyle ilgili kısım kaldırıldı
+        });
+        await AsyncStorage.setItem(ACTIVE_PLAN_ID_KEY, planId);
+        if (endDate) await AsyncStorage.setItem(SUBSCRIPTION_END_DATE_KEY, endDate.toISOString());
+        else await AsyncStorage.removeItem(SUBSCRIPTION_END_DATE_KEY);
+        // await AsyncStorage.setItem(IS_TRIAL_ACTIVE_KEY, 'false'); // Kaldırıldı
+
         console.log(`User ${user.uid} subscription updated in Firestore to ${planId}.`);
       } catch (error) {
         console.error('Error updating subscription in Firestore:', error);
         throw error;
       }
-    } else {
-      console.warn('Cannot update Firestore: User not logged in. Updating locally.');
-      get().setActivePlanLocally(planId, endDate);
     }
   },
 
-  setActivePlanLocally: (planId, endDate = null) => {
-    set({ activePlanId: planId, subscriptionEndDate: endDate });
-    AsyncStorage.setItem(ACTIVE_PLAN_ID_KEY, planId);
-    if (endDate) {
-      AsyncStorage.setItem(SUBSCRIPTION_END_DATE_KEY, endDate.toISOString());
-    } else {
-      AsyncStorage.removeItem(SUBSCRIPTION_END_DATE_KEY);
-    }
+  setSelectedPlanForPaymentLocally: (planId) => {
+    set({ selectedPlanForPayment: planId });
   },
   
-  subscribeToPlan: async (planId) => {
-    const newEndDate = new Date();
-    newEndDate.setMonth(newEndDate.getMonth() + 1);
-    try {
-      await get().updateSubscriptionInFirestore(planId, newEndDate);
-      return true;
-    } catch (error) {
-      return false;
-    }
+  activateSubscribedPlan: async (planId, endDate = null) => {
+    await get().updateSubscriptionInFirestore(planId, endDate);
+    // Deneme sürümüyle ilgili kısım kaldırıldı
+    // set({ isTrialActive: false, trialEndDate: null });
+    // await AsyncStorage.setItem(IS_TRIAL_ACTIVE_KEY, 'false');
+    // await AsyncStorage.removeItem(TRIAL_END_DATE_KEY);
   },
   
   cancelUserSubscription: async () => {
     try {
       await get().updateSubscriptionInFirestore('free', null);
+      // Deneme sürümüyle ilgili kısım kaldırıldı
+      // set({ isTrialActive: false, trialEndDate: null });
+      // await AsyncStorage.setItem(IS_TRIAL_ACTIVE_KEY, 'false');
+      // await AsyncStorage.removeItem(TRIAL_END_DATE_KEY);
     } catch (error) {
       console.error('Error cancelling subscription:', error);
     }
   },
 
+  // Deneme sürümü fonksiyonları kaldırıldı
+  // startTrial: async () => { ... },
+  // getRemainingTrialDays: () => { ... },
+
   isFeatureAvailable: (featureKey) => {
-    const { plans, activePlanId } = get();
-    const currentPlan = plans.find(plan => plan.id === activePlanId);
+    const { plans, activePlanId } = get(); // isTrialActive kaldırıldı
+    const planToCheck = activePlanId; // Artık sadece aktif plana bakıyoruz
+    const currentPlan = plans.find(plan => plan.id === planToCheck);
+    
     if (currentPlan && currentPlan[featureKey] !== undefined) {
       return !!currentPlan[featureKey];
     }
@@ -190,10 +239,18 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   reset: async () => {
     set({
       activePlanId: 'free',
+      selectedPlanForPayment: 'basic',
       subscriptionEndDate: null,
       isSubscriptionLoading: false,
+      isSubscribed: false,
+      // Deneme sürümü alanları kaldırıldı
+      // isTrialActive: false,
+      // trialEndDate: null,
     });
     await AsyncStorage.removeItem(ACTIVE_PLAN_ID_KEY);
     await AsyncStorage.removeItem(SUBSCRIPTION_END_DATE_KEY);
+    // Deneme sürümü anahtarları kaldırıldı
+    // await AsyncStorage.removeItem(IS_TRIAL_ACTIVE_KEY);
+    // await AsyncStorage.removeItem(TRIAL_END_DATE_KEY);
   }
 }));

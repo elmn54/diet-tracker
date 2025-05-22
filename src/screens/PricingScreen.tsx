@@ -1,3 +1,4 @@
+// src/screens/PricingScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
 import { Text, useTheme, Card, IconButton, Badge, Divider } from 'react-native-paper';
@@ -5,108 +6,81 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Button from '../components/Button';
-import { useSubscriptionStore } from '../store/subscriptionStore';
+import { useSubscriptionStore, SubscriptionPlan } from '../store/subscriptionStore';
 import { spacing, typography } from '../constants/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
-// TypeScript için navigasyon tipi tanımı
-type PricingScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type PricingScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Pricing'>;
 
 const PricingScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<PricingScreenNavigationProp>();
   const { 
     plans, 
-    selectedPlan, 
-    isSubscribed,
-    isTrialActive, 
-    selectPlan, 
-    subscribe, 
-    getRemainingTrialDays,
-    cancelSubscription
+    activePlanId,
+    selectedPlanForPayment,
+    isSubscribed, 
+    setSelectedPlanForPaymentLocally,
+    cancelUserSubscription,
+    // Deneme sürümüyle ilgili kısımlar kaldırıldı
+    // isTrialActive, 
+    // getRemainingTrialDays,
+    // startTrial,
   } = useSubscriptionStore();
   
   const [isLoading, setIsLoading] = useState(false);
   
-  // Başlangıçta seçili planı 'basic' olarak ayarla
   useEffect(() => {
-    if (!selectedPlan || !plans.some(p => p.id === selectedPlan)) {
-      selectPlan('basic');
+    if (isSubscribed && plans.some(p => p.id === activePlanId)) {
+      setSelectedPlanForPaymentLocally(activePlanId);
+    } else if (!plans.some(p => p.id === selectedPlanForPayment)) {
+      setSelectedPlanForPaymentLocally('basic');
     }
-  }, []);
+  }, [activePlanId, isSubscribed, plans, selectedPlanForPayment, setSelectedPlanForPaymentLocally]);
   
-  // Abonelik durumunu göster
   const renderSubscriptionStatus = () => {
     if (isSubscribed) {
-      const activePlan = plans.find(plan => plan.id === selectedPlan);
+      const currentActivePlanDetails = plans.find(plan => plan.id === activePlanId);
       return (
         <View style={[styles.statusContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
-          <IconButton
-            icon="check-circle"
-            size={24}
-            iconColor={theme.colors.primary}
-          />
+          <IconButton icon="check-circle" size={24} iconColor={theme.colors.primary} />
           <Text style={[styles.statusText, { color: theme.colors.primary }]}>
-            Aktif Abonelik: {activePlan?.name}
+            Aktif Abonelik: {currentActivePlanDetails?.name || activePlanId}
           </Text>
         </View>
       );
     }
+    // Deneme sürümüyle ilgili kısım kaldırıldı
+    // if (isTrialActive) { ... }
     
-    if (isTrialActive) {
-      const remainingDays = getRemainingTrialDays();
-      return (
-        <View style={[styles.statusContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
-          <IconButton
-            icon="timer-sand"
-            size={24}
-            iconColor={theme.colors.tertiary}
-          />
-          <Text style={[styles.statusText, { color: theme.colors.tertiary }]}>
-            Deneme Sürümü: {remainingDays} gün kaldı
-          </Text>
-        </View>
-      );
-    }
-    
+    // Deneme sürümü butonu yerine standart mesaj
     return (
       <View style={[styles.statusContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
         <IconButton
-          icon="information"
+          icon="information-outline" // information-outline daha uygun olabilir
           size={24}
           iconColor={theme.colors.onSurfaceVariant}
         />
         <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>
-          Şu anda aktif aboneliğiniz bulunmuyor
+          Şu anda aktif aboneliğiniz bulunmuyor.
         </Text>
       </View>
     );
   };
   
-  // Abone ol
-  const handleSubscribe = async () => {
-    setIsLoading(true);
-    try {
-      const selectedPlanObj = plans.find(plan => plan.id === selectedPlan);
-      if (!selectedPlanObj) {
-        throw new Error('Seçili plan bulunamadı');
-      }
-      
-      // Ödeme ekranına yönlendir
-      navigation.navigate('Payment', {
-        planId: selectedPlan,
-        planName: selectedPlanObj.name,
-        price: selectedPlanObj.price
-      });
-    } catch (error) {
-      console.error('Abonelik işlemi sırasında hata oluştu:', error);
-      Alert.alert('Hata', 'İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
-    } finally {
-      setIsLoading(false);
+  const handleProceedToPayment = (planToPay: SubscriptionPlan) => {
+    if (isSubscribed && activePlanId === planToPay.id) {
+        Alert.alert("Bilgi", "Zaten bu plana abonesiniz.");
+        return;
     }
+    setSelectedPlanForPaymentLocally(planToPay.id);
+    navigation.navigate('Payment', {
+      planId: planToPay.id,
+      planName: planToPay.name,
+      price: planToPay.price
+    });
   };
   
-  // Özellik listesi oluştur
   const renderFeatures = (features: string[]) => {
     return features.map((feature, index) => (
       <View key={index} style={styles.featureItem}>
@@ -140,37 +114,42 @@ const PricingScreen = () => {
         
         <View style={styles.plansContainer}>
           {plans.map((plan) => {
-            const isPremium = plan.id === 'premium';
-            const isSelected = selectedPlan === plan.id;
+            if (plan.id === 'free') return null;
+            const isPremiumCard = plan.id === 'premium';
+            const isSelectedForPayment = selectedPlanForPayment === plan.id;
             
             return (
               <TouchableOpacity
                 key={plan.id}
-                onPress={() => selectPlan(plan.id)}
+                onPress={() => {
+                    if (!isSubscribed || activePlanId !== plan.id) {
+                        setSelectedPlanForPaymentLocally(plan.id);
+                    }
+                }}
                 testID={`plan-${plan.id}`}
-                disabled={isSubscribed}
               >
                 <Card
                   style={[
                     styles.planCard,
-                    isPremium && styles.premiumPlanCard,
-                    isSelected && { 
+                    isPremiumCard && styles.premiumPlanCard,
+                    isSelectedForPayment && { 
                       borderColor: theme.colors.primary,
-                      borderWidth: 2
+                      borderWidth: 2.5,
+                      elevation: 6,
                     }
                   ]}
                 >
-                  {isPremium && (
+                  {isPremiumCard && (
                     <View style={[styles.popularBadgeContainer, { backgroundColor: theme.colors.primary }]}>
                       <Text style={styles.popularBadgeText}>En Popüler</Text>
                     </View>
                   )}
                   
-                  <Card.Content style={isPremium ? styles.premiumCardContent : styles.cardContent}>
+                  <Card.Content style={isPremiumCard ? styles.premiumCardContent : styles.cardContent}>
                     <View style={styles.planHeader}>
                       <Text style={[
                         styles.planName, 
-                        isPremium && { color: theme.colors.primary }
+                        isPremiumCard && { color: theme.colors.primary }
                       ]}>
                         {plan.name}
                       </Text>
@@ -179,9 +158,9 @@ const PricingScreen = () => {
                     <View style={styles.priceContainer}>
                       <Text style={[
                         styles.price,
-                        isPremium && { color: theme.colors.primary }
+                        isPremiumCard && { color: theme.colors.primary }
                       ]}>
-                        {plan.price} TL
+                        {plan.price.toFixed(2)} TL 
                       </Text>
                       <Text style={styles.pricePeriod}>/ ay</Text>
                     </View>
@@ -192,16 +171,19 @@ const PricingScreen = () => {
                       {renderFeatures(plan.features)}
                     </View>
                     
-                    {!isSubscribed && (
+                    {(!isSubscribed || activePlanId !== plan.id) && (
                       <Button
-                        title="Abone Ol"
-                        onPress={() => {
-                          selectPlan(plan.id);
-                          handleSubscribe();
-                        }}
+                        title={isSubscribed ? (activePlanId === 'basic' && plan.id === 'premium' ? "Premium'a Yükselt" : "Bu Plana Geç") : "Abone Ol"}
+                        onPress={() => handleProceedToPayment(plan)}
                         style={styles.planButton}
-                        variant={isPremium ? "primary" : "outline"}
+                        variant={isPremiumCard || isSelectedForPayment ? "primary" : "outline"}
+                        disabled={isLoading || (isSubscribed && activePlanId === plan.id)}
                       />
+                    )}
+                    {(isSubscribed && activePlanId === plan.id) && (
+                        <View style={styles.currentPlanIndicator}>
+                            <Text style={[styles.currentPlanText, {color: theme.colors.primary}]}>Mevcut Planınız</Text>
+                        </View>
                     )}
                   </Card.Content>
                 </Card>
@@ -210,7 +192,7 @@ const PricingScreen = () => {
           })}
         </View>
         
-        {isSubscribed && (
+        {isSubscribed && activePlanId !== 'free' && (
           <View style={styles.subscribeButtonContainer}>
             <Button
               title="Abonelik Ayrıntıları"
@@ -224,15 +206,15 @@ const PricingScreen = () => {
               onPress={() => {
                 Alert.alert(
                   'Abonelik İptali',
-                  'Aboneliğinizi iptal etmek istediğinize emin misiniz?',
+                  'Aboneliğinizi iptal etmek istediğinize emin misiniz? Mevcut fatura döneminizin sonuna kadar özelliklere erişmeye devam edebilirsiniz.',
                   [
                     { text: 'Vazgeç', style: 'cancel' },
                     { 
                       text: 'İptal Et', 
                       onPress: async () => {
                         try {
-                          await cancelSubscription();
-                          Alert.alert('Başarılı', 'Aboneliğiniz iptal edildi.');
+                          await cancelUserSubscription();
+                          Alert.alert('Başarılı', 'Aboneliğiniz iptal edildi. Bir sonraki fatura döneminizde yenilenmeyecektir.');
                         } catch (error) {
                           console.error('Abonelik iptal edilirken hata oluştu:', error);
                           Alert.alert('Hata', 'İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
@@ -264,6 +246,7 @@ const PricingScreen = () => {
   );
 };
 
+// Styles (styles.trialButtonContainer kaldırıldı, statusContainer'daki ikon değişti)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -283,6 +266,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: typography.fontSize.medium,
     textAlign: 'center',
+    marginTop: spacing.xs,
   },
   statusContainer: {
     flexDirection: 'row',
@@ -292,16 +276,14 @@ const styles = StyleSheet.create({
     padding: spacing.s,
     borderRadius: 8,
   },
+  // trialButtonContainer kaldırıldı
   statusText: {
     fontSize: typography.fontSize.medium,
     fontWeight: '500',
-    flex: 1,
+    marginLeft: spacing.xs,
   },
   plansContainer: {
     marginBottom: spacing.l,
-  },
-  premiumPlanContainer: {
-    marginVertical: spacing.m,
   },
   planCard: {
     marginBottom: spacing.m,
@@ -309,28 +291,22 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     borderRadius: 12,
-    minHeight: 300,
   },
   premiumPlanCard: {
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    borderColor: '#5D5FEF',
-    borderWidth: 1.5,
   },
   premiumCardContent: {
     paddingTop: spacing.l,
+    padding: spacing.m,
   },
   cardContent: {
-    paddingTop: spacing.s,
+    padding: spacing.m,
   },
   popularBadgeContainer: {
     position: 'absolute',
     top: 0,
-    right: 0,
-    left: 0,
+    left:0,
+    right:0,
     paddingVertical: spacing.xs,
     alignItems: 'center',
     zIndex: 2,
@@ -341,48 +317,61 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.small,
   },
   planHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.s,
   },
   planName: {
-    fontSize: typography.fontSize.large,
+    fontSize: typography.fontSize.xl,
     fontWeight: 'bold',
   },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    justifyContent: 'center',
     marginBottom: spacing.m,
+    marginTop: spacing.xs,
   },
   price: {
-    fontSize: typography.fontSize.xxl,
+    fontSize: typography.fontSize.xxxl,
     fontWeight: 'bold',
   },
   pricePeriod: {
-    fontSize: typography.fontSize.small,
+    fontSize: typography.fontSize.medium,
     marginLeft: spacing.xs,
+    color: '#666'
   },
   divider: {
-    marginBottom: spacing.m,
+    marginVertical: spacing.m,
   },
   featuresContainer: {
-    marginBottom: spacing.m,
+    marginBottom: spacing.l,
+    minHeight: 100,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.s,
   },
   featureIcon: {
     margin: 0,
-    marginRight: spacing.xs,
+    marginRight: spacing.s,
   },
   featureText: {
     fontSize: typography.fontSize.medium,
+    flexShrink: 1,
   },
   planButton: {
-    marginTop: spacing.s,
+    marginTop: 'auto',
+    paddingVertical: spacing.s,
+  },
+  currentPlanIndicator: {
+    marginTop: 'auto',
+    paddingVertical: spacing.m,
+    alignItems: 'center',
+  },
+  currentPlanText: {
+    fontSize: typography.fontSize.medium,
+    fontWeight: 'bold',
   },
   subscribeButtonContainer: {
     marginBottom: spacing.xl,
@@ -393,6 +382,7 @@ const styles = StyleSheet.create({
   cancelLink: {
     alignItems: 'center',
     marginTop: spacing.s,
+    padding: spacing.xs,
   },
   cancelText: {
     fontSize: typography.fontSize.medium,
@@ -411,7 +401,8 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: typography.fontSize.small,
     marginBottom: spacing.xs,
+    lineHeight: typography.fontSize.small * 1.5,
   },
 });
 
-export default PricingScreen; 
+export default PricingScreen;
