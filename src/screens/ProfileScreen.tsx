@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Linking, ActivityIndicator } from 'react-native';
 import { Text, Card, Divider, List, useTheme, Badge } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -27,7 +27,7 @@ const ProfileScreen = () => {
   const [joinDateError, setJoinDateError] = useState(false);
   
   // Abonelik bilgisini al
-  const { selectedPlan, isSubscribed } = useSubscriptionStore();
+  const { isSubscribed, activePlanId } = useSubscriptionStore();
   
   // Kullanıcı katılma tarihini Firebase'den al
   useEffect(() => {
@@ -67,7 +67,7 @@ const ProfileScreen = () => {
       return theme.dark ? '#585858' : 'rgba(255, 255, 255, 0.8)';
     }
     
-    switch (selectedPlan) {
+    switch (activePlanId) {
       case 'premium': return theme.colors.primary;
       case 'basic': return theme.dark ? '#686868' : theme.colors.surfaceVariant;
       default: return theme.dark ? '#686868' : theme.colors.surfaceVariant;
@@ -79,10 +79,10 @@ const ProfileScreen = () => {
       return 'Ücretsiz';
     }
     
-    switch (selectedPlan) {
+    switch (activePlanId) {
       case 'premium': return 'Premium';
       case 'basic': return 'Temel';
-      default: return selectedPlan; // Fallback to plan ID if unknown
+      default: return activePlanId; // Fallback to plan ID if unknown
     }
   };
   
@@ -190,7 +190,7 @@ const ProfileScreen = () => {
                       { 
                         color: !isSubscribed
                           ? theme.dark ? '#FFFFFF' : '#7F7F7F'
-                          : (selectedPlan === 'premium' 
+                          : (activePlanId === 'premium' 
                               ? theme.colors.primary 
                               : theme.dark ? '#FFFFFF' : getSubscriptionColor()) 
                       }

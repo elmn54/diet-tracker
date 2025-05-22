@@ -40,8 +40,8 @@ const HomeScreen = () => {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const theme = useTheme();
   
-  // Abonelik bilgisini al
-  const { selectedPlan, isSubscribed } = useSubscriptionStore();
+  // Abonelik bilgisini al - doğru değişkenleri kullan
+  const { activePlanId, isSubscribed } = useSubscriptionStore();
   
   // FlatList için referans oluştur
   const flatListRef = useRef<FlatList<FoodItem | ActivityItem>>(null);
@@ -457,7 +457,7 @@ const HomeScreen = () => {
                   styles.subscriptionBadge, 
                   { 
                     backgroundColor: isSubscribed 
-                      ? (selectedPlan === 'premium' 
+                      ? (activePlanId === 'premium' 
                           ? theme.colors.primary 
                           : theme.dark ? '#686868' : theme.colors.surfaceVariant)
                       : theme.dark ? '#585858' : 'rgba(255, 255, 255, 0.8)',
@@ -468,7 +468,7 @@ const HomeScreen = () => {
                 ]}
               >
                 {isSubscribed 
-                  ? (selectedPlan === 'premium' 
+                  ? (activePlanId === 'premium' 
                       ? 'Premium' 
                       : 'Temel')
                   : 'Ücretsiz'}

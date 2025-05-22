@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, useTheme, Card, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,19 +17,10 @@ const PaymentSuccessScreen = () => {
   const navigation = useNavigation<PaymentSuccessScreenNavigationProp>();
   const route = useRoute<PaymentSuccessScreenRouteProp>();
   const { planId, transactionId } = route.params;
-  const { plans, subscribe } = useSubscriptionStore();
+  const { plans } = useSubscriptionStore();
   
   // Seçilen planı bul
   const selectedPlan = plans.find(plan => plan.id === planId);
-  
-  useEffect(() => {
-    // Ödeme başarılı olduğunda aboneliği etkinleştir
-    const activateSubscription = async () => {
-      await subscribe();
-    };
-    
-    activateSubscription();
-  }, []);
   
   // Ana sayfaya dön
   const handleGoHome = () => {

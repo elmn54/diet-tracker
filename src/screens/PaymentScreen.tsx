@@ -48,39 +48,52 @@ const PaymentScreen = () => {
       return;
     }
     
-    // DÜZELTME: planId'nin geçerli bir tip olduğundan emin ol
     const validPlanId = planId as 'free' | 'basic' | 'premium';
     if (!plans.some(p => p.id === validPlanId)) {
         Alert.alert("Hata", "Geçersiz abonelik planı seçildi.");
-        setIsProcessing(false);
         return;
     }
 
     setIsProcessing(true);
     
     try {
-      const isSuccess = Math.random() > 0.2;
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // const isSuccess = Math.random() > 0.2; // Başarı/başarısızlık simülasyonu
+      const isSuccess = true; // Başarılı senaryoyu test ediyoruz
+      
+      console.log(`Payment simulation for plan ${planId}: Simulating ${isSuccess ? 'success' : 'failure'}.`);
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       if (isSuccess) {
         const newEndDate = new Date();
         newEndDate.setMonth(newEndDate.getMonth() + 1);
-        await activateSubscribedPlan(validPlanId, newEndDate); // Düzeltilmiş planId kullanıldı
         
-        navigation.replace('PaymentSuccess', {
-          planId: validPlanId, // Düzeltilmiş planId kullanıldı
-          transactionId: `TRX-${Date.now()}`
-        });
+        try {
+          await activateSubscribedPlan(validPlanId, newEndDate);
+          
+          navigation.replace('PaymentSuccess', {
+            planId: validPlanId,
+            transactionId: `TRX-${Date.now()}`
+          });
+        } catch (subscriptionError) {
+          console.error('Error activating subscription:', subscriptionError);
+          navigation.replace('PaymentFailure', {
+            error: 'Ödeme başarılı ancak abonelik kaydedilirken hata oluştu. Lütfen müşteri hizmetleriyle iletişime geçin.',
+            planId: validPlanId
+          });
+        }
       } else {
-        navigation.navigate('PaymentFailure', {
-          error: 'Ödeme işlemi reddedildi. Lütfen kart bilgilerinizi kontrol ediniz.',
-          planId: validPlanId // Düzeltilmiş planId kullanıldı
+        console.log('Payment failed, navigating to PaymentFailureScreen.');
+        navigation.replace('PaymentFailure', {
+          error: 'Simüle edilmiş ödeme reddedildi. Lütfen kart bilgilerinizi kontrol ediniz.',
+          planId: validPlanId
         });
       }
     } catch (error) {
-      navigation.navigate('PaymentFailure', {
-        error: 'Ödeme işlemi sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyiniz.',
-        planId: validPlanId // Düzeltilmiş planId kullanıldı
+      console.error('Error during payment processing:', error);
+      navigation.replace('PaymentFailure', {
+        error: 'Ödeme işlemi sırasında beklenmedik bir hata oluştu.',
+        planId: validPlanId
       });
     } finally {
       setIsProcessing(false);
@@ -88,7 +101,6 @@ const PaymentScreen = () => {
   };
   
   const validateForm = () => {
-    // ... (validateForm içeriği öncekiyle aynı)
     if (!cardNumber.trim() || cardNumber.replace(/\s/g, '').length < 16) {
       Alert.alert('Hata', 'Lütfen geçerli bir kart numarası giriniz.');
       return false;
@@ -97,10 +109,13 @@ const PaymentScreen = () => {
       Alert.alert('Hata', 'Lütfen geçerli bir son kullanma tarihi giriniz (MM/YY).');
       return false;
     }
-    const [month, year] = expiryDate.split('/');
+    const [monthStr, yearStr] = expiryDate.split('/');
+    const month = parseInt(monthStr,10);
+    const year = parseInt(yearStr,10);
     const currentYearLastTwoDigits = new Date().getFullYear() % 100;
     const currentMonth = new Date().getMonth() + 1;
-    if (parseInt(year,10) < currentYearLastTwoDigits || (parseInt(year,10) === currentYearLastTwoDigits && parseInt(month,10) < currentMonth) || parseInt(month,10) < 1 || parseInt(month,10) > 12) {
+
+    if (year < currentYearLastTwoDigits || (year === currentYearLastTwoDigits && month < currentMonth) || month < 1 || month > 12) {
         Alert.alert('Hata', 'Geçersiz son kullanma tarihi.');
         return false;
     }
@@ -121,7 +136,6 @@ const PaymentScreen = () => {
       edges={['left', 'right', 'bottom']}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* ... (JSX içeriği öncekiyle aynı, price ve planId doğru kullanılıyor) ... */}
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.colors.primary }]}>
             Ödeme
@@ -226,7 +240,6 @@ const PaymentScreen = () => {
   );
 };
 
-// Styles öncekiyle aynı
 const styles = StyleSheet.create({
   container: {
     flex: 1,

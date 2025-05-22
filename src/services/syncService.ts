@@ -3,8 +3,8 @@ import { FoodItem } from '../store/foodStore';
 import { ActivityItem } from '../types/activity';
 import { NutrientGoals } from '../store/calorieGoalStore';
 import {
-  addOrSetDocument, // Bu fonksiyonu kullanacağız
-  setDocument,      // Veya direkt setDocument da kullanılabilirdi
+  // addOrSetDocument, // setDocument kullanacağız
+  setDocument,      // Kullanılacak
   deleteDocument,
   getDocument,
   getCollection,
@@ -31,11 +31,8 @@ export const syncItemUpstream = async (
   const userId = getCurrentUserId();
   if (!userId || !item.id) return;
 
-  const docPath = `users/${userId}/${collectionName}/${item.id}`; // Dokümanın tam yolu
+  const docPath = `users/${userId}/${collectionName}/${item.id}`;
   try {
-    // DÜZELTME: addOrSetDocument yerine setDocument kullanalım çünkü ID zaten belli.
-    // addOrSetDocument(collectionPath, data, docId) şeklinde olmalıydı.
-    // Ya da direkt setDocument(fullDocPath, data)
     // item objesi Date objelerini içeriyor (createdAt, updatedAt).
     // firestoreService.setDocument bu Date'leri Firestore Timestamp'lerine çevirecek
     // ve serverTimestamp() kullanarak eksikse createdAt'i, her zaman updatedAt'i ayarlayacak.
@@ -43,11 +40,10 @@ export const syncItemUpstream = async (
     console.log(`${collectionName} item ${item.id} synced upstream for user ${userId}`);
   } catch (error) {
     console.error(`Error syncing item ${item.id} upstream:`, error);
+    // Hatanın yukarıya bildirilmesi veya UI'da gösterilmesi gerekebilir.
   }
 };
 
-// deleteItemFromFirestore, syncUserSettingsUpstream, fetchAllDataForUser, processFirestoreDataForStores, mergeData
-// fonksiyonları bir önceki yanıttaki gibi kalabilir.
 export const deleteItemFromFirestore = async (
   collectionName: 'meals' | 'activities',
   itemId: string
@@ -78,6 +74,7 @@ export const syncUserSettingsUpstream = async (
     userSettings: {
       calorieGoal: settings.calorieGoal,
       nutrientGoals: settings.nutrientGoals,
+      // updatedAt: serverTimestamp(), // updateDocument bunu otomatik ekleyecek
     },
   };
 

@@ -2,14 +2,10 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { firebaseFirestore, firebaseAuth } from '../firebase/firebase.config';
-import { doc, updateDoc, getDoc, Timestamp } from '@react-native-firebase/firestore';
+import { doc, updateDoc, getDoc, Timestamp, setDoc, serverTimestamp } from '@react-native-firebase/firestore';
 
 const ACTIVE_PLAN_ID_KEY = 'active_plan_id';
 const SUBSCRIPTION_END_DATE_KEY = 'subscription_end_date';
-// Deneme sürümü anahtarları kaldırıldı
-// const IS_TRIAL_ACTIVE_KEY = 'is_trial_active';
-// const TRIAL_END_DATE_KEY = 'trial_end_date_key';
-
 
 export interface SubscriptionPlan {
   id: 'free' | 'basic' | 'premium';
@@ -26,20 +22,13 @@ interface SubscriptionState {
   selectedPlanForPayment: 'free' | 'basic' | 'premium';
   subscriptionEndDate: Date | null;
   isSubscriptionLoading: boolean;
-  isSubscribed: boolean; // Gerçek abonelik durumu
-  // Deneme sürümü alanları kaldırıldı
-  // isTrialActive: boolean;
-  // trialEndDate: Date | null; 
+  isSubscribed: boolean;
   
   loadUserSubscription: () => Promise<void>;
   updateSubscriptionInFirestore: (planId: 'free' | 'basic' | 'premium', endDate?: Date | null) => Promise<void>;
   setSelectedPlanForPaymentLocally: (planId: 'free' | 'basic' | 'premium') => void; 
   activateSubscribedPlan: (planId: 'free' | 'basic' | 'premium', endDate?: Date | null) => Promise<void>;
   cancelUserSubscription: () => Promise<void>;
-  // Deneme sürümü fonksiyonları kaldırıldı
-  // getRemainingTrialDays: () => number;
-  // startTrial: () => Promise<void>;
-
   isFeatureAvailable: (featureKey: keyof Pick<SubscriptionPlan, 'isAdFree' | 'cloudSyncEnabled'>) => boolean;
   reset: () => Promise<void>;
 }
@@ -93,16 +82,10 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   subscriptionEndDate: null,
   isSubscriptionLoading: true,
   isSubscribed: false,
-  // Deneme sürümü başlangıç değerleri kaldırıldı
-  // isTrialActive: false,
-  // trialEndDate: null,
   
   loadUserSubscription: async () => {
     set({ isSubscriptionLoading: true });
     const user = firebaseAuth.currentUser;
-
-    // Deneme sürümüyle ilgili mantık kaldırıldı
-    // ...
 
     if (user) {
       try {
@@ -168,13 +151,34 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 
   updateSubscriptionInFirestore: async (planId, endDate = null) => {
     const user = firebaseAuth.currentUser;
-    if (user) {
+    if (user && user.uid) {
       try {
         const userDocRef = doc(firebaseFirestore, 'users', user.uid);
-        await updateDoc(userDocRef, {
-          activePlanId: planId,
-          subscriptionEndDate: endDate ? Timestamp.fromDate(endDate) : null,
-        });
+        const userDocSnap = await getDoc(userDocRef);
+        
+        if (userDocSnap.exists()) {
+          // Eğer kullanıcı dokümanı varsa, güncelle
+          await updateDoc(userDocRef, {
+            activePlanId: planId,
+            subscriptionEndDate: endDate ? Timestamp.fromDate(endDate) : null,
+          });
+        } else {
+          // Eğer kullanıcı dokümanı yoksa, oluştur
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            createdAt: serverTimestamp(),
+            activePlanId: planId,
+            subscriptionEndDate: endDate ? Timestamp.fromDate(endDate) : null,
+            userSettings: {
+              calorieGoal: 2000,
+              nutrientGoals: { protein: 100, carbs: 250, fat: 65 },
+              updatedAt: serverTimestamp(),
+            }
+          });
+        }
         
         const newIsSubscribed = planId !== 'free' && endDate !== null && endDate >= new Date();
         set({ 
@@ -182,20 +186,21 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
             subscriptionEndDate: endDate, 
             selectedPlanForPayment: planId,
             isSubscribed: newIsSubscribed,
-            // isTrialActive: false // Deneme sürümüyle ilgili kısım kaldırıldı
         });
         await AsyncStorage.setItem(ACTIVE_PLAN_ID_KEY, planId);
         if (endDate) await AsyncStorage.setItem(SUBSCRIPTION_END_DATE_KEY, endDate.toISOString());
         else await AsyncStorage.removeItem(SUBSCRIPTION_END_DATE_KEY);
-        // await AsyncStorage.setItem(IS_TRIAL_ACTIVE_KEY, 'false'); // Kaldırıldı
 
         console.log(`User ${user.uid} subscription updated in Firestore to ${planId}.`);
       } catch (error) {
-        console.error('Error updating subscription in Firestore:', error);
-        throw error;
+        console.error(`Error updating subscription in Firestore for user ${user.uid}:`, error);
+        throw error; // Hataları izleyebilmek için hatayı fırlat
       }
+    } else {
+        console.warn('Cannot update Firestore: User not logged in or UID is missing.');
     }
   },
+
 
   setSelectedPlanForPaymentLocally: (planId) => {
     set({ selectedPlanForPayment: planId });
@@ -203,31 +208,19 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   
   activateSubscribedPlan: async (planId, endDate = null) => {
     await get().updateSubscriptionInFirestore(planId, endDate);
-    // Deneme sürümüyle ilgili kısım kaldırıldı
-    // set({ isTrialActive: false, trialEndDate: null });
-    // await AsyncStorage.setItem(IS_TRIAL_ACTIVE_KEY, 'false');
-    // await AsyncStorage.removeItem(TRIAL_END_DATE_KEY);
   },
   
   cancelUserSubscription: async () => {
     try {
       await get().updateSubscriptionInFirestore('free', null);
-      // Deneme sürümüyle ilgili kısım kaldırıldı
-      // set({ isTrialActive: false, trialEndDate: null });
-      // await AsyncStorage.setItem(IS_TRIAL_ACTIVE_KEY, 'false');
-      // await AsyncStorage.removeItem(TRIAL_END_DATE_KEY);
     } catch (error) {
       console.error('Error cancelling subscription:', error);
     }
   },
 
-  // Deneme sürümü fonksiyonları kaldırıldı
-  // startTrial: async () => { ... },
-  // getRemainingTrialDays: () => { ... },
-
   isFeatureAvailable: (featureKey) => {
-    const { plans, activePlanId } = get(); // isTrialActive kaldırıldı
-    const planToCheck = activePlanId; // Artık sadece aktif plana bakıyoruz
+    const { plans, activePlanId } = get();
+    const planToCheck = activePlanId;
     const currentPlan = plans.find(plan => plan.id === planToCheck);
     
     if (currentPlan && currentPlan[featureKey] !== undefined) {
@@ -243,14 +236,8 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       subscriptionEndDate: null,
       isSubscriptionLoading: false,
       isSubscribed: false,
-      // Deneme sürümü alanları kaldırıldı
-      // isTrialActive: false,
-      // trialEndDate: null,
     });
     await AsyncStorage.removeItem(ACTIVE_PLAN_ID_KEY);
     await AsyncStorage.removeItem(SUBSCRIPTION_END_DATE_KEY);
-    // Deneme sürümü anahtarları kaldırıldı
-    // await AsyncStorage.removeItem(IS_TRIAL_ACTIVE_KEY);
-    // await AsyncStorage.removeItem(TRIAL_END_DATE_KEY);
   }
 }));
