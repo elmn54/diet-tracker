@@ -238,9 +238,21 @@ const HomeScreen = () => {
   const renderFoodItem = ({ item }: { item: FoodItem }) => (
     <Card style={styles.foodCard} onPress={() => {
       // Düzenleme işlevini çağır
+      // Date nesnelerini ISO stringine dönüştürerek serileştirilebilir hale getir
+      const serializedFoodItem = {
+        ...item,
+        // Firebase Timestamp ve Date nesnelerini ISO string'e dönüştür
+        createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : 
+                  typeof item.createdAt === 'object' ? new Date((item.createdAt as any).seconds * 1000).toISOString() : 
+                  item.createdAt,
+        updatedAt: item.updatedAt instanceof Date ? item.updatedAt.toISOString() : 
+                  typeof item.updatedAt === 'object' ? new Date((item.updatedAt as any).seconds * 1000).toISOString() : 
+                  item.updatedAt,
+      };
+      
       navigation.navigate('FoodEntry', { 
         editMode: true, 
-        foodItem: item 
+        foodItem: serializedFoodItem 
       });
     }}>
       <View style={styles.foodItemContainer}>
@@ -290,9 +302,21 @@ const HomeScreen = () => {
   const renderActivityItem = ({ item }: { item: ActivityItem }) => (
     <Card style={styles.activityCard} onPress={() => {
       // Düzenleme işlevini çağır
+      // Date nesnelerini ISO stringine dönüştürerek serileştirilebilir hale getir
+      const serializedActivityItem = {
+        ...item,
+        // Firebase Timestamp ve Date nesnelerini ISO string'e dönüştür
+        createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : 
+                  typeof item.createdAt === 'object' ? new Date((item.createdAt as any).seconds * 1000).toISOString() : 
+                  item.createdAt,
+        updatedAt: item.updatedAt instanceof Date ? item.updatedAt.toISOString() : 
+                  typeof item.updatedAt === 'object' ? new Date((item.updatedAt as any).seconds * 1000).toISOString() : 
+                  item.updatedAt,
+      };
+      
       navigation.navigate('ActivityEntry', { 
         editMode: true, 
-        activityItem: item 
+        activityItem: serializedActivityItem 
       });
     }}>
       <View style={styles.activityItemContainer}>
