@@ -15,7 +15,8 @@ import { createCompletion } from '../services/aiService.js';
 // Fotoğraf işlemleri için
 import * as ImagePicker from 'expo-image-picker';
 import { identifyFood } from '../services/foodRecognitionService';
-import { useSubscriptionStore } from '../store/subscriptionStore';
+import { useSubscriptionStore, SubscriptionPlan } from '../store/subscriptionStore';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ana Sayfa'>;
 
@@ -187,13 +188,10 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
 
   // Abonelik kontrolü
   const isPlanFeatureAvailable = (feature: string): boolean => {
-    return useSubscriptionStore.getState().isPlanFeatureAvailable(feature);
+    return useSubscriptionStore.getState().isFeatureAvailable(feature as keyof Pick<SubscriptionPlan, 'isAdFree' | 'cloudSyncEnabled'>);
   };
 
-  // Kalan istek sayısı kontrolü
-  const getRemainingRequests = (): number => {
-    return useSubscriptionStore.getState().getRemainingRequests();
-  };
+
 
   // Kamera ile direkt fotoğraf çek ve analiz et
   const handleCameraCapture = async () => {
@@ -276,21 +274,6 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         Alert.alert(
           'Premium Özellik', 
           'Görsel tanıma özelliği sadece premium aboneler için kullanılabilir.',
-          [
-            { text: 'İptal' },
-            { text: 'Abonelik Planları', onPress: () => navigation.navigate('Pricing') }
-          ]
-        );
-        setIsAnalyzing(false);
-        return;
-      }
-      
-      // İstek limitini kontrol et
-      const remainingReqs = getRemainingRequests();
-      if (remainingReqs === 0) {
-        Alert.alert(
-          'Limit Aşıldı', 
-          'Bu ay için AI görüntü tanıma limitinizi doldurdunuz. Daha fazla kullanım için Pro planına yükseltin.',
           [
             { text: 'İptal' },
             { text: 'Abonelik Planları', onPress: () => navigation.navigate('Pricing') }
@@ -772,14 +755,21 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
             onPress={handleGalleryPick}
             disabled={isAnalyzing}
           >
-            <Text style={styles.icon}>🖼️</Text>
+            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <Rect x="3" y="5" width="18" height="14" rx="2" stroke={theme.colors.onSurface} strokeWidth="2"/>
+              <Path d="M3 17l5-5 3 3 5-5 5 5" stroke={theme.colors.onSurface} strokeWidth="2" strokeLinecap="round"/>
+              <Path d="M8 10a1 1 0 100-2 1 1 0 000 2z" fill={theme.colors.onSurface}/>
+            </Svg>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.iconButton} 
             onPress={handleCameraCapture}
             disabled={isAnalyzing}
           >
-            <Text style={styles.icon}>📷</Text>
+            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2v11z" stroke={theme.colors.onSurface} strokeWidth="2"/>
+              <Path d="M12 17a4 4 0 100-8 4 4 0 000 8z" stroke={theme.colors.onSurface} strokeWidth="2"/>
+            </Svg>
           </TouchableOpacity>
         </View>
       </View>
