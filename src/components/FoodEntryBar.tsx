@@ -26,7 +26,7 @@ interface FoodEntryBarProps {
   onFocusChange?: (isFocused: boolean) => void;
 }
 
-// Girdi tipini belirlemek için kullanılacak enum
+// Input type determination enum
 enum InputType {
   Food = 'food',
   Activity = 'activity',
@@ -39,29 +39,29 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   onFocusChange
 }) => {
   const navigation = useNavigation<NavigationProp>();
-  const isFocused = useIsFocused(); // Ekranın aktif olup olmadığını takip et
+  const isFocused = useIsFocused(); // Track if the screen is active
   const [inputText, setInputText] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [inputType, setInputType] = useState<InputType>(InputType.Unknown); // Girdi tipini izlemek için state
-  const [showEntryTypeModal, setShowEntryTypeModal] = useState(false); // Gelişmiş giriş türü seçim modalı
+  const [inputType, setInputType] = useState<InputType>(InputType.Unknown); // State to track input type
+  const [showEntryTypeModal, setShowEntryTypeModal] = useState(false); // Advanced entry type selection modal
   const theme = useTheme();
   const { addFood } = useFoodStore();
   const { addActivity } = useActivityStore();
   const { showToast } = useUIStore();
   const inputRef = useRef<TextInput>(null);
   
-  // Store'dan API bilgilerini al
+  // Get API information from store
   const apiKeys = useApiKeyStore(state => state.apiKeys);
   const preferredProvider = useApiKeyStore(state => state.preferredProvider);
   
   const styles = makeStyles(theme);
   
-  // Ekran değiştiğinde veya geri düğmesine basıldığında focus'u sıfırla
+  // Reset focus when screen changes or back button is pressed
   useEffect(() => {
     if (!isFocused) {
-      // Ekran aktif değilse inputu ve focus durumunu sıfırla
+      // Reset input and focus state when screen is not active
       setIsInputFocused(false);
       if (onFocusChange) {
         onFocusChange(false);
@@ -69,10 +69,10 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     }
   }, [isFocused, onFocusChange]);
 
-  // Navigasyon olaylarını dinle
+  // Listen for navigation events
   useEffect(() => {
     const unsubscribe = navigation.addListener('blur', () => {
-      // Navigasyon ekrandan ayrıldığında focus'u kaldır
+      // Remove focus when navigating away from screen
       handleFocusChange(false);
       Keyboard.dismiss();
     });
@@ -80,7 +80,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     return unsubscribe;
   }, [navigation]);
   
-  // Klavye olaylarını dinle
+  // Listen for keyboard events
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
@@ -94,8 +94,8 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       () => {
         setIsKeyboardVisible(false);
         
-        // Klavye gizlendiğinde, Android geri tuşuna basıldığında
-        // focus ve butonları sıfırla (kullanıcı işlemini iptal ediyor)
+        // When keyboard is hidden, e.g. when Android back button is pressed
+        // reset focus and buttons (user is canceling operation)
         if (isInputFocused) {
           handleFocusChange(false);
           if (inputRef.current) {
@@ -111,7 +111,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     };
   }, [isInputFocused]);
 
-  // Input odak değişikliğini işle
+  // Handle input focus change
   const handleFocusChange = (focused: boolean) => {
     setIsInputFocused(focused);
     if (onFocusChange) {
@@ -119,12 +119,12 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     }
   };
 
-  // Gelişmiş giriş seçim modalını göster
+  // Show advanced entry selection modal
   const handleAdvancedEntry = () => {
     setShowEntryTypeModal(true);
   };
 
-  // Gelişmiş yemek girişi
+  // Advanced food entry
   const handleAdvancedFoodEntry = () => {
     setShowEntryTypeModal(false);
     handleFocusChange(false);
@@ -133,41 +133,41 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     navigation.navigate('FoodEntry', { selectedDate });
   };
 
-  // Gelişmiş aktivite girişi (ActivityEntryScreen ekranına yönlendir)
+  // Advanced activity entry (redirect to ActivityEntryScreen)
   const handleAdvancedActivityEntry = () => {
     setShowEntryTypeModal(false);
     handleFocusChange(false);
     Keyboard.dismiss();
     
-    // ActivityEntry ekranı şu anda oluşturulmadı, bir sonraki adımda yapılacak
+    // ActivityEntry screen will be created in the next step
     navigation.navigate('ActivityEntry', { selectedDate });
   };
 
-  // Kamera izni isteği
+  // Camera permission request
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('İzin Gerekli', 'Kamerayı kullanmak için izin gereklidir.');
+      Alert.alert('Permission Required', 'Camera permission is required.');
       return false;
     }
     return true;
   };
 
-  // Galeri izni isteği
+  // Gallery permission request
   const requestMediaLibraryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('İzin Gerekli', 'Galeriyi kullanmak için izin gereklidir.');
+      Alert.alert('Permission Required', 'Gallery permission is required.');
       return false;
     }
     return true;
   };
 
-  // Görüntü API'si ile analiz
+  // Analyze with image API
   const analyzeImageWithAI = async (imageUri: string): Promise<any> => {
     const apiKey = apiKeys[preferredProvider];
     if (!apiKey) {
-      throw new Error('API anahtarı bulunamadı');
+      throw new Error('API key not found');
     }
     
     try {
@@ -181,12 +181,12 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       console.log('Analysis result:', result);
       return result;
     } catch (error) {
-      console.error('API çağrısı sırasında hata:', error);
+      console.error('API call error:', error);
       throw error;
     }
   };
 
-  // Kamera ile direkt fotoğraf çek ve analiz et
+  // Take photo with camera and analyze
   const handleCameraCapture = async () => {
     const hasPermission = await requestCameraPermission();
     if (!hasPermission) return;
@@ -202,12 +202,12 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         await analyzeAndSaveImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Fotoğraf çekerken hata oluştu:', error);
-      Alert.alert('Hata', 'Fotoğraf çekilemedi. Lütfen tekrar deneyin.');
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Photo could not be taken. Please try again.');
     }
   };
 
-  // Galeriden direkt fotoğraf seç ve analiz et
+  // Select photo from gallery and analyze
   const handleGalleryPick = async () => {
     const hasPermission = await requestMediaLibraryPermission();
     if (!hasPermission) return;
@@ -223,25 +223,25 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         await analyzeAndSaveImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Fotoğraf seçerken hata oluştu:', error);
-      Alert.alert('Hata', 'Fotoğraf seçilemedi. Lütfen tekrar deneyin.');
+      console.error('Error selecting photo:', error);
+      Alert.alert('Error', 'Photo could not be selected. Please try again.');
     }
   };
 
-  // API anahtarı kontrolü
+  // API key check
   const checkApiKey = (): boolean => {
     const apiKey = apiKeys[preferredProvider];
     if (!apiKey) {
       Alert.alert(
-        'API Anahtarı Gerekli', 
-        'Yemek analizi için bir API anahtarı gereklidir. API ayarlarına gitmek ister misiniz?',
+        'API Key Required', 
+        'An API key is required for food analysis. Would you like to go to API settings?',
         [
           {
-            text: 'İptal',
+            text: 'Cancel',
             style: 'cancel'
           },
           {
-            text: 'API Ayarlarına Git',
+            text: 'Go to API Settings',
             onPress: () => navigation.navigate('ApiSettings')
           }
         ]
@@ -251,77 +251,77 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     return true;
   };
 
-  // Görüntüyü analiz et ve kaydet
+  // Analyze image and save
   const analyzeAndSaveImage = async (imageUri: string) => {
     setIsAnalyzing(true);
     
     try {
-      // API anahtarı kontrolü
+      // API key check
       if (!checkApiKey()) {
         setIsAnalyzing(false);
         return;
       }
       
-      // API'den veri alma
+      // Get data from API
       const result = await analyzeImageWithAI(imageUri);
       console.log('Raw result:', JSON.stringify(result));
       
-      // API yanıt yapısını kontrol et ve uygun şekilde kullan
-      let foodName = 'Bilinmeyen Yemek';
+      // Check API response structure and use accordingly
+      let foodName = 'Unknown Food';
       let calories = 0;
       let protein = 0;
       let carbs = 0;
       let fat = 0;
       let hasCompleteData = true;
       
-      // name veya foodName alanlarını kontrol et
+      // Check name or foodName fields
       if (typeof result === 'object' && result !== null) {
-        foodName = result.name || result.foodName || 'Bilinmeyen Yemek';
+        foodName = result.name || result.foodName || 'Unknown Food';
         
-        // Besin değerleri kontrolü - çeşitli yanıt yapıları için destek
+        // Nutrition values check - support for various response structures
         if (result.nutritionFacts) {
           calories = result.nutritionFacts.calories || 0;
           protein = result.nutritionFacts.protein || 0;
           carbs = result.nutritionFacts.carbs || 0;
           fat = result.nutritionFacts.fat || 0;
           
-          // Veri eksik mi kontrol et
+          // Check if data is missing
           if (result.nutritionFacts.protein === null || 
               result.nutritionFacts.carbs === null || 
               result.nutritionFacts.fat === null) {
             hasCompleteData = false;
           }
         } else {
-          // Direkt olarak ana objede olabilir
+          // Might be directly in the main object
           calories = result.calories || 0;
           protein = result.protein || 0;
           carbs = result.carbs || 0;
           fat = result.fat || 0;
           
-          // Ana objede eksik veri kontrolü
+          // Check missing data in main object
           if (result.protein === null || result.carbs === null || result.fat === null) {
             hasCompleteData = false;
           }
         }
       }
       
-      // Eksik besin değerleri varsa kullanıcıya sor
+      // Ask user if there are missing nutritional values
       if (!hasCompleteData) {
         Alert.alert(
-          'Eksik Besin Değerleri',
-          `"${foodName}" için bazı besin değerleri eksik. Ne yapmak istersiniz?`,
+          'Missing Nutritional Values',
+          `Some nutritional values for "${foodName}" are missing. What would you like to do?`,
           [
             { 
-              text: 'Eksik Değerlerle Kaydet', 
+              text: 'Save with Missing Values', 
               onPress: () => {
-                // Mevcut değerlerle kaydet
+                // Save with current values
                 saveFood(foodName, calories, protein, carbs, fat, imageUri);
               }
             },
             { 
-              text: 'Manuel Düzenle', 
+              text: 'Edit Manually', 
               onPress: () => {
-                // Detaylı düzenleme ekranına git
+                // Go to detailed edit screen
                 navigation.navigate('FoodEntry', {
                   foodItem: {
                     id: Date.now().toString(),
@@ -343,31 +343,31 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
           ]
         );
       } else {
-        // Tam verileri olan yemeği direkt kaydet
+        // Save food with complete data directly
         saveFood(foodName, calories, protein, carbs, fat, imageUri);
       }
     } catch (error) {
-      console.error('Görüntü analiz edilirken hata oluştu:', error);
+      console.error('Error analyzing image:', error);
       
       // Hata mesajını özelleştir
-      let errorMessage = 'Yemek tanınamadı. Lütfen manuel olarak ekleyin veya tekrar deneyin.';
+      let errorMessage = 'Food could not be recognized. Please add manually or try again.';
       if (error instanceof Error) {
         console.error('Error details:', error.message, error.stack);
-        if (error.message.includes('API anahtarı')) {
-          errorMessage = 'API anahtarı geçersiz veya eksik. API ayarlarınızı kontrol edin.';
+        if (error.message.includes('API key')) {
+          errorMessage = 'Invalid or missing API key. Please check your API settings.';
         }
       }
       
-      Alert.alert('Analiz Hatası', errorMessage);
+      Alert.alert('Analysis Error', errorMessage);
     } finally {
       setIsAnalyzing(false);
     }
   };
   
-  // Yemek kaydetme yardımcı fonksiyonu
+  // Food saving helper function
   const saveFood = async (name: string, calories: number, protein: number, carbs: number, fat: number, imageUri?: string) => {
     try {
-      // Yeni yemek oluştur
+      // Create new food
       const newFood: FoodItem = {
         id: Date.now().toString(),
         name: name,
@@ -376,20 +376,20 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         carbs: Number(carbs),
         fat: Number(fat),
         date: selectedDate.toISOString(),
-        mealType: 'lunch', // Varsayılan öğün tipi
+        mealType: 'lunch', // Default meal type
         imageUri: imageUri
       };
       
-      console.log('Oluşturulan yemek:', newFood);
+      console.log('Created food:', newFood);
       
-      // Yemeği kaydet
+      // Save the food
       await addFood(newFood);
       
-      // Başarılı mesajı göster
-      showToast(`${newFood.name} eklendi (${newFood.calories} kcal)`, 'success');
+      // Show success message
+      showToast(`${newFood.name} added (${newFood.calories} kcal)`, 'success');
     } catch (error) {
-      console.error('Yemek kaydedilirken hata oluştu:', error);
-      Alert.alert('Hata', 'Yemek kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.');
+      console.error('Error saving food:', error);
+      Alert.alert('Error', 'An error occurred while saving food. Please try again.');
     }
   };
 
@@ -397,20 +397,20 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   const detectInputType = (text: string): InputType => {
     // Aktivite-ilişkili anahtar kelimeler
     const activityKeywords = [
-      'yürüdüm', 'yürüyüş', 'koştum', 'koşu', 'bisiklet', 'bisiklete', 'yüzdüm', 'yüzme',
-      'egzersiz', 'spor', 'antrenman', 'idman', 'fitness', 'antreman', 'jimnastik',
-      'yoga', 'pilates', 'aerobik', 'dans', 'futbol', 'basketbol', 'voleybol', 'tenis',
-      'dakika', 'saat', 'km', 'adım', 'step', 'workout', 'gym', 'exercise', 'yürüme',
-      'koşma', 'yüzme', 'bisiklete binme', 'dalış'
+      'walked', 'walk', 'run', 'running', 'bike', 'biking', 'swim', 'swimming',
+      'exercise', 'sport', 'training', 'workout', 'fitness', 'gym', 'gymnastics',
+      'yoga', 'pilates', 'aerobic', 'dance', 'football', 'basketball', 'volleyball', 'tennis',
+      'minutes', 'hours', 'km', 'steps', 'step', 'workout', 'gym', 'exercise', 'walking',
+      'running', 'swimming', 'cycling', 'diving'
     ];
 
     // Yaygın yemek kelimeleri - bu kelimeler varsa, muhtemelen yemektir
     const foodKeywords = [
-      'ekmek', 'yemek', 'yedim', 'yiyecek', 'içecek', 'kahvaltı', 'öğle', 'akşam',
-      'yemek', 'öğün', 'tabak', 'porsiyon', 'dilim', 'adet', 'tane',
-      'çorba', 'salata', 'meyve', 'sebze', 'et', 'tavuk', 'balık', 'süt', 'yoğurt',
-      'peynir', 'yumurta', 'makarna', 'pilav', 'börek', 'tatlı', 'çikolata', 'kek',
-      'kurabiye', 'içtim', 'su', 'çay', 'kahve', 'meyve suyu', 'gazlı içecek'
+      'bread', 'food', 'ate', 'eat', 'drink', 'breakfast', 'lunch', 'dinner',
+      'meal', 'plate', 'portion', 'slice', 'piece', 'count',
+      'soup', 'salad', 'fruit', 'vegetable', 'meat', 'chicken', 'fish', 'milk', 'yogurt',
+      'cheese', 'egg', 'pasta', 'rice', 'pastry', 'dessert', 'chocolate', 'cake',
+      'cookie', 'drank', 'water', 'tea', 'coffee', 'juice', 'soda'
     ];
 
     // Giriş metni küçük harflere çevir
@@ -439,7 +439,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     try {
       // Yanıt boş veya geçersizse
       if (!result || typeof result !== 'object') {
-        console.error('Geçersiz AI yanıtı:', result);
+        console.error('Invalid AI response:', result);
         return {};
       }
       
@@ -448,7 +448,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
           (result.calories !== undefined && 
           (result.protein !== undefined || result.carbs !== undefined || result.fat !== undefined))) {
         
-        let name = result.name || 'Bilinmeyen Yemek';
+        let name = result.name || 'Unknown Food';
         let calories = 0;
         let protein = 0;
         let carbs = 0;
@@ -486,7 +486,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         
         return {
           activityData: {
-            name: result.name || 'Bilinmeyen Aktivite',
+            name: result.name || 'Unknown Activity',
             activityType: result.activityType || 'other',
             duration: result.duration || 30,
             intensity: result.intensity || ActivityIntensity.Medium,
@@ -499,7 +499,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       return {};
       
     } catch (error) {
-      console.error('Veri çıkarma hatası:', error);
+      console.error('Data extraction error:', error);
       return {};
     }
   };
@@ -508,38 +508,38 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   const analyzeInputWithAI = async (text: string): Promise<{ type: InputType, data: any }> => {
     const apiKey = apiKeys[preferredProvider];
     if (!apiKey) {
-      throw new Error('API anahtarı bulunamadı');
+      throw new Error('API key not found');
     }
     
     console.log(`Analyzing input with AI: "${text}"`);
     
     try {
       // Hem yemek hem aktivite analizi için birleştirilmiş prompt
-      const prompt = `Aşağıdaki girdiyi analiz et ve bir yemek mi yoksa fiziksel aktivite mi olduğunu belirle:
+      const prompt = `Analyze the input below and determine if it's a food or physical activity:
       
       "${text}"
       
-      Eğer bu bir yemek veya içecekse, şu JSON formatında yanıt ver:
+      If it's a food or beverage, respond with this JSON format:
       {
-        "name": "Yemek adı",
+        "name": "Food name",
         "nutritionFacts": {
-          "calories": sayı,
-          "protein": sayı,
-          "carbs": sayı,
-          "fat": sayı
+          "calories": number,
+          "protein": number,
+          "carbs": number,
+          "fat": number
         }
       }
       
-      Eğer bu bir fiziksel aktivite veya egzersizse, şu JSON formatında yanıt ver:
+      If it's a physical activity or exercise, respond with this JSON format:
       {
-        "name": "Aktivite adı",
-        "activityType": "walking veya running veya cycling veya swimming veya workout veya other",
-        "duration": süre (dakika cinsinden),
-        "intensity": "low veya medium veya high",
-        "caloriesBurned": yakılan kalori miktarı
+        "name": "Activity name",
+        "activityType": "walking or running or cycling or swimming or workout or other",
+        "duration": duration (in minutes),
+        "intensity": "low or medium or high",
+        "caloriesBurned": amount of calories burned
       }
       
-      Yanıtını yalnızca JSON olarak ver, başka açıklama ekleme.`;
+      Provide your response in JSON format only, without any additional explanation.`;
       
       // createCompletion fonksiyonunu kullan
       const completion = await createCompletion(
@@ -562,11 +562,11 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
           try {
             parsedResult = JSON.parse(jsonMatch[0]);
           } catch (nestedParseError) {
-            console.error("Bulunan JSON ayrıştırılamadı:", nestedParseError);
-            throw new Error("JSON yanıtı ayrıştırılamadı");
+            console.error("Found JSON could not be parsed:", nestedParseError);
+            throw new Error("JSON response could not be parsed");
           }
         } else {
-          throw new Error("Geçerli JSON yanıtı bulunamadı");
+          throw new Error("Valid JSON response not found");
         }
       }
       
@@ -580,7 +580,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       }
       
       // Tür belirlenemezse basit algılama fonksiyonuna geri dön
-      console.log("AI yanıtından tür belirlenemedi, basit algılama kullanılıyor");
+      console.log("Type could not be determined from AI response, using simple detection");
       const backupType = detectInputType(text);
       
       // Varsayılan veriler
@@ -609,7 +609,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       }
       
     } catch (error) {
-      console.error('AI analizi sırasında hata:', error);
+      console.error('Error during AI analysis:', error);
       
       // Hata durumunda basit algılama ve varsayılan değerler
       const fallbackType = detectInputType(text);
@@ -657,7 +657,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         
         if (analysisResult.type === InputType.Activity) {
           // Aktivite girişi
-          console.log("Aktivite analiz sonucu:", analysisResult.data);
+          console.log("Activity analysis result:", analysisResult.data);
           
           // AI sonuçlarını kullanarak yeni aktivite oluştur
           const newActivity: ActivityItem = {
@@ -673,10 +673,10 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
           await addActivity(newActivity);
           
           // Toast ile bildir
-          showToast(`${newActivity.name} eklendi (-${newActivity.calories} kcal)`, 'success');
+          showToast(`${newActivity.name} added (-${newActivity.calories} kcal)`, 'success');
         } else {
           // Yemek girişi
-          console.log("Yemek analiz sonucu:", analysisResult.data);
+          console.log("Food analysis result:", analysisResult.data);
           
           // AI sonuçlarını kullanarak yeni yemek oluştur
           const newFood: FoodItem = {
@@ -693,7 +693,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
           await addFood(newFood);
           
           // Alert yerine toast kullan
-          showToast(`${newFood.name} eklendi (${newFood.calories} kcal)`, 'success');
+          showToast(`${newFood.name} added (${newFood.calories} kcal)`, 'success');
         }
         
         // Input temizle
@@ -701,8 +701,8 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         handleFocusChange(false);
         Keyboard.dismiss();
       } catch (error) {
-        console.error('Girdi analiz edilirken hata oluştu:', error);
-        Alert.alert('Hata', 'Analiz sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+        console.error('Error analyzing input:', error);
+        Alert.alert('Error', 'An error occurred during analysis. Please try again.');
       } finally {
         setIsAnalyzing(false);
       }
@@ -721,7 +721,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         <TextInput
           ref={inputRef}
           style={styles.input}
-          placeholder="Yemek veya aktivite giriniz."
+          placeholder="Enter food or activity."
           placeholderTextColor={theme.colors.onSurfaceVariant}
           value={inputText}
           onChangeText={setInputText}
@@ -763,7 +763,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
             {isAnalyzing ? (
               <ActivityIndicator size="small" color={theme.colors.onPrimary} />
             ) : (
-              <Text style={styles.quickEntryButtonText}>Hızlı Ekle</Text>
+              <Text style={styles.quickEntryButtonText}>Quick Add</Text>
             )}
           </TouchableOpacity>
           
@@ -771,7 +771,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
             style={styles.advancedEntryButton}
             onPress={handleAdvancedEntry}
           >
-            <Text style={styles.advancedEntryButtonText}>Gelişmiş</Text>
+            <Text style={styles.advancedEntryButtonText}>Advanced</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -786,14 +786,14 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
             <View style={styles.globalLoading}>
               <ActivityIndicator size="large" color={theme.colors.primary} />
               <Text style={styles.loadingText}>
-                {inputType === InputType.Activity ? 'Aktivite Analiz Ediliyor...' : 'Yemek Analiz Ediliyor...'}
+                {inputType === InputType.Activity ? 'Analyzing Activity...' : 'Analyzing Food...'}
               </Text>
             </View>
           </View>
         </Modal>
       )}
 
-      {/* Giriş Türü Seçim Modalı */}
+      {/* Entry Type Selection Modal */}
       <Modal
         transparent={true}
         visible={showEntryTypeModal}
@@ -802,27 +802,27 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       >
         <View style={styles.modalBackground}>
           <View style={styles.entryTypeModal}>
-            <Text style={styles.entryTypeTitle}>Ne eklemek istersiniz?</Text>
+            <Text style={styles.entryTypeTitle}>What would you like to add?</Text>
             
             <TouchableOpacity 
               style={styles.entryTypeButton}
               onPress={handleAdvancedFoodEntry}
             >
-              <Text style={styles.entryTypeButtonText}>🍔 Yemek</Text>
+              <Text style={styles.entryTypeButtonText}>🍔 Food</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.entryTypeButton}
               onPress={handleAdvancedActivityEntry}
             >
-              <Text style={styles.entryTypeButtonText}>🏃 Aktivite</Text>
+              <Text style={styles.entryTypeButtonText}>🏃 Activity</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.entryTypeCancelButton}
               onPress={() => setShowEntryTypeModal(false)}
             >
-              <Text style={styles.entryTypeCancelText}>İptal</Text>
+              <Text style={styles.entryTypeCancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
