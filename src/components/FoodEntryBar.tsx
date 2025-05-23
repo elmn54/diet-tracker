@@ -186,13 +186,6 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     }
   };
 
-  // Abonelik kontrolü
-  const isPlanFeatureAvailable = (feature: string): boolean => {
-    return useSubscriptionStore.getState().isFeatureAvailable(feature as keyof Pick<SubscriptionPlan, 'isAdFree' | 'cloudSyncEnabled'>);
-  };
-
-
-
   // Kamera ile direkt fotoğraf çek ve analiz et
   const handleCameraCapture = async () => {
     const hasPermission = await requestCameraPermission();
@@ -265,20 +258,6 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     try {
       // API anahtarı kontrolü
       if (!checkApiKey()) {
-        setIsAnalyzing(false);
-        return;
-      }
-      
-      // Abonelik kontrolü
-      if (!isPlanFeatureAvailable('imageRecognitionEnabled')) {
-        Alert.alert(
-          'Premium Özellik', 
-          'Görsel tanıma özelliği sadece premium aboneler için kullanılabilir.',
-          [
-            { text: 'İptal' },
-            { text: 'Abonelik Planları', onPress: () => navigation.navigate('Pricing') }
-          ]
-        );
         setIsAnalyzing(false);
         return;
       }
@@ -742,7 +721,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         <TextInput
           ref={inputRef}
           style={styles.input}
-          placeholder="Ne yediniz veya hangi aktiviteyi yaptınız?"
+          placeholder="Yemek veya aktivite giriniz."
           placeholderTextColor={theme.colors.onSurfaceVariant}
           value={inputText}
           onChangeText={setInputText}
