@@ -1,7 +1,5 @@
-import { getApp } from '@react-native-firebase/app';
-import auth from '@react-native-firebase/auth';
+import { getAuth, GoogleAuthProvider } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { Platform } from 'react-native';
 
 // Google işlemleri için bir sınıf oluşturuyoruz
 class GoogleAuthService {
@@ -31,11 +29,12 @@ class GoogleAuthService {
       console.log('Google Sign-In idToken received');
       
       // Firebase kimlik sağlayıcısına Google ID token'ı ile giriş yap
-      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      const auth = getAuth();
+      const googleCredential = GoogleAuthProvider.credential(idToken);
       console.log('Google credential created');
       
       // Firebase'e Google kimliği ile giriş yap
-      return auth(getApp()).signInWithCredential(googleCredential);
+      return auth.signInWithCredential(googleCredential);
     } catch (error) {
       console.error('Google sign in error:', error);
       throw error;
@@ -45,7 +44,7 @@ class GoogleAuthService {
   // Google ile çıkış yapma
   static async signOut() {
     try {
-      const firebaseAuth = auth(getApp());
+      const auth = getAuth();
       console.log('Starting sign out process');
       
       // Her iki çıkış işlemini de dene, hatalar olsa bile devam et
@@ -66,7 +65,7 @@ class GoogleAuthService {
       }
       
       // Her durumda Firebase'den çıkış yap
-      await firebaseAuth.signOut();
+      await auth.signOut();
       console.log('Firebase sign out successful');
       
       return true;

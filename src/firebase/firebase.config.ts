@@ -1,7 +1,10 @@
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import { getAuth } from '@react-native-firebase/auth';
+import { getFirestore } from '@react-native-firebase/firestore';
 import { getApp } from '@react-native-firebase/app';
 
-// Export Firebase services
-export const firebaseAuth = auth(getApp());
-export const firebaseFirestore = firestore(getApp());
+// The Firebase app is automatically initialized using the google-services.json
+// configuration when the first Firebase service is used.
+
+// Export Firebase services using modular API
+export const firebaseAuth = getAuth();
+export const firebaseFirestore = getFirestore();

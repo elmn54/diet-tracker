@@ -15,6 +15,10 @@ import { useUIStore } from './src/store/uiStore';
 import Toast from './src/components/Toast';
 import CustomAlert from './src/components/CustomAlert';
 import { AuthProvider } from './src/context/AuthContext';
+import GoogleAuthService from './src/firebase/google-auth';
+
+// Initialize Google Auth service
+GoogleAuthService.init();
 
 // Tema uygulanmış ve veri yükleme mantığı içeren uygulama
 export default function App() {

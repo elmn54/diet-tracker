@@ -52,3 +52,6 @@ ios/build/
 # Temporary files
 *.log
 *.tmp
+
+# Google Services
+google-services.json

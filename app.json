@@ -26,8 +26,9 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.emreliman.diettracker",
-      "proguard": true,
-      "runtimeVersion": "1.0.0"
+      "proguard": false,
+      "runtimeVersion": "1.0.0",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
