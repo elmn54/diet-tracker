@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, StyleSheet } from 'react-native';
+import { StatusBar, StyleSheet, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -16,6 +16,11 @@ import Toast from './src/components/Toast';
 import CustomAlert from './src/components/CustomAlert';
 import { AuthProvider } from './src/context/AuthContext';
 import GoogleAuthService from './src/firebase/google-auth';
+import '@react-native-firebase/app';
+
+// Firebase is initialized automatically by the library when the app starts,
+// relying on the google-services.json file in the project root
+console.log('Ensuring Firebase is initialized for production builds...');
 
 // Initialize Google Auth service
 GoogleAuthService.init();
@@ -48,11 +53,17 @@ export default function App() {
   // Verileri yükleme
   useEffect(() => {
     async function loadInitialData() {
-      await loadFoods();
-      await loadActivities();
-      await loadThemePreference();
-      await loadApiKeys();
-      await loadGoals();
+      try {
+        console.log('Loading initial data...');
+        await loadFoods();
+        await loadActivities();
+        await loadThemePreference();
+        await loadApiKeys();
+        await loadGoals();
+        console.log('Initial data loaded successfully');
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      }
     }
     
     loadInitialData();

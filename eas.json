@@ -14,8 +14,17 @@
     "production": {},
     "apk": {
       "android": {
-        "buildType": "apk"
-      }
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "developmentClient": false,
+        "withoutCredentials": true,
+        "env": {
+          "EXPO_USE_HERMES": "1",
+          "EXPO_NO_DEV_CLIENT": "1"
+        }
+      },
+      "distribution": "internal",
+      "releaseChannel": "production"
     },
     "optimized-apk": {
       "android": {

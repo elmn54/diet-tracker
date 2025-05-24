@@ -979,7 +979,7 @@
     xcode "^3.0.1"
     xml2js "0.6.0"
 
-"@expo/config-plugins@~10.0.2":
+"@expo/config-plugins@~10.0.0", "@expo/config-plugins@~10.0.2":
   version "10.0.2"
   resolved "https://registry.npmjs.org/@expo/config-plugins/-/config-plugins-10.0.2.tgz"
   integrity sha512-TzUn3pPdpwCS0yYaSlZOClgDmCX8N4I2lfgitX5oStqmvpPtB+vqtdyqsVM02fQ2tlJIAqwBW+NHaHqqy8Jv7g==
@@ -1338,7 +1338,7 @@
 
 "@expo/plist@^0.3.4":
   version "0.3.4"
-  resolved "https://registry.npmjs.org/@expo/plist/-/plist-0.3.4.tgz"
+  resolved "https://registry.yarnpkg.com/@expo/plist/-/plist-0.3.4.tgz#0c48eeff2158cf26c5c9ed4f681d24997ccfbeca"
   integrity sha512-MhBLaUJNe9FQDDU2xhSNS4SAolr6K2wuyi4+A79vYuXLkAoICsbTwcGEQJN5jPY6D9izO/jsXh5k0h+mIWQMdw==
   dependencies:
     "@xmldom/xmldom" "^0.8.8"
@@ -1383,7 +1383,7 @@
     semver "^7.6.0"
     xml2js "0.6.0"
 
-"@expo/prebuild-config@^9.0.6":
+"@expo/prebuild-config@^9.0.6", "@expo/prebuild-config@~9.0.0":
   version "9.0.6"
   resolved "https://registry.npmjs.org/@expo/prebuild-config/-/prebuild-config-9.0.6.tgz"
   integrity sha512-HDTdlMkTQZ95rd6EpvuLM+xkZV03yGLc38FqI37qKFLJtUN1WnYVaWsuXKoljd1OrVEVsHe6CfqKwaPZ52D56Q==
@@ -5144,6 +5144,14 @@ expo-structured-headers@~4.1.0:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/expo-structured-headers/-/expo-structured-headers-4.1.0.tgz#5475fc3f9559701cc755fd2d50605f8817d42ad0"
   integrity sha512-2X+aUNzC/qaw7/WyUhrVHNDB0uQ5rE12XA2H/rJXaAiYQSuOeU90ladaN0IJYV9I2XlhYrjXLktLXWbO7zgbag==
+
+expo-system-ui@~5.0.7:
+  version "5.0.7"
+  resolved "https://registry.yarnpkg.com/expo-system-ui/-/expo-system-ui-5.0.7.tgz#ccf047a689ab488d9bcda375afd063419578f494"
+  integrity sha512-ijSnSFA4VfuQc84N6WyCUNsKKTIyQb6QuC8q2zGvYC/sBXTMrOtZg0zrisQGzCRW+WhritQTiVqHlp3Ix9xDmQ==
+  dependencies:
+    "@react-native/normalize-colors" "0.79.2"
+    debug "^4.3.2"
 
 expo-updates-interface@~1.1.0:
   version "1.1.0"
