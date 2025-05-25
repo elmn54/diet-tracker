@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, FlatList, Alert, KeyboardAvoidingView, Platform, Keyboard, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -450,7 +450,7 @@ const HomeScreen = () => {
       return undefined;
     }
   };
-  
+
   return (
     <SafeAreaView 
       style={styles.container}
@@ -586,7 +586,6 @@ const HomeScreen = () => {
               exercise={burnedCalories}
               remaining={remainingCalories}
             />
-            
             <MacrosCard 
               carbs={{ current: dailyNutrients.carbs, goal: nutrientGoals.carbs }}
               protein={{ current: dailyNutrients.protein, goal: nutrientGoals.protein }}
@@ -596,7 +595,7 @@ const HomeScreen = () => {
         </View>
       )}
       
-      {/* EN ALT: Yemek Giriş Çubuğu */}
+      {/* EN ALT: Yemek Giriş Çubuğu - Artık kendi klavye konumlandırmasını yapıyor */}
       <FoodEntryBar 
         selectedDate={selectedDate} 
         onFocusChange={setIsInputFocused}
@@ -626,7 +625,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    marginBottom: 100, // FoodEntryBar için daha fazla yer
+    marginBottom: 100, // FoodEntryBar için yer
   },
   todayContainer: {
     flexDirection: 'row',
@@ -732,6 +731,17 @@ const makeStyles = (colors: any) => StyleSheet.create({
     width: '80%',
     marginVertical: 20,
   },
+  emptyListContainerFixed: {
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: 10,
+    width: '90%',
+    marginVertical: 8,
+    marginBottom: 24, // Alt barı kapatmasın diye küçük bırak
+    alignSelf: 'center',
+  },
   emptyListText: {
     fontSize: 16,
     color: colors.onSurface,
@@ -823,6 +833,13 @@ const makeStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 4,
     color: '#000',
     zIndex: 1,
+  },
+  foodEntryContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
 });
 

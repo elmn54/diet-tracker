@@ -27,7 +27,8 @@
       "edgeToEdgeEnabled": true,
       "package": "com.emreliman.diettracker",
       "runtimeVersion": "1.0.0",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./assets/favicon.png"

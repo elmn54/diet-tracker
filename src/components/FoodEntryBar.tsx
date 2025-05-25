@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard, Alert, ActivityIndicator, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard, Alert, ActivityIndicator, BackHandler, KeyboardEvent, Platform } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -56,6 +56,8 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   const apiKeys = useApiKeyStore(state => state.apiKeys);
   const preferredProvider = useApiKeyStore(state => state.preferredProvider);
   
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  
   const styles = makeStyles(theme);
   
   // Reset focus when screen changes or back button is pressed
@@ -110,6 +112,28 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       keyboardDidShowListener.remove();
     };
   }, [isInputFocused]);
+
+  // Klavye olaylarını dinle
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e: KeyboardEvent) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+    
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
 
   // Handle input focus change
   const handleFocusChange = (focused: boolean) => {
@@ -715,7 +739,8 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   return (
     <View style={[
       styles.container,
-      shouldShowButtons && styles.containerExpanded
+      shouldShowButtons && styles.containerExpanded,
+      { bottom: keyboardHeight > 0 ? keyboardHeight + 10 : 0 }
     ]}>
       <View style={styles.inputContainer}>
         <TextInput
@@ -847,6 +872,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     shadowRadius: 5,
     paddingVertical: 15,
     paddingHorizontal: 20,
+    zIndex: 9999,
   },
   containerExpanded: {
     paddingBottom: 20,
