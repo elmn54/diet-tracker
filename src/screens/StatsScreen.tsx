@@ -487,7 +487,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     opacity: 0.8,
   },
   calorieValue: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: theme.colors.primary,
     textAlign: 'right',

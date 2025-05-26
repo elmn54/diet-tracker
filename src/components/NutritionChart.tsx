@@ -48,7 +48,7 @@ const NutritionChart: React.FC<NutritionChartProps> = ({ data }) => {
         {/* Basit daire gösterimi */}
         <View style={styles.pieChartContainer}>
           <View style={styles.pieCenter}>
-            <Text style={styles.totalText}>{totalValue}g</Text>
+            <Text style={styles.totalText}>{totalValue.toFixed(1)}g</Text>
             <Text style={styles.totalLabel}>Total</Text>
           </View>
           
@@ -72,17 +72,17 @@ const NutritionChart: React.FC<NutritionChartProps> = ({ data }) => {
       <View style={styles.legendContainer}>
         <View style={styles.legendItem}>
           <View style={[styles.legendColor, { backgroundColor: chartData[0].color }]} />
-          <Text style={styles.legendText}>Protein: {data.protein}g ({proteinPercentage}%)</Text>
+          <Text style={styles.legendText}>Protein: {data.protein.toFixed(1)}g ({proteinPercentage}%)</Text>
         </View>
         
         <View style={styles.legendItem}>
           <View style={[styles.legendColor, { backgroundColor: chartData[1].color }]} />
-          <Text style={styles.legendText}>Carbohydrates: {data.carbs}g ({carbsPercentage}%)</Text>
+          <Text style={styles.legendText}>Carbohydrates: {data.carbs.toFixed(1)}g ({carbsPercentage}%)</Text>
         </View>
         
         <View style={styles.legendItem}>
           <View style={[styles.legendColor, { backgroundColor: chartData[2].color }]} />
-          <Text style={styles.legendText}>Fat: {data.fat}g ({fatPercentage}%)</Text>
+          <Text style={styles.legendText}>Fat: {data.fat.toFixed(1)}g ({fatPercentage}%)</Text>
         </View>
       </View>
     </View>
