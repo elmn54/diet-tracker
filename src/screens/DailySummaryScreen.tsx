@@ -9,7 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import Card from '../components/Card';
 import { format, addDays, subDays, isSameDay } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 
 type DailySummaryScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'DailySummary'>;
 
@@ -45,7 +45,7 @@ const DailySummaryScreen = () => {
 
   // Tarih formatını ayarla
   useEffect(() => {
-    setFormattedDate(format(date, 'EEEE, d MMMM yyyy', { locale: tr }));
+    setFormattedDate(format(date, 'EEEE, d MMMM yyyy', { locale: enUS }));
   }, [date]);
 
   // Günlük toplam değerleri hesapla
@@ -55,23 +55,23 @@ const DailySummaryScreen = () => {
   // Kalan kalori hesapla
   const remainingCalories = calorieGoal - dailyCalories;
   
-  // Kalori hedefi durumu
+  // Calories hedefi durumu
   const getCalorieStatus = () => {
     const percentage = (dailyCalories / calorieGoal) * 100;
     if (percentage < 80) {
-      return { message: "Hedefe ulaşmak için daha fazla kalori almalısınız", color: theme.colors.primary };
+      return { message: "You need to consume more calories to reach your goal", color: theme.colors.primary };
     } else if (percentage <= 100) {
-      return { message: "Hedefinize yaklaşıyorsunuz, iyi iş!", color: theme.colors.primary };
+      return { message: "You are getting closer to your goal, good job!", color: theme.colors.primary };
     } else if (percentage <= 110) {
-      return { message: "Hedefinize ulaştınız", color: theme.colors.tertiary };
+      return { message: "You have reached your goal", color: theme.colors.tertiary };
     } else {
-      return { message: "Kalori hedefinizi aştınız", color: theme.colors.error };
+      return { message: "You have exceeded your calorie goal", color: theme.colors.error };
     }
   };
   
   const calorieStatus = getCalorieStatus();
 
-  // Bugünün yemeklerini filtrele
+  // Todayün yemeklerini filtrele
   const isSameDayFn = (dateString: string, targetDate: Date) => {
     const foodDate = new Date(dateString);
     return (
@@ -122,15 +122,15 @@ const DailySummaryScreen = () => {
   const handleDeleteFood = async (id: string) => {
     try {
       Alert.alert(
-        'Yemeği Sil',
-        'Bu yemeği silmek istediğinizden emin misiniz?',
+        'Delete Food',
+        'Are you sure you want to delete this food?',
         [
           {
-            text: 'İptal',
+            text: 'Cancel',
             style: 'cancel',
           },
           {
-            text: 'Sil',
+            text: 'Delete',
             onPress: async () => {
               await removeFood(id);
             },
@@ -140,16 +140,16 @@ const DailySummaryScreen = () => {
         { cancelable: true }
       );
     } catch (error) {
-      console.error('Yemek silinirken hata oluştu:', error);
+      console.error('Error deleting food:', error);
     }
   };
 
   // Öğün başlık adlarını Türkçeleştirme
   const mealTypeNames = {
-    breakfast: 'Kahvaltı',
-    lunch: 'Öğle Yemeği',
-    dinner: 'Akşam Yemeği',
-    snack: 'Atıştırmalık',
+    breakfast: 'Breakfast',
+    lunch: 'Lunch',
+    dinner: 'Dinner',
+    snack: 'Snack',
   };
 
   // Yemek türüne göre emoji seçme
@@ -230,7 +230,7 @@ const DailySummaryScreen = () => {
             style={styles.addFoodButton}
             onPress={() => navigation.navigate('FoodEntry')}
           >
-            <Text style={styles.addFoodButtonText}>+ Ekle</Text>
+            <Text style={styles.addFoodButtonText}>+ Add</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -239,12 +239,12 @@ const DailySummaryScreen = () => {
         foodsByMeal[mealType].map(renderFoodCard)
       ) : (
         <View style={styles.emptyMealContainer}>
-          <Text style={styles.emptyMealText}>Bu öğünde henüz yemek kaydı yok</Text>
+          <Text style={styles.emptyMealText}>No food recorded in this meal</Text>
           <TouchableOpacity 
             style={styles.emptyAddButton}
             onPress={() => navigation.navigate('FoodEntry')}
           >
-            <Text style={styles.emptyAddButtonText}>Yemek Ekle</Text>
+            <Text style={styles.emptyAddButtonText}>Food Add</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -255,7 +255,7 @@ const DailySummaryScreen = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -286,12 +286,12 @@ const DailySummaryScreen = () => {
 
         <Card style={styles.summaryCard}>
           <Card.Content>
-            <Text style={styles.summaryTitle}>Günlük Özet</Text>
+            <Text style={styles.summaryTitle}>Daily Summary</Text>
             
             <View style={styles.calorieRow}>
               <View style={styles.calorieInfo}>
                 <Text style={styles.calorieValue}>{dailyCalories}</Text>
-                <Text style={styles.calorieLabel}>Alınan</Text>
+                <Text style={styles.calorieLabel}>Consumed</Text>
               </View>
               <View style={styles.calorieInfo}>
                 <Text style={[
@@ -301,11 +301,11 @@ const DailySummaryScreen = () => {
                 ]}>
                   {remainingCalories}
                 </Text>
-                <Text style={styles.calorieLabel}>Kalan</Text>
+                <Text style={styles.calorieLabel}>Remaining</Text>
               </View>
               <View style={styles.calorieInfo}>
                 <Text style={styles.calorieValue}>{calorieGoal}</Text>
-                <Text style={styles.calorieLabel}>Hedef</Text>
+                <Text style={styles.calorieLabel}>Goal</Text>
               </View>
             </View>
             
@@ -315,7 +315,7 @@ const DailySummaryScreen = () => {
             
             <View style={styles.nutrientRow}>
               <View style={styles.nutrientItem}>
-                <Text style={styles.nutrientLabel}>Kalori</Text>
+                <Text style={styles.nutrientLabel}>Calories</Text>
                 <Text style={styles.nutrientValue}>{dailyCalories} / {calorieGoal} kcal</Text>
                 <View style={styles.progressBar}>
                   <View 
@@ -351,7 +351,7 @@ const DailySummaryScreen = () => {
             
             <View style={styles.nutrientRow}>
               <View style={styles.nutrientItem}>
-                <Text style={styles.nutrientLabel}>Karbonhidrat</Text>
+                <Text style={styles.nutrientLabel}>Carbohydrates</Text>
                 <Text style={styles.nutrientValue}>{dailyNutrients.carbs.toFixed(1)} / {nutrientGoals.carbs} g</Text>
                 <View style={styles.progressBar}>
                   <View 
@@ -369,7 +369,7 @@ const DailySummaryScreen = () => {
             
             <View style={styles.nutrientRow}>
               <View style={styles.nutrientItem}>
-                <Text style={styles.nutrientLabel}>Yağ</Text>
+                <Text style={styles.nutrientLabel}>Fat</Text>
                 <Text style={styles.nutrientValue}>{dailyNutrients.fat.toFixed(1)} / {nutrientGoals.fat} g</Text>
                 <View style={styles.progressBar}>
                   <View 
@@ -388,7 +388,7 @@ const DailySummaryScreen = () => {
 
         <Divider style={styles.divider} />
 
-        <Text style={styles.sectionTitle}>Öğünlerim</Text>
+        <Text style={styles.sectionTitle}>Meals</Text>
 
         {renderMealSection('breakfast')}
         {renderMealSection('lunch')}

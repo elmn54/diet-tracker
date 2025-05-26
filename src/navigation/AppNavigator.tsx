@@ -130,7 +130,7 @@ const AppNavigator = () => {
             component={FoodEntryScreen}
             options={({ route }) => ({
               ...screenOptions,
-              title: route.params?.editMode ? 'Yemeği Düzenle' : 'Yemek Ekle'
+              title: route.params?.editMode ? 'Edit Food' : 'Add Food'
             })}
           />
           <Stack.Screen 
@@ -138,7 +138,7 @@ const AppNavigator = () => {
             component={ActivityEntryScreen}
             options={({ route }) => ({
               ...screenOptions,
-              title: route.params?.editMode ? 'Aktiviteyi Düzenle' : 'Aktivite Ekle'
+              title: route.params?.editMode ? 'Edit Activity' : 'Add Activity'
             })}
           />
           <Stack.Screen 

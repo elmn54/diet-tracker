@@ -51,7 +51,7 @@ const RegisterScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Text style={[styles.title, { color: theme.colors.onSurface }]}>Hesap Oluştur</Text>
+      <Text style={[styles.title, { color: theme.colors.onSurface }]}>Register</Text>
       
       {error && <Text style={styles.errorText}>{error}</Text>}
       
@@ -60,8 +60,8 @@ const RegisterScreen = () => {
         name="displayName"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Ad Soyad"
-            placeholder="Ad Soyad"
+            label="Name"
+            placeholder="Name"
             value={value}
             onChangeText={onChange}
             error={errors.displayName?.message}
@@ -74,8 +74,8 @@ const RegisterScreen = () => {
         name="email"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="E-posta"
-            placeholder="E-posta"
+            label="Email"
+            placeholder="Email"
             value={value}
             onChangeText={onChange}
             error={errors.email?.message}
@@ -89,8 +89,8 @@ const RegisterScreen = () => {
         name="password"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Şifre"
-            placeholder="Şifre"
+            label="Password"
+            placeholder="Password"
             value={value}
             onChangeText={onChange}
             secureTextEntry
@@ -104,8 +104,8 @@ const RegisterScreen = () => {
         name="confirmPassword"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Şifreyi Onayla"
-            placeholder="Şifreyi Onayla"
+            label="Confirm Password"
+            placeholder="Confirm Password"
             value={value}
             onChangeText={onChange}
             secureTextEntry
@@ -115,7 +115,7 @@ const RegisterScreen = () => {
       />
       
       <Button 
-        title={isLoading ? "Kayıt Yapılıyor..." : "Kayıt Ol"}
+        title={isLoading ? "Registering..." : "Register"}
         onPress={handleSubmit(onSubmit)}
         style={styles.button}
         disabled={isLoading}
@@ -129,7 +129,7 @@ const RegisterScreen = () => {
       
       <View style={styles.socialButtonsContainer}>
         <Button 
-          title="Google ile Kayıt Ol"
+          title="Register with Google"
           onPress={handleGoogleSignIn}
           style={styles.socialButton}
           variant="outline"
@@ -139,14 +139,14 @@ const RegisterScreen = () => {
       </View>
       
       <View style={styles.footerContainer}>
-        <Text style={[styles.footerText, { color: theme.colors.onSurfaceVariant }]}>Zaten hesabın var mı?</Text>
+        <Text style={[styles.footerText, { color: theme.colors.onSurfaceVariant }]}>Already have an account?</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={[styles.footerLink, { color: theme.colors.primary }]}>Giriş Yap</Text>
+          <Text style={[styles.footerLink, { color: theme.colors.primary }]}>Sign In</Text>
         </TouchableOpacity>
       </View>
       
       <Text style={[styles.termsText, { color: theme.colors.onSurfaceVariant }]}>
-        Kayıt olarak, Kullanım Koşullarını ve Gizlilik Politikasını kabul etmiş olursunuz.
+        By registering, you agree to the Terms of Use and Privacy Policy.
       </Text>
     </View>
   );

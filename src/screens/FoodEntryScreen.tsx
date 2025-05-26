@@ -19,15 +19,15 @@ import { AI_PROVIDERS } from '../constants/aiProviders';
 
 // Yemek formu validasyon şeması
 const foodSchema = z.object({
-  name: z.string().min(1, { message: 'Yemek adı gereklidir' }),
-  calories: z.string().min(1, { message: 'Kalori değeri gereklidir' })
-    .refine((val) => !isNaN(Number(val)), { message: 'Geçerli bir sayı girin' }),
-  protein: z.string().min(1, { message: 'Protein değeri gereklidir' })
-    .refine((val) => !isNaN(Number(val)), { message: 'Geçerli bir sayı girin' }),
-  carbs: z.string().min(1, { message: 'Karbonhidrat değeri gereklidir' })
-    .refine((val) => !isNaN(Number(val)), { message: 'Geçerli bir sayı girin' }),
-  fat: z.string().min(1, { message: 'Yağ değeri gereklidir' })
-    .refine((val) => !isNaN(Number(val)), { message: 'Geçerli bir sayı girin' }),
+  name: z.string().min(1, { message: 'Food name is required' }),
+  calories: z.string().min(1, { message: 'Calorie value is required' })
+    .refine((val) => !isNaN(Number(val)), { message: 'Enter a valid number' }),
+  protein: z.string().min(1, { message: 'Protein value is required' })
+    .refine((val) => !isNaN(Number(val)), { message: 'Enter a valid number' }),
+  carbs: z.string().min(1, { message: 'Carbs value is required' })
+    .refine((val) => !isNaN(Number(val)), { message: 'Enter a valid number' }),
+  fat: z.string().min(1, { message: 'Fat value is required' })
+    .refine((val) => !isNaN(Number(val)), { message: 'Enter a valid number' }),
 });
 
 type FoodFormData = z.infer<typeof foodSchema>;
@@ -130,7 +130,7 @@ const FoodEntryScreen = () => {
       }
     } catch (error) {
       console.error('Resim seçilirken hata oluştu:', error);
-      Alert.alert('Hata', 'Resim seçilirken bir hata oluştu.');
+      Alert.alert('Error', 'An error occurred while selecting the image.');
     }
   };
   
@@ -140,7 +140,7 @@ const FoodEntryScreen = () => {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       
       if (status !== 'granted') {
-        Alert.alert('İzin Gerekli', 'Kamera kullanımı için izin gereklidir.');
+        Alert.alert('Permission Required', 'Camera permission is required.');
         return;
       }
       
@@ -161,7 +161,7 @@ const FoodEntryScreen = () => {
       }
     } catch (error) {
       console.error('Fotoğraf çekilirken hata oluştu:', error);
-      Alert.alert('Hata', 'Fotoğraf çekilirken bir hata oluştu.');
+      Alert.alert('Error', 'An error occurred while taking the photo.');
     }
   };
   
@@ -171,12 +171,12 @@ const FoodEntryScreen = () => {
     const apiKey = getApiKey(getPreferredProvider());
     if (!apiKey) {
       Alert.alert(
-        'API Anahtarı Eksik',
-        'Yemek tanıma için API anahtarı gereklidir. API ayarlarından ekleyebilirsiniz.',
+        'API Key Missing',
+        'An API key is required for food recognition. You can add it in API settings.',
         [
-          { text: 'İptal' },
+          { text: 'Cancel' },
           { 
-            text: 'API Ayarları', 
+            text: 'API Settings', 
             onPress: () => navigation.navigate('ApiSettings')
           }
         ]
@@ -188,12 +188,12 @@ const FoodEntryScreen = () => {
     const remainingRequests = getRemainingRequests();
     if (remainingRequests <= 0) {
       Alert.alert(
-        'İstek Limiti Aşıldı',
-        'Günlük AI analiz limitinize ulaştınız. Premium abonelik ile daha fazla istek yapabilirsiniz.',
+        'Request Limit Exceeded',
+        'You have reached your daily AI analysis limit. You can make more requests with a premium subscription.',
         [
-          { text: 'İptal' },
+          { text: 'Cancel' },
           { 
-            text: 'Abonelik Planları', 
+            text: 'Subscription Plans', 
             onPress: () => navigation.navigate('Pricing')
           }
         ]
@@ -218,20 +218,20 @@ const FoodEntryScreen = () => {
       setValue('carbs', String(result.nutritionFacts.carbs));
       setValue('fat', String(result.nutritionFacts.fat));
       
-      Alert.alert('Analiz Tamamlandı', 'Yemek bilgileri otomatik olarak dolduruldu. Gerekirse düzenleyebilirsiniz.');
+      Alert.alert('Analysis Completed', 'Food information has been automatically filled. You can edit if needed.');
     } catch (error) {
       console.error('Görüntü analiz edilirken hata oluştu:', error);
       
       // Hata mesajını özelleştir
-      let errorMessage = 'Yemek tanınamadı. Lütfen bilgileri manuel olarak girin veya tekrar deneyin.';
+      let errorMessage = 'Food could not be recognized. Please enter information manually or try again.';
       if (error instanceof Error) {
         console.error('Error details:', error.message, error.stack);
         if (error.message.includes('API anahtarı')) {
-          errorMessage = 'API anahtarı geçersiz veya eksik. API ayarlarınızı kontrol edin.';
+          errorMessage = 'Invalid or missing API key. Check your API settings.';
         }
       }
       
-      Alert.alert('Analiz Hatası', errorMessage);
+      Alert.alert('Analysis Error', errorMessage);
     } finally {
       setIsAnalyzing(false);
     }
@@ -262,9 +262,9 @@ const FoodEntryScreen = () => {
       if (editMode) {
         await updateFood(foodData);
         Alert.alert(
-          'Başarılı',
-          'Yemek güncellendi',
-          [{ text: 'Tamam', onPress: () => {
+          'Success',
+          'Food updated',
+          [{ text: 'OK', onPress: () => {
             reset();
             setImage(null);
             navigation.goBack();
@@ -273,9 +273,9 @@ const FoodEntryScreen = () => {
       } else {
         await addFood(foodData);
         Alert.alert(
-          'Başarılı',
-          'Yemek kaydedildi',
-          [{ text: 'Tamam', onPress: () => {
+          'Success',
+          'Food saved',
+          [{ text: 'OK', onPress: () => {
             reset();
             setImage(null);
             navigation.navigate('Ana Sayfa');
@@ -284,7 +284,7 @@ const FoodEntryScreen = () => {
       }
     } catch (error) {
       console.error('Yemek işlemi sırasında hata oluştu:', error);
-      Alert.alert('Hata', 'İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+      Alert.alert('Error', 'An error occurred during the process. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -292,8 +292,6 @@ const FoodEntryScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>{editMode ? 'Yemeği Düzenle' : 'Yemek Ekle'}</Text>
-      
       {/* Fotoğraf Alanı - Koşullu gösterim */}
       {showPhotoSection && (
         <>
@@ -302,7 +300,7 @@ const FoodEntryScreen = () => {
               <Image source={{ uri: image }} style={styles.previewImage} />
             ) : (
               <View style={styles.placeholderImage}>
-                <Text style={styles.placeholderText}>Fotoğraf Yok</Text>
+                <Text style={styles.placeholderText}>No Photo</Text>
               </View>
             )}
             
@@ -312,7 +310,7 @@ const FoodEntryScreen = () => {
                 onPress={takePicture}
                 disabled={isAnalyzing}
               >
-                <Text style={styles.imageButtonText}>Fotoğraf Çek</Text>
+                <Text style={styles.imageButtonText}>Take Photo</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -320,14 +318,14 @@ const FoodEntryScreen = () => {
                 onPress={pickImage}
                 disabled={isAnalyzing}
               >
-                <Text style={styles.imageButtonText}>Galeriden Seç</Text>
+                <Text style={styles.imageButtonText}>Select from Gallery</Text>
               </TouchableOpacity>
             </View>
             
             {isAnalyzing && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
-                <Text style={styles.loadingText}>Yemek Analiz Ediliyor...</Text>
+                <Text style={styles.loadingText}>Analyzing Food...</Text>
               </View>
             )}
           </View>
@@ -337,15 +335,15 @@ const FoodEntryScreen = () => {
       )}
       
       {/* Yemek Verileri Formu */}
-      <Text style={styles.sectionTitle}>Yemek Bilgileri</Text>
+      <Text style={styles.sectionTitle}>Food Information</Text>
       
       <Controller
         control={control}
         name="name"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Yemek Adı"
-            placeholder="Örn: Izgara Tavuk"
+            label="Food Name"
+            placeholder="E.g: Grilled Chicken"
             value={value}
             onChangeText={onChange}
             error={errors.name?.message}
@@ -358,8 +356,8 @@ const FoodEntryScreen = () => {
         name="calories"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Kalori (kcal)"
-            placeholder="Örn: 250"
+            label="Calories (kcal)"
+            placeholder="E.g: 250"
             value={value}
             onChangeText={onChange}
             error={errors.calories?.message}
@@ -374,7 +372,7 @@ const FoodEntryScreen = () => {
         render={({ field: { onChange, value } }) => (
           <Input
             label="Protein (g)"
-            placeholder="Örn: 20"
+            placeholder="E.g: 20"
             value={value}
             onChangeText={onChange}
             error={errors.protein?.message}
@@ -388,8 +386,8 @@ const FoodEntryScreen = () => {
         name="carbs"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Karbonhidrat (g)"
-            placeholder="Örn: 30"
+            label="Carbohydrates (g)"
+            placeholder="E.g: 30"
             value={value}
             onChangeText={onChange}
             error={errors.carbs?.message}
@@ -403,8 +401,8 @@ const FoodEntryScreen = () => {
         name="fat"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Yağ (g)"
-            placeholder="Örn: 5"
+            label="Fat (g)"
+            placeholder="E.g: 5"
             value={value}
             onChangeText={onChange}
             error={errors.fat?.message}
@@ -414,7 +412,7 @@ const FoodEntryScreen = () => {
       />
       
       <Button 
-        title={editMode ? "Güncelle" : "Kaydet"}
+        title={editMode ? "Update" : "Save"}
         onPress={handleSubmit(onSubmit)}
         style={styles.button}
         loading={isSubmitting}
@@ -497,10 +495,9 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     marginVertical: spacing.m,
   },
   button: {
-    marginTop: spacing.xl,
-    marginBottom: spacing.xxl,
-    backgroundColor: theme.colors.primary,
-  },
+    marginTop: spacing.l,
+    marginBottom: spacing.xl,
+  }
 });
 
 export default FoodEntryScreen; 

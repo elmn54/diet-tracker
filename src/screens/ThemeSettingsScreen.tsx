@@ -12,10 +12,10 @@ const ThemeSettingsScreen = () => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Görünüm Ayarları</Text>
+        <Text style={styles.sectionTitle}>Appearance Settings</Text>
         
         <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Karanlık tema</Text>
+          <Text style={styles.settingLabel}>Dark theme</Text>
           <Switch
             value={isDarkMode}
             onValueChange={toggleDarkMode}
@@ -26,10 +26,10 @@ const ThemeSettingsScreen = () => {
       </View>
       
       <View style={styles.previewSection}>
-        <Text style={styles.previewTitle}>Önizleme</Text>
+        <Text style={styles.previewTitle}>Preview</Text>
         <View style={[styles.previewBox, { backgroundColor: theme.colors.surface }]}>
           <Text style={[styles.previewText, { color: theme.colors.onSurface }]}>
-            Şu anda {isDarkMode ? 'karanlık' : 'açık'} temayı kullanıyorsunuz.
+            You are currently using the {isDarkMode ? 'dark' : 'light'} theme.
           </Text>
         </View>
       </View>

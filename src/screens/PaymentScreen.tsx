@@ -50,7 +50,7 @@ const PaymentScreen = () => {
     
     const validPlanId = planId as 'free' | 'basic' | 'premium';
     if (!plans.some(p => p.id === validPlanId)) {
-        Alert.alert("Hata", "Geçersiz abonelik planı seçildi.");
+        Alert.alert("Error", "Invalid subscription plan selected.");
         return;
     }
 
@@ -78,21 +78,21 @@ const PaymentScreen = () => {
         } catch (subscriptionError) {
           console.error('Error activating subscription:', subscriptionError);
           navigation.replace('PaymentFailure', {
-            error: 'Ödeme başarılı ancak abonelik kaydedilirken hata oluştu. Lütfen müşteri hizmetleriyle iletişime geçin.',
+            error: 'Payment successful but there was an error when saving the subscription. Please contact our customer service.',
             planId: validPlanId
           });
         }
       } else {
         console.log('Payment failed, navigating to PaymentFailureScreen.');
         navigation.replace('PaymentFailure', {
-          error: 'Simüle edilmiş ödeme reddedildi. Lütfen kart bilgilerinizi kontrol ediniz.',
+          error: 'Simulated payment rejected. Please check your card information.',
           planId: validPlanId
         });
       }
     } catch (error) {
       console.error('Error during payment processing:', error);
       navigation.replace('PaymentFailure', {
-        error: 'Ödeme işlemi sırasında beklenmedik bir hata oluştu.',
+        error: 'An unexpected error occurred during the payment process.',
         planId: validPlanId
       });
     } finally {
@@ -102,11 +102,11 @@ const PaymentScreen = () => {
   
   const validateForm = () => {
     if (!cardNumber.trim() || cardNumber.replace(/\s/g, '').length < 16) {
-      Alert.alert('Hata', 'Lütfen geçerli bir kart numarası giriniz.');
+      Alert.alert('Error', 'Please enter a valid card number.');
       return false;
     }
     if (!expiryDate.trim() || expiryDate.length < 5 || !/^\d{2}\/\d{2}$/.test(expiryDate)) {
-      Alert.alert('Hata', 'Lütfen geçerli bir son kullanma tarihi giriniz (MM/YY).');
+      Alert.alert('Error', 'Please enter a valid expiration date (MM/YY).');
       return false;
     }
     const [monthStr, yearStr] = expiryDate.split('/');
@@ -116,15 +116,15 @@ const PaymentScreen = () => {
     const currentMonth = new Date().getMonth() + 1;
 
     if (year < currentYearLastTwoDigits || (year === currentYearLastTwoDigits && month < currentMonth) || month < 1 || month > 12) {
-        Alert.alert('Hata', 'Geçersiz son kullanma tarihi.');
+        Alert.alert('Error', 'Invalid expiration date.');
         return false;
     }
     if (!cvv.trim() || cvv.length < 3) {
-      Alert.alert('Hata', 'Lütfen geçerli bir güvenlik kodu giriniz.');
+      Alert.alert('Error', 'Please enter a valid security code.');
       return false;
     }
     if (!cardHolderName.trim()) {
-      Alert.alert('Hata', 'Lütfen kart sahibinin adını giriniz.');
+      Alert.alert('Error', 'Please enter the cardholder\'s name.');
       return false;
     }
     return true;
@@ -138,33 +138,33 @@ const PaymentScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.colors.primary }]}>
-            Ödeme
+            Payment
           </Text>
           <Text style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}>
-            {planName} aboneliği için ödeme bilgilerinizi giriniz
+            Enter your payment information for the {planName} subscription
           </Text>
         </View>
         
         <Card style={styles.summaryCard}>
           <Card.Content>
-            <Text style={styles.summaryTitle}>Ödeme Özeti</Text>
+            <Text style={styles.summaryTitle}>Payment Summary</Text>
             <View style={styles.summaryRow}>
               <Text>Plan:</Text>
               <Text style={styles.summaryValue}>{planName}</Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text>Tutar:</Text>
-              <Text style={[styles.summaryValue, styles.priceValue]}>{price.toFixed(2)} TL / ay</Text>
+              <Text>Amount:</Text>
+              <Text style={[styles.summaryValue, styles.priceValue]}>{price.toFixed(2)} Dollar / month</Text>
             </View>
           </Card.Content>
         </Card>
         
         <Card style={styles.paymentCard}>
           <Card.Content>
-            <Text style={styles.paymentTitle}>Kart Bilgileri</Text>
+            <Text style={styles.paymentTitle}>Card Information</Text>
             
             <TextInput
-              label="Kart Numarası"
+              label="Card Number"
               value={cardNumber}
               onChangeText={formatCardNumber}
               style={styles.input}
@@ -175,7 +175,7 @@ const PaymentScreen = () => {
             
             <View style={styles.rowInputs}>
               <TextInput
-                label="Son Kul. Tarihi"
+                label="Expiration Date"
                 value={expiryDate}
                 onChangeText={formatExpiryDate}
                 style={[styles.input, styles.halfInput]}
@@ -197,18 +197,18 @@ const PaymentScreen = () => {
             </View>
             
             <TextInput
-              label="Kart Sahibinin Adı Soyadı"
+              label="Cardholder's Name"
               value={cardHolderName}
               onChangeText={setCardHolderName}
               style={styles.input}
-              placeholder="AD SOYAD"
+              placeholder="NAME SURNAME"
               autoCapitalize="characters"
             />
           </Card.Content>
         </Card>
         
         <Button
-          title={`${price.toFixed(2)} TL Öde`}
+          title={`${price.toFixed(2)} Dollar / month`}
           onPress={handlePayment}
           loading={isProcessing}
           disabled={isProcessing}
@@ -219,18 +219,18 @@ const PaymentScreen = () => {
         
         <View style={styles.securityInfo}>
           <Text style={styles.securityText}>
-            🔒 Ödeme bilgileriniz güvenli bir şekilde iletilir ve saklanmaz.
+            🔒 Your payment information is securely transmitted and not stored.
           </Text>
         </View>
         
         <Divider style={styles.divider} />
         
         <View style={styles.otherPaymentOptions}>
-          <Text style={styles.otherPaymentTitle}>Diğer Ödeme Seçenekleri</Text>
+          <Text style={styles.otherPaymentTitle}>Other Payment Options</Text>
           
           <Button
-            title={Platform.OS === 'ios' ? 'Apple Pay ile Öde' : 'Google Pay ile Öde'}
-            onPress={() => Alert.alert('Bilgi', 'Bu ödeme yöntemi henüz aktif değildir.')}
+            title={Platform.OS === 'ios' ? 'Pay with Apple Pay' : 'Pay with Google Pay'}
+            onPress={() => Alert.alert('Information', 'This payment method is not currently available.')}
             variant="outline"
             style={styles.otherPaymentButton}
           />

@@ -45,7 +45,7 @@ const PricingScreen = () => {
         <View style={[styles.statusContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
           <IconButton icon="check-circle" size={24} iconColor={theme.colors.primary} />
           <Text style={[styles.statusText, { color: theme.colors.primary }]}>
-            Aktif Abonelik: {currentActivePlanDetails?.name || activePlanId}
+            Active Subscription: {currentActivePlanDetails?.name || activePlanId}
           </Text>
         </View>
       );
@@ -70,7 +70,7 @@ const PricingScreen = () => {
   
   const handleProceedToPayment = (planToPay: SubscriptionPlan) => {
     if (isSubscribed && activePlanId === planToPay.id) {
-        Alert.alert("Bilgi", "Zaten bu plana abonesiniz.");
+        Alert.alert("Information", "You are already subscribed to this plan.");
         return;
     }
     setSelectedPlanForPaymentLocally(planToPay.id);
@@ -103,10 +103,10 @@ const PricingScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.colors.primary }]}>
-            Abonelik Planları
+            Subscription Plans
           </Text>
           <Text style={[styles.headerSubtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Premium özelliklere erişim için size en uygun planı seçin
+            Choose the plan that best suits your needs for premium features
           </Text>
         </View>
     
@@ -141,7 +141,7 @@ const PricingScreen = () => {
                 >
                   {isPremiumCard && (
                     <View style={[styles.popularBadgeContainer, { backgroundColor: theme.colors.primary }]}>
-                      <Text style={styles.popularBadgeText}>En Popüler</Text>
+                      <Text style={styles.popularBadgeText}>Most Popular</Text>
                     </View>
                   )}
                   
@@ -162,7 +162,7 @@ const PricingScreen = () => {
                       ]}>
                         {plan.price.toFixed(2)} TL 
                       </Text>
-                      <Text style={styles.pricePeriod}>/ ay</Text>
+                      <Text style={styles.pricePeriod}>/ month</Text>
                     </View>
                     
                     <Divider style={styles.divider} />
@@ -173,7 +173,7 @@ const PricingScreen = () => {
                     
                     {(!isSubscribed || activePlanId !== plan.id) && (
                       <Button
-                        title={isSubscribed ? (activePlanId === 'basic' && plan.id === 'premium' ? "Premium'a Yükselt" : "Bu Plana Geç") : "Abone Ol"}
+                        title={isSubscribed ? (activePlanId === 'basic' && plan.id === 'premium' ? "Upgrade to Premium" : "Switch to this Plan") : "Subscribe"}
                         onPress={() => handleProceedToPayment(plan)}
                         style={styles.planButton}
                         variant={isPremiumCard || isSelectedForPayment ? "primary" : "outline"}
@@ -182,7 +182,7 @@ const PricingScreen = () => {
                     )}
                     {(isSubscribed && activePlanId === plan.id) && (
                         <View style={styles.currentPlanIndicator}>
-                            <Text style={[styles.currentPlanText, {color: theme.colors.primary}]}>Mevcut Planınız</Text>
+                            <Text style={[styles.currentPlanText, {color: theme.colors.primary}]}>Your Current Plan</Text>
                         </View>
                     )}
                   </Card.Content>
@@ -195,7 +195,7 @@ const PricingScreen = () => {
         {isSubscribed && activePlanId !== 'free' && (
           <View style={styles.subscribeButtonContainer}>
             <Button
-              title="Abonelik Ayrıntıları"
+              title="Subscription Details"
               onPress={() => navigation.navigate('Profile')}
               style={styles.manageSubscriptionButton}
               variant="outline"
@@ -205,19 +205,19 @@ const PricingScreen = () => {
               style={styles.cancelLink}
               onPress={() => {
                 Alert.alert(
-                  'Abonelik İptali',
-                  'Aboneliğinizi iptal etmek istediğinize emin misiniz? Mevcut fatura döneminizin sonuna kadar özelliklere erişmeye devam edebilirsiniz.',
+                  'Cancel Subscription',
+                  'Are you sure you want to cancel your subscription? You can continue to access premium features until the end of your current billing period.',
                   [
-                    { text: 'Vazgeç', style: 'cancel' },
+                    { text: 'Cancel', style: 'cancel' },
                     { 
-                      text: 'İptal Et', 
+                      text: 'Confirm Cancellation', 
                       onPress: async () => {
                         try {
                           await cancelUserSubscription();
-                          Alert.alert('Başarılı', 'Aboneliğiniz iptal edildi. Bir sonraki fatura döneminizde yenilenmeyecektir.');
+                          Alert.alert('Success', 'Your subscription has been canceled. It will not renew in the next billing period.');
                         } catch (error) {
-                          console.error('Abonelik iptal edilirken hata oluştu:', error);
-                          Alert.alert('Hata', 'İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+                          console.error('Subscription iptal edilirken hata oluştu:', error);
+                          Alert.alert('Error', 'An error occurred during the process. Please try again.');
                         }
                       },
                       style: 'destructive'
@@ -227,19 +227,19 @@ const PricingScreen = () => {
               }}
             >
               <Text style={[styles.cancelText, { color: theme.colors.error }]}>
-                Aboneliği İptal Et
+                Cancel Subscription
               </Text>
             </TouchableOpacity>
           </View>
         )}
         
         <View style={[styles.infoContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
-          <Text style={[styles.infoTitle, { color: theme.colors.onSurface }]}>Abonelik Hakkında:</Text>
-          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Abonelikler aylık olarak ücretlendirilir</Text>
-          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• İptal edilmediği sürece otomatik olarak yenilenir</Text>
-          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• {Platform.OS === 'ios' ? 'App Store' : 'Google Play'} üzerinden yönetilir</Text>
-          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Aboneliği istediğiniz zaman iptal edebilirsiniz</Text>
-          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Sorularınız için destek ekibimizle iletişime geçebilirsiniz</Text>
+          <Text style={[styles.infoTitle, { color: theme.colors.onSurface }]}>About Subscriptions:</Text>
+          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Subscriptions are billed monthly</Text>
+          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Automatically renews unless canceled</Text>
+          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Managed through {Platform.OS === 'ios' ? 'App Store' : 'Google Play'}</Text>
+          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• You can cancel your subscription anytime</Text>
+          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Contact our support team for any questions</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

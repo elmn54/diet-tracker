@@ -16,10 +16,10 @@ import { calculateCaloriesBurned } from '../store/activityStore';
 
 // Aktivite formu validasyon şeması
 const activitySchema = z.object({
-  name: z.string().min(1, { message: 'Aktivite adı gereklidir' }),
-  duration: z.string().min(1, { message: 'Süre değeri gereklidir' })
-    .refine((val) => !isNaN(Number(val)), { message: 'Geçerli bir sayı girin' })
-    .refine((val) => Number(val) > 0, { message: 'Süre 0\'dan büyük olmalıdır' }),
+  name: z.string().min(1, { message: 'Activity name is required' }),
+  duration: z.string().min(1, { message: 'Duration value is required' })
+    .refine((val) => !isNaN(Number(val)), { message: 'Enter a valid number' })
+    .refine((val) => Number(val) > 0, { message: 'Duration must be greater than 0' }),
 });
 
 type ActivityFormData = z.infer<typeof activitySchema>;
@@ -67,7 +67,7 @@ const ActivityEntryScreen = () => {
   const durationValue = watch('duration');
   
   useEffect(() => {
-    // Süre, aktivite türü veya yoğunluk değiştiğinde kalori hesapla
+    // Duration, aktivite türü veya yoğunluk değiştiğinde kalori hesapla
     if (durationValue && !isNaN(Number(durationValue)) && activityType !== 'other') {
       const duration = Number(durationValue);
       const calculatedCalories = calculateCaloriesBurned(activityType, intensity, duration);
@@ -75,7 +75,7 @@ const ActivityEntryScreen = () => {
     }
   }, [durationValue, activityType, intensity]);
   
-  // Kalori değeri manuel girişi
+  // Calories değeri manuel girişi
   const handleCaloriesChange = (value: string) => {
     const numValue = Number(value);
     if (!isNaN(numValue)) {
@@ -102,18 +102,18 @@ const ActivityEntryScreen = () => {
       if (editMode && existingActivity) {
         // Mevcut aktiviteyi güncelle
         await updateActivity(activityData);
-        Alert.alert('Başarılı', 'Aktivite güncellendi');
+        Alert.alert('Success', 'Activity updated');
       } else {
         // Yeni aktivite ekle
         await addActivity(activityData);
-        Alert.alert('Başarılı', 'Aktivite eklendi');
+        Alert.alert('Success', 'Activity added');
       }
       
       // Ana ekrana geri dön
       navigation.goBack();
     } catch (error) {
-      console.error('Aktivite kaydedilirken hata oluştu:', error);
-      Alert.alert('Hata', 'Aktivite kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.');
+      console.error('Error saving activity:', error);
+      Alert.alert('Error', 'Error saving activity. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -129,19 +129,15 @@ const ActivityEntryScreen = () => {
     { value: 'other', label: '⚡ Diğer' }
   ];
   
-  // Yoğunluk seçenekleri
+  // Intensity seçenekleri
   const intensityOptions = [
-    { value: ActivityIntensity.Low, label: 'Düşük' },
-    { value: ActivityIntensity.Medium, label: 'Orta' },
-    { value: ActivityIntensity.High, label: 'Yüksek' }
+    { value: ActivityIntensity.Low, label: 'Low' },
+    { value: ActivityIntensity.Medium, label: 'Medium' },
+    { value: ActivityIntensity.High, label: 'High' }
   ];
   
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>
-        {editMode ? 'Aktiviteyi Düzenle' : 'Yeni Aktivite Ekle'}
-      </Text>
-      
+    <ScrollView style={styles.container}>  
       <View style={styles.formContainer}>
         {/* Aktivite adı */}
         <Controller
@@ -149,8 +145,8 @@ const ActivityEntryScreen = () => {
           name="name"
           render={({ field: { onChange, value } }) => (
             <Input
-              label="Aktivite Adı"
-              placeholder="Örn: Tempolu Yürüyüş"
+              label="Activity Name"
+              placeholder="Example: Running"
               onChangeText={onChange}
               value={value}
               error={errors.name?.message}
@@ -158,14 +154,14 @@ const ActivityEntryScreen = () => {
           )}
         />
         
-        {/* Süre (dakika) */}
+        {/* Duration (dakika) */}
         <Controller
           control={control}
           name="duration"
           render={({ field: { onChange, value } }) => (
             <Input
-              label="Süre (dakika)"
-              placeholder="Örn: 30"
+              label="Duration (minutes)"
+              placeholder="Example: 30"
               onChangeText={onChange}
               value={value}
               error={errors.duration?.message}
@@ -176,7 +172,7 @@ const ActivityEntryScreen = () => {
         
         {/* Aktivite Türü */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Aktivite Türü</Text>
+          <Text style={styles.sectionTitle}>Activity Type</Text>
           <View style={styles.activityTypeContainer}>
             {activityTypeOptions.map((option) => (
               <TouchableOpacity
@@ -203,7 +199,7 @@ const ActivityEntryScreen = () => {
         {/* Aktivite Yoğunluğu - Sadece "Diğer" kategorisi seçili değilse göster */}
         {activityType !== 'other' && (
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Yoğunluk</Text>
+            <Text style={styles.sectionTitle}>Intensity</Text>
             <SegmentedButtons
               value={intensity}
               onValueChange={(value) => setIntensity(value as ActivityIntensity)}
@@ -214,11 +210,11 @@ const ActivityEntryScreen = () => {
         
         {/* Tahmini yakılan kalori */}
         <View style={styles.calorieContainer}>
-          <Text style={styles.sectionTitle}>Yakılan Kalori</Text>
+          <Text style={styles.sectionTitle}>Burned Calories</Text>
           {activityType === 'other' ? (
             <Input
-              label="Yakılan kalori (kcal)"
-              placeholder="Örn: 150"
+              label="Burned Calories (kcal)"
+              placeholder="Example: 150"
               onChangeText={handleCaloriesChange}
               value={caloriesBurned.toString()}
               keyboardType="numeric"
@@ -236,7 +232,7 @@ const ActivityEntryScreen = () => {
           onPress={handleSubmit(onSubmit)}
           loading={isLoading}
           disabled={isLoading}
-          title={editMode ? 'Güncelle' : 'Kaydet'}
+          title={editMode ? 'Update' : 'Save'}
         />
         
         {/* İptal etme butonu */}
@@ -245,7 +241,7 @@ const ActivityEntryScreen = () => {
           mode="outlined"
           onPress={() => navigation.goBack()}
           disabled={isLoading}
-          title="İptal"
+          title="Cancel"
         />
       </View>
     </ScrollView>

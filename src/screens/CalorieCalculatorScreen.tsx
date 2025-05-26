@@ -11,16 +11,16 @@ import { spacing, typography } from '../constants/theme';
 // Activity level multipliers for calorie calculations - revised values
 const ACTIVITY_LEVELS = [
   { label: 'Hareketsiz (Egzersiz yok)', value: 'sedentary', multiplier: 1.2 },
-  { label: 'Az Hareketli (Haftada 1-3 gün egzersiz)', value: 'light', multiplier: 1.375 },
-  { label: 'Orta Hareketli (Haftada 3-5 gün egzersiz)', value: 'moderate', multiplier: 1.55 },
-  { label: 'Çok Hareketli (Haftada 6-7 gün egzersiz)', value: 'active', multiplier: 1.725 },
-  { label: 'Aşırı Hareketli (Fiziksel iş veya günde 2x egzersiz)', value: 'veryActive', multiplier: 1.9 },
+  { label: 'Lightly Active (1-3 days of exercise per week)', value: 'light', multiplier: 1.375 },
+  { label: 'Moderately Active (3-5 days of exercise per week)', value: 'moderate', multiplier: 1.55 },
+  { label: 'Very Active (6-7 days of exercise per week)', value: 'active', multiplier: 1.725 },
+  { label: 'Extremely Active (Physical job or 2x exercise per day)', value: 'veryActive', multiplier: 1.9 },
 ];
 
 // Goal-based adjustment factors - revised values
 const GOAL_FACTORS = {
   weightLoss: 0.85,    // %15 kalori açığı (daha gerçekçi)
-  maintenance: 1.0,    // Kalori dengesi
+  maintenance: 1.0,    // Calories dengesi
   weightGain: 1.1,     // %10 kalori fazlası (daha gerçekçi)
 };
 
@@ -182,25 +182,25 @@ const CalorieCalculatorScreen = ({ route }: Props) => {
         >
           <View style={styles.header}>
             <Text style={[styles.title, { color: theme.colors.primary }]}>
-              Kalori İhtiyacı Hesaplayıcı
+              Calorie Needs Calculator
             </Text>
             
             <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-              Günlük kalori ihtiyacınızı hesaplamak için bilgilerinizi girin
+              Enter your information to calculate your daily calorie needs
             </Text>
           </View>
           
           <View style={styles.formSection}>
-            <Text style={styles.sectionLabel}>Cinsiyet</Text>
+            <Text style={styles.sectionLabel}>Gender</Text>
             <View style={styles.optionsContainer}>
               <Button
-                title="Erkek"
+                title="Male"
                 variant={formState.gender === 'male' ? 'primary' : 'outline'}
                 onPress={() => handleGenderSelect('male')}
                 style={styles.optionButton}
               />
               <Button
-                title="Kadın"
+                title="Female"
                 variant={formState.gender === 'female' ? 'primary' : 'outline'}
                 onPress={() => handleGenderSelect('female')}
                 style={styles.optionButton}
@@ -211,7 +211,7 @@ const CalorieCalculatorScreen = ({ route }: Props) => {
           <View style={styles.row}>
             <View style={styles.column}>
               <Input
-                label="Yaş"
+                label="Age"
                 value={formState.age}
                 onChangeText={value => handleInputChange('age', value)}
                 keyboardType="numeric"
@@ -222,7 +222,7 @@ const CalorieCalculatorScreen = ({ route }: Props) => {
             
             <View style={styles.column}>
               <Input
-                label="Kilo (kg)"
+                label="Weight (kg)"
                 value={formState.weight}
                 onChangeText={value => handleInputChange('weight', value)}
                 keyboardType="numeric"
@@ -233,7 +233,7 @@ const CalorieCalculatorScreen = ({ route }: Props) => {
           </View>
           
           <Input
-            label="Boy (cm)"
+            label="Height (cm)"
             value={formState.height}
             onChangeText={value => handleInputChange('height', value)}
             keyboardType="numeric"
@@ -242,7 +242,7 @@ const CalorieCalculatorScreen = ({ route }: Props) => {
           />
           
           <View style={styles.formSection}>
-            <Text style={styles.sectionLabel}>Aktivite Seviyesi</Text>
+            <Text style={styles.sectionLabel}>Activity Level</Text>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
@@ -261,22 +261,22 @@ const CalorieCalculatorScreen = ({ route }: Props) => {
           </View>
           
           <View style={styles.formSection}>
-            <Text style={styles.sectionLabel}>Hedefiniz</Text>
+            <Text style={styles.sectionLabel}>Goal</Text>
             <View style={styles.optionsContainer}>
               <Button
-                title="Kilo Ver"
+                title="Weight Loss"
                 variant={formState.goal === 'weightLoss' ? 'primary' : 'outline'}
                 onPress={() => handleGoalSelect('weightLoss')}
                 style={styles.optionButton}
               />
               <Button
-                title="Koruma"
+                title="Maintenance"
                 variant={formState.goal === 'maintenance' ? 'primary' : 'outline'}
                 onPress={() => handleGoalSelect('maintenance')}
                 style={styles.optionButton}
               />
               <Button
-                title="Kilo Al"
+                title="Weight Gain"
                 variant={formState.goal === 'weightGain' ? 'primary' : 'outline'}
                 onPress={() => handleGoalSelect('weightGain')}
                 style={styles.optionButton}
@@ -286,7 +286,7 @@ const CalorieCalculatorScreen = ({ route }: Props) => {
           
           <View style={styles.buttonContainer}>
             <Button
-              title="Kalori İhtiyacını Hesapla"
+              title="Calculate calorie needs"
               onPress={calculateCalories}
               variant="primary"
               fullWidth
@@ -294,7 +294,7 @@ const CalorieCalculatorScreen = ({ route }: Props) => {
           </View>
 
           <Button
-            title="İptal"
+            title="Cancel"
             onPress={() => navigation.goBack()}
             variant="outline"
             fullWidth

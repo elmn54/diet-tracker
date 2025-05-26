@@ -6,7 +6,7 @@ import { useActivityStore } from '../store/activityStore';
 import { useCalorieGoalStore } from '../store/calorieGoalStore';
 import NutritionChart from '../components/NutritionChart';
 import { format, subDays, isSameDay, startOfWeek, addDays, eachDayOfInterval, endOfWeek } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 
 type TimeRange = 'day' | 'week' | 'month';
 
@@ -34,7 +34,7 @@ const StatsScreen = () => {
     datasets: [{ data: [] }] 
   });
   
-  const { calculateDailyNutrients, calculateDailyCalories, calculateNetCalories, foods } = useFoodStore();
+  const { calculateDailyNutrients, calculateDailyCalories, foods } = useFoodStore();
   const { calculateDailyBurnedCalories, activities } = useActivityStore();
   const { calorieGoal, nutrientGoals } = useCalorieGoalStore();
   
@@ -122,7 +122,7 @@ const StatsScreen = () => {
       return calculateDailyCalories(day.toISOString());
     });
     
-    const weekDays = daysInWeek.map(day => format(day, 'EEE', { locale: tr }));
+    const weekDays = daysInWeek.map(day => format(day, 'EEE', { locale: enUS }));
     
     setWeeklyData({
       labels: weekDays,
@@ -222,15 +222,15 @@ const StatsScreen = () => {
   const getTitle = () => {
     switch (timeRange) {
       case 'day':
-        return format(selectedDate, 'd MMMM yyyy', { locale: tr });
+        return format(selectedDate, 'd MMMM yyyy', { locale: enUS });
       case 'week':
         const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
         const weekEnd = addDays(weekStart, 6);
-        return `${format(weekStart, 'd MMM', { locale: tr })} - ${format(weekEnd, 'd MMM', { locale: tr })}`;
+        return `${format(weekStart, 'd MMM', { locale: enUS })} - ${format(weekEnd, 'd MMM', { locale: enUS })}`;
       case 'month':
         return 'Son 30 Gün';
       default:
-        return format(selectedDate, 'd MMMM yyyy', { locale: tr });
+        return format(selectedDate, 'd MMMM yyyy', { locale: enUS });
     }
   };
 
@@ -245,11 +245,11 @@ const StatsScreen = () => {
   const getGoalStatus = () => {
     const percentage = calculateGoalPercentage();
     if (percentage >= 90 && percentage <= 110) {
-      return { text: 'Hedef içinde', color: theme.colors.primary };
+      return { text: 'In the goal', color: theme.colors.primary };
     } else if (percentage < 90) {
-      return { text: 'Hedefin altında', color: theme.colors.error };
+      return { text: 'Below the goal', color: theme.colors.error };
     } else {
-      return { text: 'Hedefin üstünde', color: theme.colors.error };
+      return { text: 'Above the goal', color: theme.colors.error };
     }
   };
   
@@ -258,7 +258,7 @@ const StatsScreen = () => {
   const renderWeeklyChart = () => {
     return (
       <View style={styles.alternativeChart}>
-        <Text style={styles.chartTitle}>Haftalık Kalori Takibi</Text>
+        <Text style={styles.chartTitle}>Weekly Calories Tracking</Text>
         {weeklyData.datasets[0].data.map((value, index) => (
           <View key={index} style={styles.chartItemRow}>
             <Text style={styles.chartDay}>{weeklyData.labels[index]}</Text>
@@ -283,7 +283,7 @@ const StatsScreen = () => {
   const renderMonthlyChart = () => {
     return (
       <View style={styles.alternativeChart}>
-        <Text style={styles.chartTitle}>Aylık Ortalama Kalori Değişimi</Text>
+        <Text style={styles.chartTitle}>Monthly Average Calories Change</Text>
         {monthlyData.datasets[0].data.map((value, index) => (
           <View key={index} style={styles.chartItemRow}>
             <Text style={styles.chartDay}>{monthlyData.labels[index]}</Text>
@@ -307,15 +307,15 @@ const StatsScreen = () => {
   
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.header}>İstatistikler</Text>
+      <Text style={styles.header}>Statistics</Text>
       
       <SegmentedButtons
         value={timeRange}
         onValueChange={(value) => setTimeRange(value as TimeRange)}
         buttons={[
-          { value: 'day', label: 'Günlük' },
-          { value: 'week', label: 'Haftalık' },
-          { value: 'month', label: 'Aylık' }
+          { value: 'day', label: 'Day' },
+          { value: 'week', label: 'Week' },
+          { value: 'month', label: 'Month' }
         ]}
         style={styles.segmentedButtons}
       />
@@ -336,21 +336,21 @@ const StatsScreen = () => {
         <View style={styles.summaryContent}>
           <View style={styles.calorieDetailsContainer}>
             <View style={styles.calorieItem}>
-              <Text style={styles.summaryTitle}>Alınan Kalori</Text>
+              <Text style={styles.summaryTitle}>Consumed Calories</Text>
               <Text style={styles.calorieValue}>{Math.round(calories.food)} kcal</Text>
             </View>
             <View style={styles.calorieItem}>
-              <Text style={styles.summaryTitle}>Yakılan Kalori</Text>
+              <Text style={styles.summaryTitle}>Burned Calories</Text>
               <Text style={styles.calorieValue}>{Math.round(calories.burned)} kcal</Text>
             </View>
             <View style={styles.calorieItem}>
-              <Text style={styles.summaryTitle}>Net Kalori</Text>
+              <Text style={styles.summaryTitle}>Net Calories</Text>
               <Text style={styles.calorieValue}>{Math.round(calories.net)} kcal</Text>
             </View>
           </View>
           
           <View style={styles.goalStatusContainer}>
-            <Text style={styles.goalLabel}>Hedef: {timeRange === 'day' ? calorieGoal : timeRange === 'week' ? calorieGoal * 7 : calorieGoal * 30} kcal</Text>
+            <Text style={styles.goalLabel}>Goal: {timeRange === 'day' ? calorieGoal : timeRange === 'week' ? calorieGoal * 7 : calorieGoal * 30} kcal</Text>
             <Text style={[styles.goalStatus, { color: goalStatus.color }]}>
               {goalStatus.text}
             </Text>
@@ -377,14 +377,14 @@ const StatsScreen = () => {
       )}
       
       <View style={styles.statsDetail}>
-        <Text style={styles.statsTitle}>Detaylı İstatistikler</Text>
+        <Text style={styles.statsTitle}>Detailed Statistics</Text>
         
         <View style={styles.statsItem}>
-          <Text style={styles.statsLabel}>Toplam Protein:</Text>
+          <Text style={styles.statsLabel}>Total Protein:</Text>
           <View style={styles.statsValueContainer}>
             <Text style={styles.statsValue}>{nutrients.protein.toFixed(1)}g</Text>
             <Text style={styles.statsGoal}>
-              (Hedef: {timeRange === 'day' ? nutrientGoals.protein : 
+              (Goal: {timeRange === 'day' ? nutrientGoals.protein : 
                       timeRange === 'week' ? nutrientGoals.protein * 7 : 
                       nutrientGoals.protein * 30}g)
             </Text>
@@ -392,11 +392,11 @@ const StatsScreen = () => {
         </View>
         
         <View style={styles.statsItem}>
-          <Text style={styles.statsLabel}>Toplam Karbonhidrat:</Text>
+          <Text style={styles.statsLabel}>Total Carbohydrates:</Text>
           <View style={styles.statsValueContainer}>
             <Text style={styles.statsValue}>{nutrients.carbs.toFixed(1)}g</Text>
             <Text style={styles.statsGoal}>
-              (Hedef: {timeRange === 'day' ? nutrientGoals.carbs : 
+              (Goal: {timeRange === 'day' ? nutrientGoals.carbs : 
                       timeRange === 'week' ? nutrientGoals.carbs * 7 : 
                       nutrientGoals.carbs * 30}g)
             </Text>
@@ -404,11 +404,11 @@ const StatsScreen = () => {
         </View>
         
         <View style={styles.statsItem}>
-          <Text style={styles.statsLabel}>Toplam Yağ:</Text>
+          <Text style={styles.statsLabel}>Total Fat:</Text>
           <View style={styles.statsValueContainer}>
             <Text style={styles.statsValue}>{nutrients.fat.toFixed(1)}g</Text>
             <Text style={styles.statsGoal}>
-              (Hedef: {timeRange === 'day' ? nutrientGoals.fat : 
+              (Goal: {timeRange === 'day' ? nutrientGoals.fat : 
                       timeRange === 'week' ? nutrientGoals.fat * 7 : 
                       nutrientGoals.fat * 30}g)
             </Text>
@@ -417,7 +417,7 @@ const StatsScreen = () => {
         
         {timeRange !== 'day' && (
           <View style={styles.statsItem}>
-            <Text style={styles.statsLabel}>Günlük Ortalama Kalori:</Text>
+            <Text style={styles.statsLabel}>Daily Average Calories:</Text>
             <Text style={styles.statsValue}>
               {Math.round(calories.food / (timeRange === 'week' ? 7 : 30))} kcal
             </Text>

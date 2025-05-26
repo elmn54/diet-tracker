@@ -52,7 +52,7 @@ const LoginScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Text style={[styles.title, { color: theme.colors.onSurface }]}>Giriş Yap</Text>
+      <Text style={[styles.title, { color: theme.colors.onSurface }]}>Sign In</Text>
       
       {error && <Text style={styles.errorText}>{error}</Text>}
       
@@ -61,8 +61,8 @@ const LoginScreen = () => {
         name="email"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="E-posta"
-            placeholder="E-posta"
+            label="Email"
+            placeholder="Enter your email"
             value={value}
             onChangeText={onChange}
             error={errors.email?.message}
@@ -76,8 +76,8 @@ const LoginScreen = () => {
         name="password"
         render={({ field: { onChange, value } }) => (
           <Input
-            label="Şifre"
-            placeholder="Şifre"
+            label="Password"
+            placeholder="Enter your password"
             value={value}
             onChangeText={onChange}
             secureTextEntry
@@ -91,12 +91,12 @@ const LoginScreen = () => {
         style={styles.forgotPasswordContainer}
       >
         <Text style={[styles.forgotPasswordText, { color: theme.colors.primary }]}>
-          Şifremi Unuttum
+          Forgot Password
         </Text>
       </TouchableOpacity>
       
       <Button 
-        title={isLoading ? "Giriş Yapılıyor..." : "Giriş Yap"}
+        title={isLoading ? "Signing In..." : "Sign In"}
         onPress={handleSubmit(onSubmit)}
         style={styles.button}
         disabled={isLoading}
@@ -104,13 +104,13 @@ const LoginScreen = () => {
       
       <View style={styles.dividerContainer}>
         <Divider style={styles.divider} />
-        <Text style={[styles.dividerText, { color: theme.colors.onSurfaceVariant }]}>veya</Text>
+        <Text style={[styles.dividerText, { color: theme.colors.onSurfaceVariant }]}>or</Text>
         <Divider style={styles.divider} />
       </View>
       
       <View style={styles.socialButtonsContainer}>
         <Button 
-          title="Google ile Giriş Yap"
+          title="Sign In with Google"
           onPress={handleGoogleSignIn}
           style={styles.socialButton}
           variant="outline"
@@ -120,9 +120,9 @@ const LoginScreen = () => {
       </View>
       
       <View style={styles.footerContainer}>
-        <Text style={[styles.footerText, { color: theme.colors.onSurfaceVariant }]}>Hesabın yok mu?</Text>
+        <Text style={[styles.footerText, { color: theme.colors.onSurfaceVariant }]}>Don't have an account?</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={[styles.footerLink, { color: theme.colors.primary }]}>Kayıt Ol</Text>
+          <Text style={[styles.footerLink, { color: theme.colors.primary }]}>Register</Text>
         </TouchableOpacity>
       </View>
     </View>

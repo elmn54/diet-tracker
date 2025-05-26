@@ -42,14 +42,14 @@ const NutritionChart: React.FC<NutritionChartProps> = ({ data }) => {
 
   return (
     <View style={styles.container} testID="nutrition-chart">
-      <Text style={styles.title}>Besin Oranları</Text>
+      <Text style={styles.title}>Nutrition Ratio</Text>
       
       <View style={styles.chartContainer}>
         {/* Basit daire gösterimi */}
         <View style={styles.pieChartContainer}>
           <View style={styles.pieCenter}>
             <Text style={styles.totalText}>{totalValue}g</Text>
-            <Text style={styles.totalLabel}>Toplam</Text>
+            <Text style={styles.totalLabel}>Total</Text>
           </View>
           
           <View style={styles.pieSegmentsContainer}>
@@ -77,12 +77,12 @@ const NutritionChart: React.FC<NutritionChartProps> = ({ data }) => {
         
         <View style={styles.legendItem}>
           <View style={[styles.legendColor, { backgroundColor: chartData[1].color }]} />
-          <Text style={styles.legendText}>Karbonhidrat: {data.carbs}g ({carbsPercentage}%)</Text>
+          <Text style={styles.legendText}>Carbohydrates: {data.carbs}g ({carbsPercentage}%)</Text>
         </View>
         
         <View style={styles.legendItem}>
           <View style={[styles.legendColor, { backgroundColor: chartData[2].color }]} />
-          <Text style={styles.legendText}>Yağ: {data.fat}g ({fatPercentage}%)</Text>
+          <Text style={styles.legendText}>Fat: {data.fat}g ({fatPercentage}%)</Text>
         </View>
       </View>
     </View>

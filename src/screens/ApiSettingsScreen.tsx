@@ -105,40 +105,40 @@ const ApiSettingsScreen = () => {
       case AI_PROVIDERS.OPENAI:
         return (
           <Text style={[styles.instructions, { color: theme.colors.onSurfaceVariant }]}>
-            OpenAI API anahtarınızı oluşturmak için{' '}
-            <Text 
+            OpenAI API key creation instructions:
+            Go to <Text 
               style={{ fontWeight: 'bold', color: theme.colors.primary }}
               onPress={() => handleOpenLink('https://platform.openai.com/api-keys')}
             >
               platform.openai.com/api-keys
             </Text>{' '}
-            adresine gidin ve API Keys bölümünden yeni bir anahtar oluşturun.
+              and create a new key.
           </Text>
         );
       case AI_PROVIDERS.GEMINI:
         return (
           <Text style={[styles.instructions, { color: theme.colors.onSurfaceVariant }]}>
-            Gemini API anahtarınızı oluşturmak için{' '}
-            <Text 
+            Gemini API key creation instructions:
+            Go to <Text 
               style={{ fontWeight: 'bold', color: theme.colors.primary }}
               onPress={() => handleOpenLink('https://aistudio.google.com/apikey')}
             >
               aistudio.google.com/apikey
             </Text>{' '}
-            adresine gidin ve API Key bölümünden yeni bir anahtar oluşturun.
+            and create a new key.
           </Text>
         );
       case AI_PROVIDERS.CLAUDE:
         return (
           <Text style={[styles.instructions, { color: theme.colors.onSurfaceVariant }]}>
-            Claude API anahtarınızı oluşturmak için{' '}
-            <Text 
+            Claude API key creation instructions:
+            Go to <Text 
               style={{ fontWeight: 'bold', color: theme.colors.primary }}
               onPress={() => handleOpenLink('https://console.anthropic.com/keys')}
             >
               console.anthropic.com/keys
             </Text>{' '}
-            adresine gidin ve API Keys bölümünden yeni bir anahtar oluşturun.
+            and create a new key.
           </Text>
         );
       default:
@@ -156,10 +156,10 @@ const ApiSettingsScreen = () => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.section}>
             <Text style={[styles.screenTitle, { color: theme.colors.primary }]}>
-              API Ayarları
+              API Settings
             </Text>
             <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-              Yemek tanıma için kullanmak istediğiniz AI sağlayıcısını seçin
+              Select the AI provider you want to use for food recognition
             </Text>
             
             <View style={styles.providerCardContainer}>
@@ -208,17 +208,17 @@ const ApiSettingsScreen = () => {
           
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
-              API Anahtarı
+              API Key
             </Text>
             <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-              {AI_PROVIDER_NAMES[currentProvider]} için API anahtarınızı girin
+              Enter your API key for {AI_PROVIDER_NAMES[currentProvider]}
             </Text>
             
             {renderInstructions()}
             
             {/* React Native Paper'ın TextInput'unu doğrudan kullanıyoruz, custom Input component yerine  */}
             <TextInput
-              label="API Anahtarı"
+              label="API Key"
               value={currentApiKey}
               onChangeText={handleApiKeyChange}
               secureTextEntry
@@ -240,7 +240,7 @@ const ApiSettingsScreen = () => {
             />
             
             <Button
-              title="Kaydet"
+              title="Save"
               onPress={handleSaveApiKey}
               loading={isLoading}
               fullWidth
@@ -253,16 +253,16 @@ const ApiSettingsScreen = () => {
           
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
-              API Kullanımı Hakkında
+              About API Usage
             </Text>
             <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-              Yemek tanıma özelliği, her fotoğraf gönderiminde API kullanımı tüketir. Her AI sağlayıcısının kendi fiyatlandırma modeli ve kullanım limitleri bulunmaktadır.
+              The food recognition feature uses API usage. Each AI provider has its own pricing model and usage limits.
             </Text>
             <View style={[styles.infoContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
-              <Text style={[styles.infoTitle, { color: theme.colors.onSurfaceVariant }]}>Önemli Notlar:</Text>
-              <Text style={[styles.infoPoint, { color: theme.colors.onSurfaceVariant }]}>• API anahtarlarınız güvenli bir şekilde sadece cihazınızda saklanır.</Text>
-              <Text style={[styles.infoPoint, { color: theme.colors.onSurfaceVariant }]}>• API kullanım ücretleri ve limitler doğrudan AI sağlayıcısı tarafından belirlenir.</Text>
-              <Text style={[styles.infoPoint, { color: theme.colors.onSurfaceVariant }]}>• Ücretsiz katmanların sınırlarına dikkat edin.</Text>
+              <Text style={[styles.infoTitle, { color: theme.colors.onSurfaceVariant }]}>Important Notes:</Text>
+              <Text style={[styles.infoPoint, { color: theme.colors.onSurfaceVariant }]}>• Your API keys are securely stored on your device.</Text>
+              <Text style={[styles.infoPoint, { color: theme.colors.onSurfaceVariant }]}>• API usage fees and limits are determined directly by the AI provider.</Text>
+              <Text style={[styles.infoPoint, { color: theme.colors.onSurfaceVariant }]}>• Note the limits of free tiers.</Text>
             </View>
           </View>
         </ScrollView>

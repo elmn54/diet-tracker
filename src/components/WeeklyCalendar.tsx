@@ -13,15 +13,15 @@ interface WeeklyCalendarProps {
   getCalorieStatus?: (date: Date) => 'complete' | 'incomplete' | 'exceeded' | undefined;
 }
 
-// Türkçe gün kısaltmaları
-const turkishDays = {
-  0: 'Paz',
-  1: 'Pzt',
-  2: 'Sal',
-  3: 'Çar',
-  4: 'Per',
-  5: 'Cum',
-  6: 'Cmt'
+// English day abbreviations
+const englishDays = {
+  0: 'Sun',
+  1: 'Mon',
+  2: 'Tue',
+  3: 'Wed',
+  4: 'Thu',
+  5: 'Fri',
+  6: 'Sat'
 };
 
 const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ 
@@ -59,7 +59,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   // Gün kısaltmaları
   const getDayShort = (date: Date) => {
     const dayIndex = date.getDay();
-    return turkishDays[dayIndex as keyof typeof turkishDays];
+    return englishDays[dayIndex as keyof typeof englishDays];
   };
 
   // Gün sayısı

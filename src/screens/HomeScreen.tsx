@@ -266,24 +266,24 @@ const HomeScreen = () => {
         <View style={styles.foodMacros}>
           <Text style={styles.macroText}>P: {Number(item.protein).toFixed(1).replace(/\.0$/, '')}g</Text>
           <Text style={styles.macroText}>C: {Number(item.carbs).toFixed(1).replace(/\.0$/, '')}g</Text>
-          <Text style={styles.macroText}>Y: {Number(item.fat).toFixed(1).replace(/\.0$/, '')}g</Text>
+          <Text style={styles.macroText}>F: {Number(item.fat).toFixed(1).replace(/\.0$/, '')}g</Text>
         </View>
         <TouchableOpacity 
           style={styles.deleteButton}
           onPress={(e) => {
             e.stopPropagation();
             Alert.alert(
-              'Yemeği Sil',
-              'Bu yemeği silmek istediğinizden emin misiniz?',
+              'Delete Food',
+              'Are you sure you want to delete this food?',
               [
-                { text: 'İptal', style: 'cancel' },
-                { text: 'Sil', 
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', 
                   onPress: async () => {
                     try {
                       await useFoodStore.getState().removeFood(item.id);
                     } catch (error) {
                       console.error('Yemek silinirken hata oluştu:', error);
-                      Alert.alert('Hata', 'Yemek silinirken bir hata oluştu.');
+                      Alert.alert('Error', 'An error occurred while deleting the food.');
                     }
                   }, 
                   style: 'destructive' 
@@ -328,7 +328,7 @@ const HomeScreen = () => {
           <Text style={styles.activityCalories}>-{item.calories} kcal</Text>
         </View>
         <View style={styles.activityInfo}>
-          <Text style={styles.activityDuration}>{item.duration} dk</Text>
+          <Text style={styles.activityDuration}>{item.duration} min</Text>
           <Text style={styles.activityIntensity}>{item.intensity}</Text>
         </View>
         <TouchableOpacity 
@@ -336,17 +336,17 @@ const HomeScreen = () => {
           onPress={(e) => {
             e.stopPropagation();
             Alert.alert(
-              'Aktiviteyi Sil',
-              'Bu aktiviteyi silmek istediğinizden emin misiniz?',
+              'Delete Activity',
+              'Are you sure you want to delete this activity?',
               [
-                { text: 'İptal', style: 'cancel' },
-                { text: 'Sil', 
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', 
                   onPress: async () => {
                     try {
                       await useActivityStore.getState().removeActivity(item.id);
                     } catch (error) {
                       console.error('Aktivite silinirken hata oluştu:', error);
-                      Alert.alert('Hata', 'Aktivite silinirken bir hata oluştu.');
+                      Alert.alert('Error', 'An error occurred while deleting the activity.');
                     }
                   }, 
                   style: 'destructive' 
@@ -377,7 +377,7 @@ const HomeScreen = () => {
       isInputFocused && styles.emptyListContainerKeyboard
     ]}>
       <Text style={styles.emptyListText}>
-        Bu tarihte kayıtlı yemek veya aktivite bulunmamaktadır.
+        No food or activity records for this date.
       </Text>
     </View>
   );
@@ -390,7 +390,7 @@ const HomeScreen = () => {
       today.getMonth() === selectedDate.getMonth() && 
       today.getFullYear() === selectedDate.getFullYear();
     
-    if (isToday) return 'Bugün';
+    if (isToday) return 'Today';
     
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -399,10 +399,10 @@ const HomeScreen = () => {
       yesterday.getMonth() === selectedDate.getMonth() && 
       yesterday.getFullYear() === selectedDate.getFullYear();
     
-    if (isYesterday) return 'Dün';
+    if (isYesterday) return 'Yesterday';
     
-    // Türkçe tarih formatı
-    return selectedDate.toLocaleDateString('tr-TR', { 
+    // English date format
+    return selectedDate.toLocaleDateString('en-US', { 
       day: 'numeric',
       month: 'long', 
       year: 'numeric'
@@ -497,8 +497,8 @@ const HomeScreen = () => {
                 {isSubscribed 
                   ? (activePlanId === 'premium' 
                       ? 'Premium' 
-                      : 'Temel')
-                  : 'Ücretsiz'}
+                      : 'Basic')
+                  : 'Free'}
               </Badge>
             </View>
             
@@ -516,22 +516,22 @@ const HomeScreen = () => {
                   handleOpenThemeSettings();
                   setMenuVisible(false);
                 }}
-                title="Tema Ayarları"
+                title="Theme Settings"
                 leadingIcon={theme.dark ? "weather-night" : "weather-sunny"}
               />
               <Menu.Item 
                 onPress={handleOpenCalorieGoalScreen} 
-                title="Kalori Hedefi" 
+                title="Calorie Goal" 
                 leadingIcon="target"
               />
               <Menu.Item 
                 onPress={handleOpenApiSettings} 
-                title="API Ayarları" 
+                title="API Settings" 
                 leadingIcon="api"
               />
               <Menu.Item 
                 onPress={handleOpenPricingScreen}
-                title="Abonelik Planları" 
+                title="Subscription Plans" 
                 leadingIcon="cash" 
               />
               <Divider />
@@ -540,7 +540,7 @@ const HomeScreen = () => {
                   navigation.navigate('Profile');
                   setMenuVisible(false);
                 }}
-                title="Profil" 
+                title="Profile" 
                 leadingIcon="account" 
               />
             </Menu>

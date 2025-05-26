@@ -138,7 +138,7 @@ const CalorieGoalScreen = () => {
       }
     }
     
-    // Hata mesajını temizle
+    // Error mesajını temizle
     if (errors[field]) {
       setErrors(prev => ({
         ...prev,
@@ -152,39 +152,39 @@ const CalorieGoalScreen = () => {
     const newErrors = { ...errors };
     let isValid = true;
     
-    // Kalori doğrulama
+    // Calories doğrulama
     if (!formState.calories) {
-      newErrors.calories = 'Kalori hedefi gereklidir';
+      newErrors.calories = 'Calorie goal is required';
       isValid = false;
     } else if (isNaN(Number(formState.calories)) || Number(formState.calories) <= 0) {
-      newErrors.calories = 'Geçerli bir kalori değeri giriniz';
+      newErrors.calories = 'Enter a valid calorie value';
       isValid = false;
     }
     
     // Protein doğrulama
     if (!formState.protein) {
-      newErrors.protein = 'Protein hedefi gereklidir';
+      newErrors.protein = 'Protein goal is required';
       isValid = false;
     } else if (isNaN(Number(formState.protein)) || Number(formState.protein) < 0) {
-      newErrors.protein = 'Geçerli bir protein değeri giriniz';
+      newErrors.protein = 'Enter a valid protein value';
       isValid = false;
     }
     
-    // Karbonhidrat doğrulama
+    // Carbohydrates doğrulama
     if (!formState.carbs) {
-      newErrors.carbs = 'Karbonhidrat hedefi gereklidir';
+      newErrors.carbs = 'Carbohydrate goal is required';
       isValid = false;
     } else if (isNaN(Number(formState.carbs)) || Number(formState.carbs) < 0) {
-      newErrors.carbs = 'Geçerli bir karbonhidrat değeri giriniz';
+      newErrors.carbs = 'Enter a valid carbohydrate value';
       isValid = false;
     }
     
     // Yağ doğrulama
     if (!formState.fat) {
-      newErrors.fat = 'Yağ hedefi gereklidir';
+      newErrors.fat = 'Fat goal is required';
       isValid = false;
     } else if (isNaN(Number(formState.fat)) || Number(formState.fat) < 0) {
-      newErrors.fat = 'Geçerli bir yağ değeri giriniz';
+      newErrors.fat = 'Enter a valid fat value';
       isValid = false;
     }
     
@@ -194,7 +194,7 @@ const CalorieGoalScreen = () => {
   
   // Hesaplanan kaloriyi form state'e uygula
   const handleCalculatedCalories = (calculatedCalories: number) => {
-    // Kalori değerini güncelle
+    // Calories değerini güncelle
     setFormState(prev => ({ ...prev, calories: calculatedCalories.toString() }));
     
     // Makro besin değerlerini de güncelle
@@ -207,7 +207,7 @@ const CalorieGoalScreen = () => {
     }));
   };
   
-  // Kalori hesaplayıcı ekranına git
+  // Calories hesaplayıcı ekranına git
   const navigateToCalorieCalculator = () => {
     navigation.navigate('CalorieCalculator', {
       onCalculate: handleCalculatedCalories
@@ -225,7 +225,7 @@ const CalorieGoalScreen = () => {
       console.log('Input calorie value:', formState.calories);
       console.log('Parsed calorie value:', calorieValue);
       
-      // Kalori hedefini güncelle
+      // Calories hedefini güncelle
       await setCalorieGoal(calorieValue);
       
       // Makro besin hedeflerini güncelle
@@ -245,7 +245,7 @@ const CalorieGoalScreen = () => {
       setShowSuccessAnimation(true);
       
       // Başarılı mesajını göster
-      showToast('Hedefleriniz başarıyla kaydedildi', 'success');
+      showToast('Your goals have been successfully saved', 'success');
       
       // Animasyon bittikten sonra success durumunu resetle
       setTimeout(() => {
@@ -254,7 +254,7 @@ const CalorieGoalScreen = () => {
       
     } catch (error) {
       console.error('Hedefler kaydedilirken hata oluştu:', error);
-      showToast('Hedefler kaydedilirken bir hata oluştu', 'error');
+      showToast('An error occurred while saving your goals', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -276,14 +276,14 @@ const CalorieGoalScreen = () => {
         >
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
-              Günlük Kalori Hedefi
+              Daily Calorie Goal
             </Text>
             <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-              Günlük hedeflediğiniz kalori miktarını belirleyin
+              Set your daily target calorie intake
             </Text>
             
             <Button
-              title="Kalori İhtiyacımı Hesapla"
+              title="Calculate My Calorie Needs"
               onPress={navigateToCalorieCalculator}
               variant="outline"
               icon="calculator"
@@ -291,7 +291,7 @@ const CalorieGoalScreen = () => {
             />
             
             <Input
-              label="Kalori Hedefi"
+              label="Calorie Goal"
               value={formState.calories}
               onChangeText={value => handleInputChange('calories', value)}
               keyboardType="numeric"
@@ -306,10 +306,10 @@ const CalorieGoalScreen = () => {
           
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>
-              Makro Besin Hedefleri
+              Macro Goals
             </Text>
             <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-              Dengeli beslenme için günlük makro besin hedeflerinizi ayarlayın
+              Set your daily macro nutrient goals
             </Text>
             
             <Input
@@ -323,7 +323,7 @@ const CalorieGoalScreen = () => {
             />
             
             <Input
-              label="Karbonhidrat (g)"
+              label="Carbohydrates (g)"
               value={formState.carbs}
               onChangeText={value => handleInputChange('carbs', value)}
               keyboardType="numeric"
@@ -349,7 +349,7 @@ const CalorieGoalScreen = () => {
             </Text>
             
             <View style={styles.goalDisplay}>
-              <Text style={styles.goalTitle}>Günlük Kalori:</Text>
+              <Text style={styles.goalTitle}>Daily Calories:</Text>
               <Text testID="calorie-goal" style={styles.goalValue}>{calorieGoal}</Text>
             </View>
             
@@ -359,19 +359,19 @@ const CalorieGoalScreen = () => {
             </View>
             
             <View style={styles.goalDisplay}>
-              <Text style={styles.goalTitle}>Karbonhidrat:</Text>
+              <Text style={styles.goalTitle}>Carbohydrates:</Text>
               <Text testID="carbs-goal" style={styles.goalValue}>{nutrientGoals.carbs}g</Text>
             </View>
             
             <View style={styles.goalDisplay}>
-              <Text style={styles.goalTitle}>Yağ:</Text>
+              <Text style={styles.goalTitle}>Fat:</Text>
               <Text testID="fat-goal" style={styles.goalValue}>{nutrientGoals.fat}g</Text>
             </View>
           </View>
           
           <View style={styles.buttonContainer}>
             <Button
-              title="Kaydet"
+              title="Save"
               onPress={handleSave}
               loading={isLoading}
               fullWidth

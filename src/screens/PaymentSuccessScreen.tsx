@@ -45,42 +45,42 @@ const PaymentSuccessScreen = () => {
           />
           
           <Text style={[styles.successTitle, { color: theme.colors.primary }]}>
-            Ödeme Başarılı
+            Payment Successful
           </Text>
           
           <Text style={styles.successMessage}>
-            {selectedPlan?.name} aboneliğiniz başarıyla etkinleştirildi.
+            {selectedPlan?.name} subscription has been activated successfully.
           </Text>
         </View>
         
         <Card style={styles.detailsCard}>
           <Card.Content>
-            <Text style={styles.detailsTitle}>İşlem Detayları</Text>
+            <Text style={styles.detailsTitle}>Transaction Details</Text>
             
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>İşlem Numarası:</Text>
+              <Text style={styles.detailLabel}>Transaction Number:</Text>
               <Text style={styles.detailValue}>{transactionId}</Text>
             </View>
             
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Abonelik Planı:</Text>
+              <Text style={styles.detailLabel}>Subscription Planı:</Text>
               <Text style={styles.detailValue}>{selectedPlan?.name}</Text>
             </View>
             
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Tutar:</Text>
-              <Text style={styles.detailValue}>{selectedPlan?.price} TL / ay</Text>
+              <Text style={styles.detailLabel}>Amount:</Text>
+              <Text style={styles.detailValue}>{selectedPlan?.price} Dollar / month</Text>
             </View>
             
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Durum:</Text>
-              <Text style={[styles.detailValue, styles.statusActive]}>Aktif</Text>
+              <Text style={styles.detailLabel}>Status:</Text>
+              <Text style={[styles.detailValue, styles.statusActive]}>Active</Text>
             </View>
           </Card.Content>
         </Card>
         
         <View style={styles.featuresContainer}>
-          <Text style={styles.featuresTitle}>Artık Şunları Yapabilirsiniz:</Text>
+          <Text style={styles.featuresTitle}>You can now do the following:</Text>
           
           {selectedPlan?.features.map((feature, index) => (
             <View key={index} style={styles.featureItem}>
@@ -96,7 +96,7 @@ const PaymentSuccessScreen = () => {
         </View>
         
         <Button
-          title="Ana Sayfaya Dön"
+          title="Go to Home"
           onPress={handleGoHome}
           fullWidth
           variant="primary"
@@ -104,7 +104,7 @@ const PaymentSuccessScreen = () => {
         />
         
         <Text style={styles.supportText}>
-          Herhangi bir sorunuz varsa, lütfen destek ekibimizle iletişime geçin.
+          If you have any questions, please contact our support team.
         </Text>
       </ScrollView>
     </SafeAreaView>
