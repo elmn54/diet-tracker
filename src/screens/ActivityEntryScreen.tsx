@@ -123,12 +123,12 @@ const ActivityEntryScreen = () => {
   
   // Aktivite türü seçenekleri
   const activityTypeOptions = [
-    { value: 'walking', label: '🚶 Yürüyüş' },
-    { value: 'running', label: '🏃 Koşu' },
-    { value: 'cycling', label: '🚲 Bisiklet' },
-    { value: 'swimming', label: '🏊 Yüzme' },
-    { value: 'workout', label: '💪 Egzersiz' },
-    { value: 'other', label: '⚡ Diğer' }
+    { value: 'walking', label: '🚶 Walking' },
+    { value: 'running', label: '🏃 Running' },
+    { value: 'cycling', label: '🚲 Cycling' },
+    { value: 'swimming', label: '🏊 Swimming' },
+    { value: 'workout', label: '💪 Workout' },
+    { value: 'other', label: '⚡ Other' }
   ];
   
   // Intensity seçenekleri

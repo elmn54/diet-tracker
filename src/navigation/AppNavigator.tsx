@@ -198,7 +198,6 @@ const AppNavigator = () => {
             component={PricingScreen}
             options={{
               ...screenOptions,
-              title: 'Abonelik Planları',
               contentStyle: {
                 ...screenOptions.contentStyle,
                 paddingTop: spacing.s,

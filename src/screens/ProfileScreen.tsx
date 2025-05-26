@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUserStatsStore } from '../store/userStatsStore';
 import { getFirestore, collection, doc, getDoc } from '@react-native-firebase/firestore';
 import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
@@ -88,21 +88,21 @@ const ProfileScreen = () => {
   
   const handleLogout = () => {
     showAlert(
-      'Çıkış',
-      'Çıkış yapmak istediğinize emin misiniz?',
+      'Logout',
+      'Are you sure you want to logout?',
       'warning',
       [
-        { text: 'İptal', onPress: () => {}, style: 'cancel' },
+        { text: 'Cancel', onPress: () => {}, style: 'cancel' },
         { 
-          text: 'Çıkış Yap', 
+          text: 'Logout', 
           onPress: async () => {
             setLoading(true);
             try {
               await signOut();
               // AuthNavigator sayesinde otomatik olarak Login ekranına yönlendirilecek
             } catch (error) {
-              console.error('Çıkış yaparken hata:', error);
-              Alert.alert('Hata', 'Çıkış yapılırken bir hata oluştu.');
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Error logging out.');
             } finally {
               setLoading(false);
             }
@@ -122,7 +122,7 @@ const ProfileScreen = () => {
   };
   
   const formatDate = (date: Date): string => {
-    return format(date, 'd MMMM yyyy', { locale: tr });
+    return format(date, 'd MMMM yyyy', { locale: enUS });
   };
 
   // İstatistikleri hesapla
@@ -135,7 +135,7 @@ const ProfileScreen = () => {
       return '-';
     }
     
-    return joinDate ? formatDate(joinDate) : 'Yükleniyor...';
+    return joinDate ? formatDate(joinDate) : 'Loading...';
   };
 
   return (
@@ -160,26 +160,26 @@ const ProfileScreen = () => {
             {getSubscriptionLabel()}
           </Badge>
           
-          <Text style={[styles.userName, { color: theme.colors.onBackground }]}>{user?.displayName || 'Misafir Kullanıcı'}</Text>
-          <Text style={[styles.userEmail, { color: theme.colors.onBackground }]}>{user?.email || 'misafir@example.com'}</Text>
+          <Text style={[styles.userName, { color: theme.colors.onBackground }]}>{user?.displayName || 'Guest User'}</Text>
+          <Text style={[styles.userEmail, { color: theme.colors.onBackground }]}>{user?.email || 'guest@example.com'}</Text>
           <Text style={[styles.joinDate, { color: theme.colors.onBackground }]}>
-            Üyelik: {getMembershipDateText()}
+            Membership: {getMembershipDateText()}
           </Text>
         </View>
         
         <Card style={styles.card}>
           <Card.Content>
-            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>İstatistikler</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Statistics</Text>
             
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{streakDays}</Text>
-                <Text style={styles.statLabel}>Seri Gün</Text>
+                <Text style={styles.statLabel}>Streak Days</Text>
               </View>
               
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{totalLogsCount}</Text>
-                <Text style={styles.statLabel}>Toplam Kayıt</Text>
+                <Text style={styles.statLabel}>Total Logs</Text>
               </View>
               
               <View style={styles.statItem}>
@@ -198,7 +198,7 @@ const ProfileScreen = () => {
                   >
                     {getSubscriptionLabel()}
                   </Text>
-                  <Text style={styles.statLabel}>Abonelik</Text>
+                  <Text style={styles.statLabel}>Subscription</Text>
                 </View>
               </View>
             </View>
@@ -207,11 +207,11 @@ const ProfileScreen = () => {
         
         <Card style={styles.card}>
           <Card.Content>
-            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Ayarlar</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Settings</Text>
             
             <List.Item
-              title="Kalori ve Besin Hedefleri"
-              description="Günlük besin alımı hedeflerini ayarlayın"
+              title="Calorie and Nutrition Goals"
+              description="Set your daily food intake goals"
               left={props => <List.Icon {...props} icon="target" />}
               onPress={handleOpenCalorieGoalScreen}
             />
@@ -219,8 +219,8 @@ const ProfileScreen = () => {
             <Divider style={styles.divider} />
             
             <List.Item
-              title="Tema Ayarları"
-              description="Uygulama tema tercihlerini değiştirin"
+              title="Theme Settings"
+              description="Change your app theme preferences"
               left={props => <List.Icon {...props} icon="theme-light-dark" />}
               onPress={handleOpenThemeSettings}
             />
@@ -228,8 +228,8 @@ const ProfileScreen = () => {
             <Divider style={styles.divider} />
             
             <List.Item
-              title="Abonelik Planları"
-              description="Premium özelliklere erişin"
+              title="Subscription Plans"
+              description="Access premium features"
               left={props => <List.Icon {...props} icon="cash" />}
               onPress={() => navigation.navigate('Pricing')}
             />
@@ -237,8 +237,8 @@ const ProfileScreen = () => {
             <Divider style={styles.divider} />
             
             <List.Item
-              title="API Ayarları"
-              description="AI yemek tanıma servislerini yapılandırın"
+              title="API Settings"
+              description="Configure AI food recognition services"
               left={props => <List.Icon {...props} icon="api" />}
               onPress={() => navigation.navigate('ApiSettings')}
             />
@@ -247,18 +247,18 @@ const ProfileScreen = () => {
         
         <Card style={styles.card}>
           <Card.Content>
-            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Destek</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Support</Text>
             
             <List.Item
-              title="Uygulama Hakkında"
+              title="About the App"
               left={props => <List.Icon {...props} icon="information" />}
-              onPress={() => Alert.alert('Diyet Takip', 'Sürüm 1.0.0\n© 2023 Tüm Hakları Saklıdır')}
+              onPress={() => Alert.alert('Diet Tracking', 'Version 1.0.0\n© 2023 All Rights Reserved')}
             />
             
             <Divider style={styles.divider} />
             
             <List.Item
-              title="Gizlilik Politikası"
+              title="Privacy Policy"
               left={props => <List.Icon {...props} icon="shield-account" />}
               onPress={() => Linking.openURL('https://example.com/privacy')}
             />
@@ -268,12 +268,12 @@ const ProfileScreen = () => {
         {/* Kullanıcı giriş durumuna göre hesap kartı */}
         <Card style={styles.card}>
           <Card.Content>
-            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Hesap</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Account</Text>
             
             {user ? (
               // Kullanıcı giriş yapmışsa
               <List.Item
-                title="Çıkış Yap"
+                title="Logout"
                 left={props => <List.Icon {...props} icon="logout" color={colors.error} />}
                 onPress={handleLogout}
                 titleStyle={{ color: colors.error }}
@@ -282,8 +282,8 @@ const ProfileScreen = () => {
               // Kullanıcı giriş yapmamışsa
               <>
                 <List.Item
-                  title="Giriş Yap"
-                  description="Mevcut hesabınıza giriş yapın"
+                  title="Login"
+                  description="Login to your existing account"
                   left={props => <List.Icon {...props} icon="login" />}
                   onPress={() => navigation.navigate('Login')}
                 />
@@ -291,8 +291,8 @@ const ProfileScreen = () => {
                 <Divider style={styles.divider} />
                 
                 <List.Item
-                  title="Kayıt Ol"
-                  description="Yeni bir hesap oluşturun"
+                  title="Register"
+                  description="Create a new account"
                   left={props => <List.Icon {...props} icon="account-plus" />}
                   onPress={() => navigation.navigate('Register')}
                 />

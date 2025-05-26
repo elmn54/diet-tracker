@@ -160,7 +160,7 @@ const PricingScreen = () => {
                         styles.price,
                         isPremiumCard && { color: theme.colors.primary }
                       ]}>
-                        {plan.price.toFixed(2)} TL 
+                        {plan.price.toFixed(2)} $
                       </Text>
                       <Text style={styles.pricePeriod}>/ month</Text>
                     </View>
