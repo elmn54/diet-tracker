@@ -372,7 +372,10 @@ const HomeScreen = () => {
 
   // Boş liste yerini tutan öğe
   const EmptyListComponent = () => (
-    <View style={styles.emptyListContainer}>
+    <View style={[
+      styles.emptyListContainer, 
+      isInputFocused && styles.emptyListContainerKeyboard
+    ]}>
       <Text style={styles.emptyListText}>
         Bu tarihte kayıtlı yemek veya aktivite bulunmamaktadır.
       </Text>
@@ -730,6 +733,12 @@ const makeStyles = (colors: any) => StyleSheet.create({
     borderRadius: 10,
     width: '80%',
     marginVertical: 20,
+  },
+  emptyListContainerKeyboard: {
+    position: 'absolute',
+    top: '20%', // Position at 20% from the top when keyboard is open
+    alignSelf: 'center',
+    marginVertical: 0,
   },
   emptyListContainerFixed: {
     padding: 12,
