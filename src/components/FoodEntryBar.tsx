@@ -154,7 +154,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     handleFocusChange(false);
     Keyboard.dismiss();
     
-    navigation.navigate('FoodEntry', { selectedDate });
+    navigation.navigate('FoodEntry', { selectedDate: selectedDate.toISOString() });
   };
 
   // Advanced activity entry (redirect to ActivityEntryScreen)
@@ -164,7 +164,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     Keyboard.dismiss();
     
     // ActivityEntry screen will be created in the next step
-    navigation.navigate('ActivityEntry', { selectedDate });
+    navigation.navigate('ActivityEntry', { selectedDate: selectedDate.toISOString() });
   };
 
   // Camera permission request
@@ -358,7 +358,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
                     mealType: 'lunch',
                     imageUri: imageUri
                   },
-                  selectedDate: selectedDate
+                  selectedDate: selectedDate.toISOString()
                 });
                 setIsAnalyzing(false);
               },

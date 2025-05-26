@@ -44,13 +44,13 @@ export type RootStackParamList = {
     };
     openCamera?: boolean;
     openGallery?: boolean;
-    selectedDate?: Date;
+    selectedDate?: string;
     fromTextInput?: boolean;
   } | undefined;
   'ActivityEntry': {
     editMode?: boolean;
     activityItem?: ActivityItem;
-    selectedDate?: Date;
+    selectedDate?: string;
   } | undefined;
   'DailySummary': undefined;
   'Profile': undefined;

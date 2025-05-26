@@ -38,7 +38,9 @@ const ActivityEntryScreen = () => {
   // Route parametrelerinden editMode ve activityItem al
   const editMode = route.params?.editMode || false;
   const existingActivity = route.params?.activityItem;
-  const selectedDate = route.params?.selectedDate || new Date();
+  const selectedDate = route.params?.selectedDate 
+    ? new Date(route.params.selectedDate) 
+    : new Date();
   
   // Aktivite türü ve yoğunluğu için state
   const [activityType, setActivityType] = useState<ActivityType>(existingActivity?.activityType || 'walking');

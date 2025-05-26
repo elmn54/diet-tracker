@@ -247,7 +247,7 @@ const FoodEntryScreen = () => {
       fat: Number(data.fat),
       date: editMode && existingFood 
         ? existingFood.date 
-        : (route.params?.selectedDate || new Date()).toISOString(),
+        : (route.params?.selectedDate ? route.params.selectedDate : new Date().toISOString()),
       mealType: editMode && existingFood ? existingFood.mealType : 'lunch',
       imageUri: image || null
     };
