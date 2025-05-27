@@ -96,8 +96,14 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       () => {
         setIsKeyboardVisible(false);
         
-        // Klavye gizlendiğinde sadece focus durumunu güncelle
-        // Butonları gizleme, kullanıcı manuel olarak başka yere tıklarsa olsun
+        // When keyboard is hidden, e.g. when Android back button is pressed
+        // reset focus and buttons (user is canceling operation)
+        if (isInputFocused) {
+          handleFocusChange(false);
+          if (inputRef.current) {
+            inputRef.current.blur();
+          }
+        }
       }
     );
 
@@ -748,11 +754,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
           value={inputText}
           onChangeText={setInputText}
           onFocus={() => handleFocusChange(true)}
-          onBlur={() => {
-            // Blur sadece başka bir elemente tıklandığında tetiklensin
-            // Klavye gizlendiğinde değil
-            setTimeout(() => handleFocusChange(false), 100);
-          }}
+          onBlur={() => handleFocusChange(false)}
         />
         <View style={styles.buttonsContainer}>
           <TouchableOpacity 
@@ -1010,7 +1012,10 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   entryTypeCancelText: {
     color: theme.colors.primary,
     fontWeight: 'bold',
-  }
+  },
+  containerExpanded: {
+    paddingBottom: 10,
+  },
 });
 
 export default FoodEntryBar; 
