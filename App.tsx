@@ -16,6 +16,7 @@ import Toast from './src/components/Toast';
 import CustomAlert from './src/components/CustomAlert';
 import { AuthProvider } from './src/context/AuthContext';
 import GoogleAuthService from './src/firebase/google-auth';
+import mobileAds from 'react-native-google-mobile-ads';
 import '@react-native-firebase/app';
 
 // Firebase is initialized automatically by the library when the app starts,
@@ -24,6 +25,16 @@ console.log('Ensuring Firebase is initialized for production builds...');
 
 // Initialize Google Auth service
 GoogleAuthService.init();
+
+// Initialize Google Mobile Ads
+mobileAds()
+  .initialize()
+  .then(adapterStatuses => {
+    console.log('Google Mobile Ads initialized:', adapterStatuses);
+  })
+  .catch(error => {
+    console.error('Google Mobile Ads initialization error:', error);
+  });
 
 // Tema uygulanmış ve veri yükleme mantığı içeren uygulama
 export default function App() {
@@ -49,6 +60,7 @@ export default function App() {
   const loadActivities = useActivityStore(state => state.loadActivities);
   const loadApiKeys = useApiKeyStore(state => state.loadApiKeys);
   const loadGoals = useCalorieGoalStore(state => state.loadGoals);
+  const loadUserSubscription = useSubscriptionStore(state => state.loadUserSubscription);
   
   // Verileri yükleme
   useEffect(() => {
@@ -60,6 +72,7 @@ export default function App() {
         await loadThemePreference();
         await loadApiKeys();
         await loadGoals();
+        await loadUserSubscription();
         console.log('Initial data loaded successfully');
       } catch (error) {
         console.error('Error loading initial data:', error);

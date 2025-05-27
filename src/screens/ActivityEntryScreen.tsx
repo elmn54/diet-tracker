@@ -13,6 +13,7 @@ import Button from '../components/Button';
 import { Text, ActivityIndicator, Divider, useTheme, MD3Theme, SegmentedButtons } from 'react-native-paper';
 import { spacing, typography, metrics } from '../constants/theme';
 import { calculateCaloriesBurned } from '../store/activityStore';
+import { useAdManager } from '../hooks/useAdManager';
 
 // Aktivite formu validasyon şeması
 const activitySchema = z.object({
@@ -34,6 +35,9 @@ const ActivityEntryScreen = () => {
   const styles = makeStyles(theme);
   
   const { addActivity, updateActivity } = useActivityStore();
+  
+  // Reklam yöneticisini kullan
+  const { trackUserEntry, showAdManually, remainingEntries, isAdFree, isLoading: isAdLoading } = useAdManager();
   
   // Route parametrelerinden editMode ve activityItem al
   const editMode = route.params?.editMode || false;
@@ -85,10 +89,39 @@ const ActivityEntryScreen = () => {
     }
   };
   
+  // Kalan giriş sayısını kullanıcıya göster
+  useEffect(() => {
+    if (!isAdFree && remainingEntries <= 1) {
+      // Kullanıcıya kalan giriş hakkını bildir
+      Alert.alert(
+        'Bilgilendirme',
+        remainingEntries === 0 
+          ? 'Ücretsiz kullanım hakkınız bitti. Uygulamayı kullanmaya devam etmek için bir reklam izlemeniz gerekecek.'
+          : `Ücretsiz hesabınızda ${remainingEntries} giriş hakkınız kaldı. Sonraki kullanımınızda reklam gösterilecek.`,
+        [{ text: 'Anladım' }]
+      );
+    }
+  }, [remainingEntries, isAdFree]);
+  
   // Aktivite ekleme/güncelleme fonksiyonu
   const onSubmit = useCallback(async (data: ActivityFormData) => {
     try {
       setIsLoading(true);
+      
+      // Ücretsiz kullanıcı için reklam kontrolü
+      if (!isAdFree && remainingEntries === 0) {
+        const adWatched = await showAdManually();
+        if (!adWatched) {
+          // Kullanıcı reklamı izlemediyse (reklam yüklenemedi veya kapatıldı)
+          Alert.alert(
+            'Kullanım Sınırı',
+            'Ücretsiz kullanım hakkınız bitti. Devam etmek için reklam izlemeniz gerekiyor.',
+            [{ text: 'Anladım' }]
+          );
+          setIsLoading(false);
+          return;
+        }
+      }
       
       const activityData: ActivityItem = {
         id: editMode && existingActivity ? existingActivity.id : Date.now().toString(),
@@ -104,11 +137,11 @@ const ActivityEntryScreen = () => {
       if (editMode && existingActivity) {
         // Mevcut aktiviteyi güncelle
         await updateActivity(activityData);
-        Alert.alert('Success', 'Activity updated');
       } else {
         // Yeni aktivite ekle
         await addActivity(activityData);
-        Alert.alert('Success', 'Activity added');
+        // Ücretsiz kullanıcı için giriş sayacını artır
+        await trackUserEntry();
       }
       
       // Ana ekrana geri dön
@@ -119,7 +152,7 @@ const ActivityEntryScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [editMode, existingActivity, navigation, addActivity, updateActivity, selectedDate, activityType, intensity, caloriesBurned]);
+  }, [editMode, existingActivity, navigation, addActivity, updateActivity, selectedDate, activityType, intensity, caloriesBurned, isAdFree, remainingEntries, showAdManually, trackUserEntry]);
   
   // Aktivite türü seçenekleri
   const activityTypeOptions = [

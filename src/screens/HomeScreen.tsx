@@ -14,6 +14,7 @@ import WeeklyCalendar from '../components/WeeklyCalendar';
 import CaloriesCard from '../components/CaloriesCard';
 import MacrosCard from '../components/MacrosCard';
 import FoodEntryBar from '../components/FoodEntryBar';
+import AdBanner from '../components/AdBanner';
 import GestureRecognizer from 'react-native-swipe-gestures';
 
 // Alternatif yaklaşım (eğer mevcut çözüm çalışmazsa):

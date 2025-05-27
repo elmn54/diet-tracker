@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useFoodStore, FoodItem } from '../store/foodStore';
 import { useApiKeyStore } from '../store/apiKeyStore';
 import { useSubscriptionStore, SubscriptionPlan } from '../store/subscriptionStore';
+import { useAdManager } from '../hooks/useAdManager';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { Text, ActivityIndicator, Divider, useTheme, MD3Theme } from 'react-native-paper';
@@ -38,6 +39,9 @@ const FoodEntryScreen = () => {
   const navigation = useNavigation<FoodEntryScreenNavigationProp>();
   const route = useRoute<FoodEntryScreenRouteProp>();
   const theme = useTheme();
+  
+  // Ad yöneticisi hook'unu kullan
+  const { trackUserEntry, isLoading: isAdLoading, remainingEntries, isAdFree, showAdManually } = useAdManager();
   
   // Stable references to state functions
   const addFood = useFoodStore(useCallback(state => state.addFood, []));
@@ -99,6 +103,20 @@ const FoodEntryScreen = () => {
       fat: existingFood ? String(existingFood.fat) : ''
     }
   });
+  
+  // Kalan giriş sayısını kullanıcıya göster
+  useEffect(() => {
+    if (!isAdFree && remainingEntries <= 1) {
+      // Kullanıcıya kalan giriş hakkını bildir
+      Alert.alert(
+        'Bilgilendirme',
+        remainingEntries === 0 
+          ? 'Ücretsiz kullanım hakkınız bitti. Uygulamayı kullanmaya devam etmek için bir reklam izlemeniz gerekecek.'
+          : `Ücretsiz hesabınızda ${remainingEntries} giriş hakkınız kaldı. Sonraki kullanımınızda reklam gösterilecek.`,
+        [{ text: 'Anladım' }]
+      );
+    }
+  }, [remainingEntries, isAdFree]);
   
   // Otomatik olarak kamera veya galeri açma
   useEffect(() => {
@@ -239,52 +257,54 @@ const FoodEntryScreen = () => {
 
   const createFoodData = useCallback((data: FoodFormData): FoodItem => {
     return {
-      id: editMode && existingFood ? existingFood.id : Date.now().toString(),
+      id: existingFood ? existingFood.id : Math.random().toString(36).substring(7),
       name: data.name,
-      calories: Number(data.calories),
-      protein: Number(data.protein),
-      carbs: Number(data.carbs),
-      fat: Number(data.fat),
-      date: editMode && existingFood 
-        ? existingFood.date 
-        : (route.params?.selectedDate ? route.params.selectedDate : new Date().toISOString()),
-      mealType: editMode && existingFood ? existingFood.mealType : 'lunch',
-      imageUri: image || null
+      calories: parseInt(data.calories),
+      protein: parseInt(data.protein),
+      carbs: parseInt(data.carbs),
+      fat: parseInt(data.fat),
+      date: existingFood ? existingFood.date : new Date().toISOString(),
+      imageUri: image || null,
+      mealType: existingFood?.mealType || 'snack',
     };
-  }, [editMode, existingFood, image, route.params?.selectedDate]);
+  }, [editMode, existingFood, image]);
 
   const onSubmit = async (data: FoodFormData) => {
     try {
       setIsSubmitting(true);
       
-      const foodData = createFoodData(data);
-
-      if (editMode) {
-        await updateFood(foodData);
-        Alert.alert(
-          'Success',
-          'Food updated',
-          [{ text: 'OK', onPress: () => {
-            reset();
-            setImage(null);
-            navigation.goBack();
-          }}]
-        );
-      } else {
-        await addFood(foodData);
-        Alert.alert(
-          'Success',
-          'Food saved',
-          [{ text: 'OK', onPress: () => {
-            reset();
-            setImage(null);
-            navigation.navigate('Ana Sayfa');
-          }}]
-        );
+      // Ücretsiz kullanıcı için reklam kontrolü
+      if (!isAdFree && remainingEntries === 0) {
+        const adWatched = await showAdManually();
+        if (!adWatched) {
+          // Kullanıcı reklamı izlemediyse (reklam yüklenemedi veya kapatıldı)
+          Alert.alert(
+            'Kullanım Sınırı',
+            'Ücretsiz kullanım hakkınız bitti. Devam etmek için reklam izlemeniz gerekiyor.',
+            [{ text: 'Anladım' }]
+          );
+          setIsSubmitting(false);
+          return;
+        }
       }
+      
+      // Form verisini nesneye dönüştür
+      const foodItem = createFoodData(data);
+      
+      // Düzenleme veya ekleme işlemini gerçekleştir
+      if (editMode && existingFood) {
+        await updateFood(foodItem);
+      } else {
+        await addFood(foodItem);
+        // Yeni giriş olduğu için ad manager'a bildir
+        await trackUserEntry();
+      }
+      
+      // Başarılı olduğunda ana sayfaya dön
+      navigation.goBack();
     } catch (error) {
-      console.error('Yemek işlemi sırasında hata oluştu:', error);
-      Alert.alert('Error', 'An error occurred during the process. Please try again.');
+      console.error('Yemek kaydederken hata oluştu:', error);
+      Alert.alert('Error', 'An error occurred while saving the food entry.');
     } finally {
       setIsSubmitting(false);
     }
