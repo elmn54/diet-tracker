@@ -76,12 +76,12 @@ const ProfileScreen = () => {
   
   const getSubscriptionLabel = () => {
     if (!isSubscribed) {
-      return 'Ücretsiz';
+      return 'Free';
     }
     
     switch (activePlanId) {
       case 'premium': return 'Premium';
-      case 'basic': return 'Temel';
+      case 'basic': return 'Basic';
       default: return activePlanId; // Fallback to plan ID if unknown
     }
   };
