@@ -873,9 +873,13 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    paddingVertical: 15,
+    paddingVertical: 10,
     paddingHorizontal: 20,
     zIndex: 9999,
+    ...(Platform.OS === 'android' ? { 
+      paddingBottom: 10,
+      marginBottom: 0
+    } : {}),
   },
   containerExpanded: {
     paddingBottom: 30,
@@ -886,8 +890,8 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: 25,
     paddingHorizontal: 15,
-    paddingVertical: 10,
-    height: 54,
+    paddingVertical: 8,
+    height: 50,
   },
   input: {
     flex: 1,
@@ -911,12 +915,14 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   },
   quickEntryContainer: {
     flexDirection: 'row',
-    marginTop: 10,
+    marginTop: 5,
+    marginBottom: 5,
     justifyContent: 'space-between',
+    paddingBottom: 5,
   },
   quickEntryButton: {
     backgroundColor: theme.colors.primary,
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
     flex: 1,
     marginRight: 8,
@@ -928,7 +934,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
   },
   advancedEntryButton: {
     backgroundColor: theme.dark ? theme.colors.surfaceDisabled : '#E0E0E0',
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
     flex: 1,
     marginLeft: 8,
