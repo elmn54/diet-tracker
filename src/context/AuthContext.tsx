@@ -138,10 +138,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       } else {
         setState({ user: null, userData: null, isLoading: false, error: null });
+        
+        // Sadece premium kullanıcılar için verileri tamamen sıfırla
+        // Ücretsiz kullanıcılar için verileri local storage'da tut
+        const activePlan = useSubscriptionStore.getState().activePlanId;
+        
         await useSubscriptionStore.getState().reset();
-        await useFoodStore.getState().reset();
-        await useActivityStore.getState().reset();
-        await useCalorieGoalStore.getState().reset();
+        
+        if (activePlan === 'premium') {
+          // Premium kullanıcı için tüm verileri sıfırla
+          await useFoodStore.getState().reset();
+          await useActivityStore.getState().reset();
+          await useCalorieGoalStore.getState().reset();
+        } else {
+          // Ücretsiz kullanıcı - veriler korunacak, sadece state'i temizle
+          // Store'ları sıfırlamadan, sadece uygulama state'ini temizle
+          useFoodStore.setState({ foods: [], isLoading: false });
+          useActivityStore.setState({ activities: [], isLoading: false });
+        }
       }
     });
 
