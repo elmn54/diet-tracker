@@ -8,8 +8,8 @@ const TEST_BANNER_ID = TestIds.BANNER;
 
 // Prodüksiyon ortamında kullanılacak gerçek Ad ID'leri
 // Uygulamanız Google Ads'e kaydedildiğinde buraya gerçek ID'leri eklemelisiniz
-const ANDROID_BANNER_ID = '';
-const IOS_BANNER_ID = '';
+const ANDROID_BANNER_ID = 'ca-app-pub-3940256099942544/6300978111'; // Google test ad ID
+const IOS_BANNER_ID = 'ca-app-pub-3940256099942544/2934735716'; // Google test ad ID
 
 interface AdBannerProps {
   size?: BannerAdSize;

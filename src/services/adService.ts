@@ -6,8 +6,8 @@ const TEST_INTERSTITIAL_ID = TestIds.INTERSTITIAL;
 
 // Prodüksiyon ortamında kullanılacak gerçek Ad ID'leri
 // Uygulamanız Google Ads'e kaydedildiğinde buraya gerçek ID'leri eklemelisiniz
-const ANDROID_INTERSTITIAL_ID = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Değiştirilmeli
-const IOS_INTERSTITIAL_ID = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Değiştirilmeli
+const ANDROID_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712'; // Google test ad ID 
+const IOS_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/4411468910'; // Google test ad ID
 
 export class AdService {
   private interstitialAd: InterstitialAd | null = null;
