@@ -28,7 +28,7 @@
       "package": "com.emreliman.diettracker",
       "runtimeVersion": "1.0.0",
       "googleServicesFile": "./google-services.json",
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/favicon.png"

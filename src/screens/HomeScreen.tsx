@@ -455,155 +455,161 @@ const HomeScreen = () => {
   };
 
   return (
-    <SafeAreaView 
-      style={styles.container}
-      edges={['left', 'right', 'bottom']}
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
-      <StatusBar
-        backgroundColor={theme.colors.background}
-        barStyle={theme.dark ? 'light-content' : 'dark-content'}
-      />
-      
-      {/* ÜST BÖLÜM: Header ve Takvim */}
-      <View style={styles.topSection}>
-        {/* Tarih ve Butonlar */}
-        <View style={styles.todayContainer}>
-          <Text style={styles.todayText}>{getDayLabel()}</Text>
-          <View style={styles.headerButtons}>
-            <View style={styles.statsButtonContainer}>
-              <TouchableOpacity 
-                style={styles.iconButton}
-                onPress={handleOpenStats}
-              >
-                <Text style={styles.themeIcon}>📊</Text>
-              </TouchableOpacity>
-              
-              {/* Abonelik türü badge - absolute positioning ile konumlandırılıyor */}
-              <Badge 
-                style={[
-                  styles.subscriptionBadge, 
-                  { 
-                    backgroundColor: isSubscribed 
-                      ? (activePlanId === 'premium' 
-                          ? theme.colors.primary 
-                          : theme.dark ? '#686868' : theme.colors.surfaceVariant)
-                      : theme.dark ? '#585858' : 'rgba(255, 255, 255, 0.8)',
-                    color: theme.dark 
-                      ? '#FFFFFF' 
-                      : '#000000'
-                  }
-                ]}
-              >
-                {isSubscribed 
-                  ? (activePlanId === 'premium' 
-                      ? 'Premium' 
-                      : 'Basic')
-                  : 'Free'}
-              </Badge>
-            </View>
-            
-            <Menu
-              visible={menuVisible}
-              onDismiss={() => setMenuVisible(false)}
-              anchor={
-                <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
-                  <Text style={styles.themeIcon}>⚙️</Text>
+      <SafeAreaView 
+        style={styles.container}
+        edges={['left', 'right', 'bottom']}
+      >
+        <StatusBar
+          backgroundColor={theme.colors.background}
+          barStyle={theme.dark ? 'light-content' : 'dark-content'}
+        />
+        
+        {/* ÜST BÖLÜM: Header ve Takvim */}
+        <View style={styles.topSection}>
+          {/* Tarih ve Butonlar */}
+          <View style={styles.todayContainer}>
+            <Text style={styles.todayText}>{getDayLabel()}</Text>
+            <View style={styles.headerButtons}>
+              <View style={styles.statsButtonContainer}>
+                <TouchableOpacity 
+                  style={styles.iconButton}
+                  onPress={handleOpenStats}
+                >
+                  <Text style={styles.themeIcon}>📊</Text>
                 </TouchableOpacity>
-              }
-            >
-              <Menu.Item 
-                onPress={() => {
-                  handleOpenThemeSettings();
-                  setMenuVisible(false);
-                }}
-                title="Theme Settings"
-                leadingIcon={theme.dark ? "weather-night" : "weather-sunny"}
-              />
-              <Menu.Item 
-                onPress={handleOpenCalorieGoalScreen} 
-                title="Calorie Goal" 
-                leadingIcon="target"
-              />
-              <Menu.Item 
-                onPress={handleOpenApiSettings} 
-                title="API Settings" 
-                leadingIcon="api"
-              />
-              <Menu.Item 
-                onPress={handleOpenPricingScreen}
-                title="Subscription Plans" 
-                leadingIcon="cash" 
-              />
-              <Divider />
-              <Menu.Item 
-                onPress={() => {
-                  navigation.navigate('Profile');
-                  setMenuVisible(false);
-                }}
-                title="Profile" 
-                leadingIcon="account" 
-              />
-            </Menu>
+                
+                {/* Abonelik türü badge - absolute positioning ile konumlandırılıyor */}
+                <Badge 
+                  style={[
+                    styles.subscriptionBadge, 
+                    { 
+                      backgroundColor: isSubscribed 
+                        ? (activePlanId === 'premium' 
+                            ? theme.colors.primary 
+                            : theme.dark ? '#686868' : theme.colors.surfaceVariant)
+                        : theme.dark ? '#585858' : 'rgba(255, 255, 255, 0.8)',
+                      color: theme.dark 
+                        ? '#FFFFFF' 
+                        : '#000000'
+                    }
+                  ]}
+                >
+                  {isSubscribed 
+                    ? (activePlanId === 'premium' 
+                        ? 'Premium' 
+                        : 'Basic')
+                    : 'Free'}
+                </Badge>
+              </View>
+              
+              <Menu
+                visible={menuVisible}
+                onDismiss={() => setMenuVisible(false)}
+                anchor={
+                  <TouchableOpacity style={styles.iconButton} onPress={toggleMenu}>
+                    <Text style={styles.themeIcon}>⚙️</Text>
+                  </TouchableOpacity>
+                }
+              >
+                <Menu.Item 
+                  onPress={() => {
+                    handleOpenThemeSettings();
+                    setMenuVisible(false);
+                  }}
+                  title="Theme Settings"
+                  leadingIcon={theme.dark ? "weather-night" : "weather-sunny"}
+                />
+                <Menu.Item 
+                  onPress={handleOpenCalorieGoalScreen} 
+                  title="Calorie Goal" 
+                  leadingIcon="target"
+                />
+                <Menu.Item 
+                  onPress={handleOpenApiSettings} 
+                  title="API Settings" 
+                  leadingIcon="api"
+                />
+                <Menu.Item 
+                  onPress={handleOpenPricingScreen}
+                  title="Subscription Plans" 
+                  leadingIcon="cash" 
+                />
+                <Divider />
+                <Menu.Item 
+                  onPress={() => {
+                    navigation.navigate('Profile');
+                    setMenuVisible(false);
+                  }}
+                  title="Profile" 
+                  leadingIcon="account" 
+                />
+              </Menu>
+            </View>
           </View>
+          
+          {/* Takvim */}
+          <WeeklyCalendar 
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            getCalorieStatus={getCalorieStatus}
+          />
         </View>
         
-        {/* Takvim */}
-        <WeeklyCalendar 
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-          getCalorieStatus={getCalorieStatus}
-        />
-      </View>
-      
-      {/* ORTA BÖLÜM: Yemek Listesi (kaydırılabilir) */}
-      <View style={styles.middleSection}>
-        <GestureRecognizer
-          onSwipeLeft={onSwipeLeft}
-          onSwipeRight={onSwipeRight}
-          config={swipeConfig}
-          style={{ flex: 1, width: '100%' }}
-        >
-          <FlatList
-            ref={flatListRef}
-            data={getAllEntries()}
-            renderItem={renderItem}
-            keyExtractor={item => item.id}
-            ListEmptyComponent={EmptyListComponent}
-            contentContainerStyle={dailyFoods.length === 0 && dailyActivities.length === 0 ? 
-              styles.emptyListContentContainer : styles.foodListContentContainer}
-            style={styles.flatList}
-            scrollEnabled={true}
-            scrollEventThrottle={16}
-            showsVerticalScrollIndicator={true}
-            bounces={true}
-          />
-        </GestureRecognizer>
-      </View>
-      
-      {/* ALT BÖLÜM: Kalori ve Makro Kartları */}
-      {!isInputFocused && (
-        <View style={styles.bottomSection}>
-          <View style={styles.cardsContainer}>
-            <CaloriesCard 
-              food={foodCalories}
-              exercise={burnedCalories}
-              remaining={remainingCalories}
+        {/* ORTA BÖLÜM: Yemek Listesi (kaydırılabilir) */}
+        <View style={styles.middleSection}>
+          <GestureRecognizer
+            onSwipeLeft={onSwipeLeft}
+            onSwipeRight={onSwipeRight}
+            config={swipeConfig}
+            style={{ flex: 1, width: '100%' }}
+          >
+            <FlatList
+              ref={flatListRef}
+              data={getAllEntries()}
+              renderItem={renderItem}
+              keyExtractor={item => item.id}
+              ListEmptyComponent={EmptyListComponent}
+              contentContainerStyle={dailyFoods.length === 0 && dailyActivities.length === 0 ? 
+                styles.emptyListContentContainer : styles.foodListContentContainer}
+              style={styles.flatList}
+              scrollEnabled={true}
+              scrollEventThrottle={16}
+              showsVerticalScrollIndicator={true}
+              bounces={true}
             />
-            <MacrosCard 
-              carbs={{ current: dailyNutrients.carbs, goal: nutrientGoals.carbs }}
-              protein={{ current: dailyNutrients.protein, goal: nutrientGoals.protein }}
-              fat={{ current: dailyNutrients.fat, goal: nutrientGoals.fat }}
-            />
-          </View>
+          </GestureRecognizer>
         </View>
-      )}
-      
-      {/* EN ALT: Yemek Giriş Çubuğu - Artık kendi klavye konumlandırmasını yapıyor */}
-      <FoodEntryBar 
-        selectedDate={selectedDate} 
-        onFocusChange={setIsInputFocused}
-      />
-    </SafeAreaView>
+        
+        {/* ALT BÖLÜM: Kalori ve Makro Kartları */}
+        {!isInputFocused && (
+          <View style={styles.bottomSection}>
+            <View style={styles.cardsContainer}>
+              <CaloriesCard 
+                food={foodCalories}
+                exercise={burnedCalories}
+                remaining={remainingCalories}
+              />
+              <MacrosCard 
+                carbs={{ current: dailyNutrients.carbs, goal: nutrientGoals.carbs }}
+                protein={{ current: dailyNutrients.protein, goal: nutrientGoals.protein }}
+                fat={{ current: dailyNutrients.fat, goal: nutrientGoals.fat }}
+              />
+            </View>
+          </View>
+        )}
+        
+        {/* EN ALT: Yemek Giriş Çubuğu */}
+        <FoodEntryBar 
+          selectedDate={selectedDate} 
+          onFocusChange={setIsInputFocused}
+        />
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -628,7 +634,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    marginBottom: 100, // FoodEntryBar için yer
+    marginBottom: 70, // FoodEntryBar için yer
   },
   todayContainer: {
     flexDirection: 'row',
@@ -666,7 +672,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   foodListContentContainer: {
     paddingHorizontal: 16,
     paddingTop: 0,
-    paddingBottom: 120,
+    paddingBottom: 80,
     width: '100%',
     alignSelf: 'flex-start',
     flexGrow: 1,
@@ -674,7 +680,7 @@ const makeStyles = (colors: any) => StyleSheet.create({
   emptyListContentContainer: {
     paddingHorizontal: 16,
     paddingTop: 0, 
-    paddingBottom: 120,
+    paddingBottom: 80,
     flex: 1,
     width: '100%',
     justifyContent: 'center',

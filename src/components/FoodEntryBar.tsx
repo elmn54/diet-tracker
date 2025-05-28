@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard, Alert, ActivityIndicator, BackHandler, KeyboardEvent, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard, Alert, ActivityIndicator, BackHandler, KeyboardEvent, Platform, KeyboardAvoidingView } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -118,7 +118,8 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e: KeyboardEvent) => {
-        setKeyboardHeight(e.endCoordinates.height);
+        // Klavye yüksekliğine küçük bir boşluk ekle
+        setKeyboardHeight(e.endCoordinates.height + (Platform.OS === 'ios' ? 10 : 0));
       }
     );
     
@@ -734,14 +735,16 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   };
 
   // Klavye ve focus durumuna göre butonları gösterme durumu
-  const shouldShowButtons = isInputFocused && isKeyboardVisible;
+  const shouldShowButtons = isKeyboardVisible;
 
   return (
-    <View style={[
-      styles.container,
-      shouldShowButtons && styles.containerExpanded,
-      { bottom: keyboardHeight > 0 ? keyboardHeight + 10 : 0 }
-    ]}>
+    <View 
+      style={[
+        styles.container,
+        shouldShowButtons && styles.containerExpanded,
+        { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }
+      ]}
+    >
       <View style={styles.inputContainer}>
         <TextInput
           ref={inputRef}
@@ -875,7 +878,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     zIndex: 9999,
   },
   containerExpanded: {
-    paddingBottom: 20,
+    paddingBottom: 30,
   },
   inputContainer: {
     flexDirection: 'row',
