@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAdStore } from '../store/adStore';
 import { useSubscriptionStore } from '../store/subscriptionStore';
 import { useUIStore } from '../store/uiStore';
@@ -21,22 +21,23 @@ export const useAdManager = () => {
   // Subscription store'dan premium durumunu kontrol et
   const isAdFree = useSubscriptionStore(state => state.isFeatureAvailable('isAdFree'));
   
+  // remainingEntries'yi sadece entryCount değiştiğinde hesapla
+  const remainingEntries = useMemo(() => {
+    return getRemainingUses();
+  }, [entryCount, isAdFree, getRemainingUses]);
+  
   // Kullanıcı bir şey eklerken veya bir aksiyon gerçekleştirdiğinde çağrılacak
   const trackUserEntry = async () => {
     if (isAdFree) return; // Premium kullanıcılar için hiçbir şey yapma
     
     try {
       setIsLoading(true);
+      
+      // Giriş sayacını artır
       await incrementEntryCount();
       
-      // Eğer kullanım hakkı kalmadıysa ve reklam görüntülendi ve başarılı olduysa
-      if (shouldShowAd()) {
-        const wasAdWatched = await showAd();
-        if (wasAdWatched) {
-          // Kullanıcıya geri bildirim ver
-          showToast('You won 2 more uses!', 'success');
-        }
-      }
+      // Not: incrementEntryCount içinde shouldShowAd ve showAd çağrılıyor, 
+      // bu nedenle burada tekrar kontrol etmeye gerek yok.
     } catch (error) {
       console.error('Error tracking user entry:', error);
     } finally {
@@ -70,9 +71,7 @@ export const useAdManager = () => {
   const showAdReminder = () => {
     if (isAdFree) return; // Premium kullanıcılar için hiçbir şey yapma
     
-    // Kalan giriş hakkını hesapla
-    const remainingEntries = getRemainingUses();
-    
+    // Kalan giriş hakkı kontrolü - direkt remainingEntries kullan
     if (remainingEntries === 1) {
       showAlert(
         'Reklam Hatırlatması',
@@ -101,7 +100,7 @@ export const useAdManager = () => {
     showAdReminder,
     entryCount,
     isLoading,
-    remainingEntries: getRemainingUses(),
+    remainingEntries,
     isAdFree
   };
 }; 

@@ -16,6 +16,7 @@ import { createCompletion } from '../services/aiService.js';
 import * as ImagePicker from 'expo-image-picker';
 import { identifyFood } from '../services/foodRecognitionService';
 import { useSubscriptionStore, SubscriptionPlan } from '../store/subscriptionStore';
+import { useAdManager } from '../hooks/useAdManager';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Ana Sayfa'>;
@@ -50,6 +51,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   const { addFood } = useFoodStore();
   const { addActivity } = useActivityStore();
   const { showToast } = useUIStore();
+  const { trackUserEntry, remainingEntries, isAdFree, showAdManually } = useAdManager();
   const inputRef = useRef<TextInput>(null);
   
   // Get API information from store
@@ -287,6 +289,21 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         return;
       }
       
+      // Ücretsiz kullanıcı için reklam kontrolü
+      if (!isAdFree && remainingEntries === 0) {
+        const adWatched = await showAdManually();
+        if (!adWatched) {
+          // Kullanıcı reklamı izlemediyse (reklam yüklenemedi veya kapatıldı)
+          Alert.alert(
+            'Limit Reached',
+            'You have reached your limit. Please watch an ad to continue.',
+            [{ text: 'I understand' }]
+          );
+          setIsAnalyzing(false);
+          return;
+        }
+      }
+      
       // Get data from API
       const result = await analyzeImageWithAI(imageUri);
       console.log('Raw result:', JSON.stringify(result));
@@ -392,6 +409,20 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   // Food saving helper function
   const saveFood = async (name: string, calories: number, protein: number, carbs: number, fat: number, imageUri?: string) => {
     try {
+      // Ücretsiz kullanıcı için reklam kontrolü
+      if (!isAdFree && remainingEntries === 0) {
+        const adWatched = await showAdManually();
+        if (!adWatched) {
+          // Kullanıcı reklamı izlemediyse (reklam yüklenemedi veya kapatıldı)
+          Alert.alert(
+            'Limit Reached',
+            'You have reached your limit. Please watch an ad to continue.',
+            [{ text: 'I understand' }]
+          );
+          return;
+        }
+      }
+
       // Create new food
       const newFood: FoodItem = {
         id: Date.now().toString(),
@@ -409,6 +440,9 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       
       // Save the food
       await addFood(newFood);
+      
+      // Ücretsiz kullanıcı için giriş sayacını artır
+      await trackUserEntry();
       
       // Show success message
       showToast(`${newFood.name} added (${newFood.calories} kcal)`, 'success');
@@ -673,6 +707,25 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
         return;
       }
       
+      // Ücretsiz kullanıcı için reklam kontrolü
+      if (!isAdFree && remainingEntries === 0) {
+        const adWatched = await showAdManually();
+        if (!adWatched) {
+          // Kullanıcı reklamı izlemediyse (reklam yüklenemedi veya kapatıldı)
+          Alert.alert(
+            'Kullanım Sınırı',
+            'Ücretsiz kullanım hakkınız bitti. Devam etmek için reklam izlemeniz gerekiyor.',
+            [{ text: 'Anladım' }]
+          );
+          
+          // Input durumunu temizle
+          setInputText('');
+          handleFocusChange(false);
+          Keyboard.dismiss();
+          return;
+        }
+      }
+      
       try {
         setIsAnalyzing(true);
         
@@ -697,6 +750,9 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
           
           await addActivity(newActivity);
           
+          // Ücretsiz kullanıcı için giriş sayacını artır
+          await trackUserEntry();
+          
           // Toast ile bildir
           showToast(`${newActivity.name} added (-${newActivity.calories} kcal)`, 'success');
         } else {
@@ -716,6 +772,9 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
           };
           
           await addFood(newFood);
+          
+          // Ücretsiz kullanıcı için giriş sayacını artır
+          await trackUserEntry();
           
           // Alert yerine toast kullan
           showToast(`${newFood.name} added (${newFood.calories} kcal)`, 'success');

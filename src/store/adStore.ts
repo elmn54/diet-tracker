@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSubscriptionStore } from './subscriptionStore';
+import { useUIStore } from './uiStore';
 import adService from '../services/adService';
 
 export interface AdStoreState {
@@ -41,14 +42,18 @@ export const useAdStore = create<AdStoreState>()(
         const newCount = get().entryCount + 1;
         set({ entryCount: newCount });
         
+        console.log(`[AdStore] Entry count incremented to: ${newCount}`);
+        
         // Eğer limit aşıldıysa reklam göster
         if (newCount >= MAX_FREE_ENTRIES) {
+          console.log(`[AdStore] Entry count reached or exceeded max (${MAX_FREE_ENTRIES}), showing ad`);
           await get().showAd();
         }
       },
       
       resetEntryCount: () => {
         set({ entryCount: 0 });
+        console.log('[AdStore] Entry count reset to 0');
       },
       
       shouldShowAd: () => {
@@ -57,16 +62,25 @@ export const useAdStore = create<AdStoreState>()(
         if (isAdFree) return false;
         
         // Ücretsiz kullanıcılar için giriş sayısına bak
-        return get().entryCount >= MAX_FREE_ENTRIES;
+        const shouldShow = get().entryCount >= MAX_FREE_ENTRIES;
+        console.log(`[AdStore] Should show ad? ${shouldShow} (count: ${get().entryCount}, max: ${MAX_FREE_ENTRIES})`);
+        return shouldShow;
       },
       
       showAd: async () => {
+        console.log('[AdStore] Showing interstitial ad');
+        
         // Reklam gösterme işlemi
         const wasAdWatched = await adService.showInterstitialAd();
+        
+        console.log(`[AdStore] Ad was watched: ${wasAdWatched}`);
         
         // Reklam tamamlandıysa sayacı sıfırla (2 yeni kullanım hakkı ver)
         if (wasAdWatched) {
           get().resetEntryCount();
+          
+          // UI Store'a doğrudan erişim yapılamaz, bu işlem useAdManager içinde gerçekleştirilmeli
+          // Ancak burada sayaç sıfırlandı, bu bilgiyi döndürüyoruz
         }
         
         return wasAdWatched;
@@ -78,7 +92,9 @@ export const useAdStore = create<AdStoreState>()(
         if (isAdFree) return Infinity;
         
         // Ücretsiz kullanıcılar için kalan kullanım hakkını hesapla
-        return Math.max(0, MAX_FREE_ENTRIES - get().entryCount);
+        const remaining = Math.max(0, MAX_FREE_ENTRIES - get().entryCount);
+        // Log mesajını sadece kalan kullanım değiştiğinde yazdır
+        return remaining;
       }
     }),
     {
