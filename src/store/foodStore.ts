@@ -7,8 +7,13 @@ import { FirebaseFirestoreTypes, Timestamp } from '@react-native-firebase/firest
 import { syncItemUpstream, deleteItemFromFirestore } from '../services/syncService';
 import { useSubscriptionStore } from './subscriptionStore';
 import { useActivityStore } from './activityStore'; // calculateNetCalories için gerekli
+import { firebaseAuth } from '../firebase/firebase.config';
 
-const FOODS_STORAGE_KEY = 'foods';
+// Key'i dinamik oluşturmak için yardımcı fonksiyon
+const getFoodsStorageKey = (userId?: string | null) => {
+  const prefix = 'foods';
+  return userId ? `${prefix}_${userId}` : prefix;
+};
 
 export interface FoodItem {
   id: string;
@@ -61,7 +66,14 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   loadFoods: async () => {
     set({ isLoading: true });
     try {
-      const storedFoods = await getItem<FoodItem[]>(FOODS_STORAGE_KEY, []);
+      // Kullanıcı ID'sini al
+      const currentUser = firebaseAuth.currentUser;
+      const userId = currentUser?.uid;
+      
+      // Kullanıcıya özel storage key oluştur
+      const storageKey = getFoodsStorageKey(userId);
+      
+      const storedFoods = await getItem<FoodItem[]>(storageKey, []);
       const processedFoods = (storedFoods || []).map(food => ({
         ...food,
         createdAt: typeof food.createdAt === 'string' ? new Date(food.createdAt) : food.createdAt,
@@ -87,7 +99,15 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     const newFoods = [...foods, newFoodItem];
     
     set({ foods: newFoods });
-    await setItem(FOODS_STORAGE_KEY, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
+    
+    // Kullanıcı ID'sini al
+    const currentUser = firebaseAuth.currentUser;
+    const userId = currentUser?.uid;
+    
+    // Kullanıcıya özel storage key oluştur
+    const storageKey = getFoodsStorageKey(userId);
+    
+    await setItem(storageKey, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
 
     const { activePlanId } = useSubscriptionStore.getState();
     if (activePlanId === 'premium') {
@@ -101,7 +121,15 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     const newFoods = foods.filter((food) => food.id !== id);
     
     set({ foods: newFoods });
-    await setItem(FOODS_STORAGE_KEY, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
+    
+    // Kullanıcı ID'sini al
+    const currentUser = firebaseAuth.currentUser;
+    const userId = currentUser?.uid;
+    
+    // Kullanıcıya özel storage key oluştur
+    const storageKey = getFoodsStorageKey(userId);
+    
+    await setItem(storageKey, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
 
     const { activePlanId } = useSubscriptionStore.getState();
     if (activePlanId === 'premium') {
@@ -120,7 +148,15 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     );
     
     set({ foods: newFoods });
-    await setItem(FOODS_STORAGE_KEY, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
+    
+    // Kullanıcı ID'sini al
+    const currentUser = firebaseAuth.currentUser;
+    const userId = currentUser?.uid;
+    
+    // Kullanıcıya özel storage key oluştur
+    const storageKey = getFoodsStorageKey(userId);
+    
+    await setItem(storageKey, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
 
     const { activePlanId } = useSubscriptionStore.getState();
     if (activePlanId === 'premium') {
@@ -151,7 +187,14 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   
   reset: async () => {
     set({ foods: [], isLoading: false });
-    await setItem(FOODS_STORAGE_KEY, []);
+    
+    // Premium kullanıcılar için reset durumunda bile verileri silmeye gerek yok
+    // Çünkü her kullanıcının kendi ID'si ile saklanıyor
+    // Ancak istenirse tüm verileri silmek için:
+    // const currentUser = firebaseAuth.currentUser;
+    // const userId = currentUser?.uid;
+    // const storageKey = getFoodsStorageKey(userId);
+    // await setItem(storageKey, []);
   },
 
   setFoods: (loadedFoods: FoodItem[]) => {
@@ -161,7 +204,15 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         updatedAt: food.updatedAt && !(food.updatedAt instanceof Date) && (food.updatedAt as FirebaseFirestoreTypes.Timestamp)?.toDate ? (food.updatedAt as FirebaseFirestoreTypes.Timestamp).toDate() : (typeof food.updatedAt === 'string' ? new Date(food.updatedAt) : food.updatedAt),
     }));
     set({ foods: processedFoods, isLoading: false });
-    setItem(FOODS_STORAGE_KEY, processedFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
+    
+    // Kullanıcı ID'sini al
+    const currentUser = firebaseAuth.currentUser;
+    const userId = currentUser?.uid;
+    
+    // Kullanıcıya özel storage key oluştur
+    const storageKey = getFoodsStorageKey(userId);
+    
+    setItem(storageKey, processedFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
   }
 }));
 

@@ -1,12 +1,19 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// DÜZELTME: syncService'den doğru fonksiyonu import et
 import { syncUserSettingsUpstream } from '../services/syncService';
 import { useSubscriptionStore } from './subscriptionStore';
 import { firebaseAuth } from '../firebase/firebase.config';
 
-const CALORIE_GOAL_KEY = 'calorie_goal';
-const NUTRIENT_GOALS_KEY = 'nutrient_goals';
+// Key'leri dinamik oluşturmak için yardımcı fonksiyonlar
+const getCalorieGoalStorageKey = (userId?: string | null) => {
+  const prefix = 'calorie_goal';
+  return userId ? `${prefix}_${userId}` : prefix;
+};
+
+const getNutrientGoalsStorageKey = (userId?: string | null) => {
+  const prefix = 'nutrient_goals';
+  return userId ? `${prefix}_${userId}` : prefix;
+};
 
 export interface NutrientGoals {
   protein: number;
@@ -17,116 +24,114 @@ export interface NutrientGoals {
 interface CalorieGoalState {
   calorieGoal: number;
   nutrientGoals: NutrientGoals;
-  isLoading: boolean;
-  
-  setCalorieGoal: (goal: number) => Promise<void>;
-  setNutrientGoals: (goals: NutrientGoals) => Promise<void>;
+  setCalorieGoal: (newGoal: number) => Promise<void>;
+  setNutrientGoals: (newGoals: NutrientGoals) => Promise<void>;
   loadGoals: () => Promise<void>;
+  isLoading: boolean;
   reset: () => Promise<void>;
 }
 
-const DEFAULT_CALORIE_GOAL = 2000;
-const DEFAULT_NUTRIENT_GOALS: NutrientGoals = {
-  protein: 100,
-  carbs: 250,
-  fat: 65,
-};
-
 export const useCalorieGoalStore = create<CalorieGoalState>((set, get) => ({
-  calorieGoal: DEFAULT_CALORIE_GOAL,
-  nutrientGoals: DEFAULT_NUTRIENT_GOALS,
+  calorieGoal: 2000, // Varsayılan değer
+  nutrientGoals: { protein: 100, carbs: 250, fat: 65 }, // Varsayılan değerler
   isLoading: true,
   
-  setCalorieGoal: async (goal: number) => {
-    try {
-      if (isNaN(goal) || goal <= 0) {
-        console.error('Geçersiz kalori hedefi değeri:', goal);
-        return;
-      }
-      
-      const currentNutrientGoals = get().nutrientGoals;
-      set({ calorieGoal: goal });
-      await AsyncStorage.setItem(CALORIE_GOAL_KEY, goal.toString());
-
-      const { activePlanId } = useSubscriptionStore.getState();
-      const userId = firebaseAuth.currentUser?.uid;
-      if (activePlanId === 'premium' && userId) {
-        await syncUserSettingsUpstream(userId, { calorieGoal: goal, nutrientGoals: currentNutrientGoals });
-      }
-
-    } catch (error) {
-      console.error('Kalori hedefi kaydedilirken hata oluştu:', error);
-    }
-  },
-  
-  setNutrientGoals: async (goals: NutrientGoals) => {
-    try {
-      if (
-        isNaN(goals.protein) || goals.protein < 0 ||
-        isNaN(goals.carbs) || goals.carbs < 0 ||
-        isNaN(goals.fat) || goals.fat < 0
-      ) {
-        console.error('Geçersiz besin değerleri hedefleri:', goals);
-        return;
-      }
-      const currentCalorieGoal = get().calorieGoal;
-      set({ nutrientGoals: goals });
-      await AsyncStorage.setItem(NUTRIENT_GOALS_KEY, JSON.stringify(goals));
-
-      const { activePlanId } = useSubscriptionStore.getState();
-      const userId = firebaseAuth.currentUser?.uid;
-      if (activePlanId === 'premium' && userId) {
-        await syncUserSettingsUpstream(userId, { calorieGoal: currentCalorieGoal, nutrientGoals: goals });
-      }
-
-    } catch (error) {
-      console.error('Besin değerleri hedefleri kaydedilirken hata oluştu:', error);
-    }
-  },
-  
   loadGoals: async () => {
+    set({ isLoading: true });
+    try {
+      // Kullanıcı ID'sini al
+      const currentUser = firebaseAuth.currentUser;
+      const userId = currentUser?.uid;
+      
+      // Kullanıcıya özel storage key oluştur
+      const calorieGoalKey = getCalorieGoalStorageKey(userId);
+      const nutrientGoalsKey = getNutrientGoalsStorageKey(userId);
+      
+      const storedCalorieGoal = await AsyncStorage.getItem(calorieGoalKey);
+      const storedNutrientGoals = await AsyncStorage.getItem(nutrientGoalsKey);
+      
+      const parsedCalorieGoal = storedCalorieGoal ? parseInt(storedCalorieGoal, 10) : 2000;
+      const parsedNutrientGoals: NutrientGoals = storedNutrientGoals 
+        ? JSON.parse(storedNutrientGoals) 
+        : { protein: 100, carbs: 250, fat: 65 };
+      
+      set({
+        calorieGoal: parsedCalorieGoal,
+        nutrientGoals: parsedNutrientGoals,
+        isLoading: false
+      });
+    } catch (error) {
+      console.error('Failed to load goals:', error);
+      set({
+        calorieGoal: 2000,
+        nutrientGoals: { protein: 100, carbs: 250, fat: 65 },
+        isLoading: false
+      });
+    }
+  },
+  
+  setCalorieGoal: async (newGoal: number) => {
+    set({ calorieGoal: newGoal });
+    
+    // Kullanıcı ID'sini al
+    const currentUser = firebaseAuth.currentUser;
+    const userId = currentUser?.uid;
+    
+    // Kullanıcıya özel storage key oluştur
+    const calorieGoalKey = getCalorieGoalStorageKey(userId);
+    
+    await AsyncStorage.setItem(calorieGoalKey, newGoal.toString());
+    
     const { activePlanId } = useSubscriptionStore.getState();
-    if (activePlanId !== 'premium') {
-        set({ isLoading: true });
-        try {
-            const storedCalorieGoal = await AsyncStorage.getItem(CALORIE_GOAL_KEY);
-            if (storedCalorieGoal) {
-                const parsedGoal = parseInt(storedCalorieGoal, 10);
-                if (!isNaN(parsedGoal) && parsedGoal > 0) {
-                    set({ calorieGoal: parsedGoal });
-                }
-            }
-
-            const storedNutrientGoals = await AsyncStorage.getItem(NUTRIENT_GOALS_KEY);
-            if (storedNutrientGoals) {
-                const parsedGoals = JSON.parse(storedNutrientGoals);
-                if (
-                    parsedGoals && typeof parsedGoals === 'object' &&
-                    !isNaN(parsedGoals.protein) && parsedGoals.protein >= 0 &&
-                    !isNaN(parsedGoals.carbs) && parsedGoals.carbs >= 0 &&
-                    !isNaN(parsedGoals.fat) && parsedGoals.fat >= 0
-                ) {
-                    set({ nutrientGoals: parsedGoals });
-                }
-            }
-        } catch (error) {
-            console.error('Lokal hedefler yüklenirken hata:', error);
-        } finally {
-            set({ isLoading: false });
-        }
-    } else {
-        set({ isLoading: false });
+    const { nutrientGoals } = get();
+    
+    if (activePlanId === 'premium' && userId) {
+      await syncUserSettingsUpstream(userId, {
+        calorieGoal: newGoal,
+        nutrientGoals
+      });
+    }
+  },
+  
+  setNutrientGoals: async (newGoals: NutrientGoals) => {
+    set({ nutrientGoals: newGoals });
+    
+    // Kullanıcı ID'sini al
+    const currentUser = firebaseAuth.currentUser;
+    const userId = currentUser?.uid;
+    
+    // Kullanıcıya özel storage key oluştur
+    const nutrientGoalsKey = getNutrientGoalsStorageKey(userId);
+    
+    await AsyncStorage.setItem(nutrientGoalsKey, JSON.stringify(newGoals));
+    
+    const { activePlanId } = useSubscriptionStore.getState();
+    const { calorieGoal } = get();
+    
+    if (activePlanId === 'premium' && userId) {
+      await syncUserSettingsUpstream(userId, {
+        calorieGoal,
+        nutrientGoals: newGoals
+      });
     }
   },
   
   reset: async () => {
     set({
-      calorieGoal: DEFAULT_CALORIE_GOAL,
-      nutrientGoals: DEFAULT_NUTRIENT_GOALS,
+      calorieGoal: 2000,
+      nutrientGoals: { protein: 100, carbs: 250, fat: 65 },
       isLoading: false
     });
-    await AsyncStorage.removeItem(CALORIE_GOAL_KEY);
-    await AsyncStorage.removeItem(NUTRIENT_GOALS_KEY);
+    
+    // Premium kullanıcılar için reset durumunda bile verileri silmeye gerek yok
+    // Çünkü her kullanıcının kendi ID'si ile saklanıyor
+    // Ancak istenirse tüm verileri silmek için:
+    // const currentUser = firebaseAuth.currentUser;
+    // const userId = currentUser?.uid;
+    // const calorieGoalKey = getCalorieGoalStorageKey(userId);
+    // const nutrientGoalsKey = getNutrientGoalsStorageKey(userId);
+    // await AsyncStorage.removeItem(calorieGoalKey);
+    // await AsyncStorage.removeItem(nutrientGoalsKey);
   }
 }));
 

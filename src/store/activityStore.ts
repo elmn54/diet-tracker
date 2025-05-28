@@ -1,28 +1,32 @@
 // src/store/activityStore.ts
 import { create } from 'zustand';
-import { setItem, getItem } from '../storage/asyncStorage';
-// DİKKAT: ActivityItem'ı SADECE types/activity.ts dosyasından import et
-import { ActivityItem, ActivityType, ActivityIntensity } from '../types/activity';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
 import { FirebaseFirestoreTypes, Timestamp } from '@react-native-firebase/firestore';
+import { ActivityItem, ActivityType, ActivityIntensity } from '../types/activity';
 import { syncItemUpstream, deleteItemFromFirestore } from '../services/syncService';
 import { useSubscriptionStore } from './subscriptionStore';
+import { firebaseAuth } from '../firebase/firebase.config';
 
-const ACTIVITIES_STORAGE_KEY = 'activities';
+// Key'i dinamik oluşturmak için yardımcı fonksiyon
+const getActivitiesStorageKey = (userId?: string | null) => {
+  const prefix = 'activities';
+  return userId ? `${prefix}_${userId}` : prefix;
+};
 
 interface ActivityState {
-  activities: ActivityItem[]; // Burada types/activity.ts'den gelen ActivityItem kullanılmalı
+  activities: ActivityItem[];
   addActivity: (activity: Omit<ActivityItem, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<ActivityItem>;
   removeActivity: (id: string) => Promise<void>;
   updateActivity: (activity: ActivityItem) => Promise<void>;
-  calculateDailyBurnedCalories: (date: string) => number;
-  reset: () => Promise<void>;
   loadActivities: () => Promise<void>;
+  reset: () => Promise<void>;
   isLoading: boolean;
+  calculateDailyBurnedCalories: (date: string) => number;
   setActivities: (activities: ActivityItem[]) => void;
 }
 
-const isSameDateActivity = (date1: string, date2: string): boolean => {
+const isSameDate = (date1: string, date2: string): boolean => {
   const d1 = new Date(date1);
   const d2 = new Date(date2);
   return (
@@ -53,99 +57,185 @@ export const calculateCaloriesBurned = (
     return caloriesBurnedVal;
 };
 
-
 export const useActivityStore = create<ActivityState>((set, get) => ({
   activities: [],
   isLoading: true,
-  
+
   loadActivities: async () => {
     set({ isLoading: true });
     try {
-      const storedActivities = await getItem<ActivityItem[]>(ACTIVITIES_STORAGE_KEY, []);
-      const processedActivities = (storedActivities || []).map(activity => ({
+      // Kullanıcı ID'sini al
+      const currentUser = firebaseAuth.currentUser;
+      const userId = currentUser?.uid;
+      
+      // Kullanıcıya özel storage key oluştur
+      const storageKey = getActivitiesStorageKey(userId);
+      
+      const storedActivities = await AsyncStorage.getItem(storageKey);
+      const parsedActivities = storedActivities ? JSON.parse(storedActivities) as ActivityItem[] : [];
+
+      const processedActivities = parsedActivities.map(activity => ({
         ...activity,
         createdAt: typeof activity.createdAt === 'string' ? new Date(activity.createdAt) : activity.createdAt,
         updatedAt: typeof activity.updatedAt === 'string' ? new Date(activity.updatedAt) : activity.updatedAt,
       }));
+
       set({ activities: processedActivities, isLoading: false });
     } catch (error) {
       console.error("Failed to load activities:", error);
       set({ activities: [], isLoading: false });
     }
   },
-  
+
   addActivity: async (activityInput) => {
     const now = new Date();
-    const newActivityItem: ActivityItem = { // ActivityItem tipi burada kullanılmalı
+    const newActivity: ActivityItem = {
       ...activityInput,
       id: activityInput.id || uuidv4(),
       createdAt: now,
       updatedAt: now,
     };
+
     const { activities } = get();
-    const newActivities = [...activities, newActivityItem];
-    
+    const newActivities = [...activities, newActivity];
     set({ activities: newActivities });
-    await setItem(ACTIVITIES_STORAGE_KEY, newActivities.map(a => ({...a, createdAt: (a.createdAt instanceof Date ? a.createdAt.toISOString() : a.createdAt), updatedAt: (a.updatedAt instanceof Date ? a.updatedAt.toISOString() : a.updatedAt) })) );
     
+    // Kullanıcı ID'sini al
+    const currentUser = firebaseAuth.currentUser;
+    const userId = currentUser?.uid;
+    
+    // Kullanıcıya özel storage key oluştur
+    const storageKey = getActivitiesStorageKey(userId);
+    
+    await AsyncStorage.setItem(
+      storageKey,
+      JSON.stringify(
+        newActivities.map(a => ({
+          ...a,
+          createdAt: a.createdAt instanceof Date ? a.createdAt.toISOString() : a.createdAt,
+          updatedAt: a.updatedAt instanceof Date ? a.updatedAt.toISOString() : a.updatedAt
+        }))
+      )
+    );
+
     const { activePlanId } = useSubscriptionStore.getState();
     if (activePlanId === 'premium') {
-      await syncItemUpstream('activities', newActivityItem);
+      await syncItemUpstream('activities', newActivity);
     }
-    return newActivityItem;
+
+    return newActivity;
   },
-  
+
   removeActivity: async (id: string) => {
     const { activities } = get();
-    const newActivities = activities.filter((activity) => activity.id !== id);
-    
+    const newActivities = activities.filter(activity => activity.id !== id);
     set({ activities: newActivities });
-    await setItem(ACTIVITIES_STORAGE_KEY, newActivities.map(a => ({...a, createdAt: (a.createdAt instanceof Date ? a.createdAt.toISOString() : a.createdAt), updatedAt: (a.updatedAt instanceof Date ? a.updatedAt.toISOString() : a.updatedAt) })) );
+    
+    // Kullanıcı ID'sini al
+    const currentUser = firebaseAuth.currentUser;
+    const userId = currentUser?.uid;
+    
+    // Kullanıcıya özel storage key oluştur
+    const storageKey = getActivitiesStorageKey(userId);
+    
+    await AsyncStorage.setItem(
+      storageKey,
+      JSON.stringify(
+        newActivities.map(a => ({
+          ...a,
+          createdAt: a.createdAt instanceof Date ? a.createdAt.toISOString() : a.createdAt,
+          updatedAt: a.updatedAt instanceof Date ? a.updatedAt.toISOString() : a.updatedAt
+        }))
+      )
+    );
 
     const { activePlanId } = useSubscriptionStore.getState();
     if (activePlanId === 'premium') {
       await deleteItemFromFirestore('activities', id);
     }
   },
-  
-  updateActivity: async (updatedActivity: ActivityItem) => { // ActivityItem tipi burada kullanılmalı
-    const activityWithTimestamp: ActivityItem = { // ActivityItem tipi burada kullanılmalı
+
+  updateActivity: async (updatedActivity: ActivityItem) => {
+    const activityWithTimestamp: ActivityItem = {
       ...updatedActivity,
       updatedAt: new Date(),
     };
+
     const { activities } = get();
-    const newActivities = activities.map((activity) => 
+    const newActivities = activities.map(activity =>
       activity.id === activityWithTimestamp.id ? activityWithTimestamp : activity
     );
-    
+
     set({ activities: newActivities });
-    await setItem(ACTIVITIES_STORAGE_KEY, newActivities.map(a => ({...a, createdAt: (a.createdAt instanceof Date ? a.createdAt.toISOString() : a.createdAt), updatedAt: (a.updatedAt instanceof Date ? a.updatedAt.toISOString() : a.updatedAt) })) );
+    
+    // Kullanıcı ID'sini al
+    const currentUser = firebaseAuth.currentUser;
+    const userId = currentUser?.uid;
+    
+    // Kullanıcıya özel storage key oluştur
+    const storageKey = getActivitiesStorageKey(userId);
+    
+    await AsyncStorage.setItem(
+      storageKey,
+      JSON.stringify(
+        newActivities.map(a => ({
+          ...a,
+          createdAt: a.createdAt instanceof Date ? a.createdAt.toISOString() : a.createdAt,
+          updatedAt: a.updatedAt instanceof Date ? a.updatedAt.toISOString() : a.updatedAt
+        }))
+      )
+    );
 
     const { activePlanId } = useSubscriptionStore.getState();
     if (activePlanId === 'premium') {
       await syncItemUpstream('activities', activityWithTimestamp);
     }
   },
-  
+
+  reset: async () => {
+    set({ activities: [], isLoading: false });
+    
+    // Premium kullanıcılar için reset durumunda bile verileri silmeye gerek yok
+    // Çünkü her kullanıcının kendi ID'si ile saklanıyor
+    // Ancak istenirse tüm verileri silmek için:
+    // const currentUser = firebaseAuth.currentUser;
+    // const userId = currentUser?.uid;
+    // const storageKey = getActivitiesStorageKey(userId);
+    // await AsyncStorage.removeItem(storageKey);
+  },
+
   calculateDailyBurnedCalories: (date: string) => {
     const { activities } = get();
     return activities
-      .filter((activity) => isSameDateActivity(activity.date, date))
+      .filter(activity => isSameDate(activity.date, date))
       .reduce((total, activity) => total + activity.calories, 0);
   },
-  
-  reset: async () => {
-    set({ activities: [], isLoading: false });
-    await setItem(ACTIVITIES_STORAGE_KEY, []);
-  },
 
-  setActivities: (loadedActivities: ActivityItem[]) => { // ActivityItem tipi burada kullanılmalı
-     const processedActivities = loadedActivities.map(activity => ({
-        ...activity,
-        createdAt: activity.createdAt && !(activity.createdAt instanceof Date) && (activity.createdAt as FirebaseFirestoreTypes.Timestamp)?.toDate ? (activity.createdAt as FirebaseFirestoreTypes.Timestamp).toDate() : (typeof activity.createdAt === 'string' ? new Date(activity.createdAt) : activity.createdAt),
-        updatedAt: activity.updatedAt && !(activity.updatedAt instanceof Date) && (activity.updatedAt as FirebaseFirestoreTypes.Timestamp)?.toDate ? (activity.updatedAt as FirebaseFirestoreTypes.Timestamp).toDate() : (typeof activity.updatedAt === 'string' ? new Date(activity.updatedAt) : activity.updatedAt),
+  setActivities: (loadedActivities: ActivityItem[]) => {
+    const processedActivities = loadedActivities.map(activity => ({
+      ...activity,
+      createdAt: activity.createdAt && !(activity.createdAt instanceof Date) && (activity.createdAt as FirebaseFirestoreTypes.Timestamp)?.toDate ? (activity.createdAt as FirebaseFirestoreTypes.Timestamp).toDate() : (typeof activity.createdAt === 'string' ? new Date(activity.createdAt) : activity.createdAt),
+      updatedAt: activity.updatedAt && !(activity.updatedAt instanceof Date) && (activity.updatedAt as FirebaseFirestoreTypes.Timestamp)?.toDate ? (activity.updatedAt as FirebaseFirestoreTypes.Timestamp).toDate() : (typeof activity.updatedAt === 'string' ? new Date(activity.updatedAt) : activity.updatedAt),
     }));
+    
     set({ activities: processedActivities, isLoading: false });
-    setItem(ACTIVITIES_STORAGE_KEY, processedActivities.map(a => ({...a, createdAt: (a.createdAt instanceof Date ? a.createdAt.toISOString() : a.createdAt), updatedAt: (a.updatedAt instanceof Date ? a.updatedAt.toISOString() : a.updatedAt) })) );
+    
+    // Kullanıcı ID'sini al
+    const currentUser = firebaseAuth.currentUser;
+    const userId = currentUser?.uid;
+    
+    // Kullanıcıya özel storage key oluştur
+    const storageKey = getActivitiesStorageKey(userId);
+    
+    AsyncStorage.setItem(
+      storageKey, 
+      JSON.stringify(
+        processedActivities.map(a => ({
+          ...a,
+          createdAt: a.createdAt instanceof Date ? a.createdAt.toISOString() : a.createdAt,
+          updatedAt: a.updatedAt instanceof Date ? a.updatedAt.toISOString() : a.updatedAt
+        }))
+      )
+    );
   }
 }));
