@@ -585,7 +585,12 @@ const HomeScreen = () => {
             />
           </GestureRecognizer>
         </View>
-        
+        {/* Reklam Bannerı */}
+        {!isInputFocused && !isSubscribed && (
+          <View style={styles.adContainer}>
+            <AdBanner />
+          </View>
+        )}
         {/* ALT BÖLÜM: Kalori ve Makro Kartları */}
         {!isInputFocused && (
           <View style={styles.bottomSection}>
@@ -856,6 +861,9 @@ const makeStyles = (colors: any) => StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
+  },
+  adContainer: {
+   
   },
 });
 

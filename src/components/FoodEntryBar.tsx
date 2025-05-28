@@ -1013,9 +1013,6 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: 'bold',
   },
-  containerExpanded: {
-    paddingBottom: 10,
-  },
 });
 
 export default FoodEntryBar; 
