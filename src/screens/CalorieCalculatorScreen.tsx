@@ -10,7 +10,7 @@ import { spacing, typography } from '../constants/theme';
 
 // Activity level multipliers for calorie calculations - revised values
 const ACTIVITY_LEVELS = [
-  { label: 'Hareketsiz (Egzersiz yok)', value: 'sedentary', multiplier: 1.2 },
+  { label: 'Sedentary (No exercise)', value: 'sedentary', multiplier: 1.2 },
   { label: 'Lightly Active (1-3 days of exercise per week)', value: 'light', multiplier: 1.375 },
   { label: 'Moderately Active (3-5 days of exercise per week)', value: 'moderate', multiplier: 1.55 },
   { label: 'Very Active (6-7 days of exercise per week)', value: 'active', multiplier: 1.725 },
