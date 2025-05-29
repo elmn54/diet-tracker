@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard, Alert, ActivityIndicator, BackHandler, KeyboardEvent, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal, Keyboard, Alert, ActivityIndicator, BackHandler, KeyboardEvent, Platform, KeyboardAvoidingView, Dimensions } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -58,7 +58,13 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
   const apiKeys = useApiKeyStore(state => state.apiKeys);
   const preferredProvider = useApiKeyStore(state => state.preferredProvider);
   
+  // Varsayılan klavye yüksekliği - cihaz yüksekliğinin yaklaşık 1/3'ü
+  const defaultKeyboardHeight = Math.floor(Dimensions.get('window').height / 3);
+  
+  // İlk açılışta doğru hesaplama için flag ekleyelim
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [keyboardMeasured, setKeyboardMeasured] = useState(false);
+  const [isInitialKeyboardShow, setIsInitialKeyboardShow] = useState(true);
   
   const styles = makeStyles(theme);
   
@@ -115,13 +121,33 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
     };
   }, [isInputFocused]);
 
-  // Klavye olaylarını dinle
+  // Klavye olaylarını dinle - bu event handler'ı güncelleyelim
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e: KeyboardEvent) => {
-        // Klavye yüksekliğine küçük bir boşluk ekle
-        setKeyboardHeight(e.endCoordinates.height + (Platform.OS === 'ios' ? 10 : 0));
+        // İlk açılışta klavye yüksekliği hatalı olabilir, bu durumda default yüksekliği kullan
+        const newHeight = e.endCoordinates.height;
+        
+        // Android için ilk klavye gösteriminde özel işlem yap
+        const isAndroid = Platform.OS === 'android';
+        if (isInitialKeyboardShow && isAndroid) {
+          // İlk açılışta klavye yüksekliği çok düşük gelirse varsayılan değeri kullan
+          // Bu değer cihazın 1/3'ü olarak ayarlanmıştır ve genelde iyi çalışır
+          if (newHeight < 100 || newHeight < defaultKeyboardHeight * 0.5) {
+            console.log('Klavye yüksekliği şüpheli, varsayılan değer kullanılıyor:', defaultKeyboardHeight);
+            setKeyboardHeight(defaultKeyboardHeight);
+          } else {
+            console.log('Klavye yüksekliği normal:', newHeight);
+            setKeyboardHeight(newHeight + (Platform.OS === 'ios' ? 10 : 0));
+          }
+          setIsInitialKeyboardShow(false);
+        } else {
+          // Sonraki açılışlarda ölçülen değeri kullan
+          setKeyboardHeight(newHeight + (Platform.OS === 'ios' ? 10 : 0));
+        }
+        
+        setKeyboardMeasured(true);
       }
     );
     
@@ -136,7 +162,7 @@ const FoodEntryBar: React.FC<FoodEntryBarProps> = ({
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
-  }, []);
+  }, [isInitialKeyboardShow, defaultKeyboardHeight]);
 
   // Handle input focus change
   const handleFocusChange = (focused: boolean) => {
