@@ -22,6 +22,9 @@ const PaymentFailureScreen = () => {
   // Seçilen planı bul (eğer varsa)
   const selectedPlan = planId ? plans.find(plan => plan.id === planId) : null;
   
+  // Check if the plan is yearly
+  const isYearlyPlan = planId?.includes('yearly') || false;
+  
   // Ödeme sayfasına geri dön (tekrar deneme)
   const handleTryAgain = () => {
     if (selectedPlan) {
@@ -59,17 +62,17 @@ const PaymentFailureScreen = () => {
           />
           
           <Text style={[styles.errorTitle, { color: theme.colors.error }]}>
-            Ödeme Başarısız
+            Payment Failed
           </Text>
           
           <Text style={styles.errorMessage}>
-            {error || 'İşleminiz tamamlanamadı. Lütfen daha sonra tekrar deneyin.'}
+            {error || 'Your transaction could not be completed. Please try again later.'}
           </Text>
         </View>
         
         <Card style={styles.detailsCard}>
           <Card.Content>
-            <Text style={styles.detailsTitle}>Olası Nedenler:</Text>
+            <Text style={styles.detailsTitle}>Possible Reasons:</Text>
             
             <View style={styles.reasonItem}>
               <IconButton
@@ -78,7 +81,7 @@ const PaymentFailureScreen = () => {
                 iconColor={theme.colors.onSurface}
                 style={styles.reasonIcon}
               />
-              <Text style={styles.reasonText}>Kart bilgileriniz yanlış veya eksik olabilir</Text>
+              <Text style={styles.reasonText}>Your card information may be incorrect or incomplete</Text>
             </View>
             
             <View style={styles.reasonItem}>
@@ -88,7 +91,7 @@ const PaymentFailureScreen = () => {
                 iconColor={theme.colors.onSurface}
                 style={styles.reasonIcon}
               />
-              <Text style={styles.reasonText}>Kartınızda yeterli bakiye bulunmayabilir</Text>
+              <Text style={styles.reasonText}>Your card may have insufficient balance</Text>
             </View>
             
             <View style={styles.reasonItem}>
@@ -98,7 +101,7 @@ const PaymentFailureScreen = () => {
                 iconColor={theme.colors.onSurface}
                 style={styles.reasonIcon}
               />
-              <Text style={styles.reasonText}>Bankanız işlemi onaylamıyor olabilir</Text>
+              <Text style={styles.reasonText}>Your bank may not be approving the transaction</Text>
             </View>
             
             <View style={styles.reasonItem}>
@@ -108,14 +111,14 @@ const PaymentFailureScreen = () => {
                 iconColor={theme.colors.onSurface}
                 style={styles.reasonIcon}
               />
-              <Text style={styles.reasonText}>Geçici bir bağlantı sorunu olabilir</Text>
+              <Text style={styles.reasonText}>There may be a temporary connection issue</Text>
             </View>
           </Card.Content>
         </Card>
         
         <View style={styles.buttonsContainer}>
           <Button
-            title="Tekrar Dene"
+            title="Try Again"
             onPress={handleTryAgain}
             fullWidth
             variant="primary"
@@ -123,7 +126,7 @@ const PaymentFailureScreen = () => {
           />
           
           <Button
-            title="Ana Sayfaya Dön"
+            title="Go to Home"
             onPress={handleGoHome}
             fullWidth
             variant="outline"
@@ -131,7 +134,7 @@ const PaymentFailureScreen = () => {
         </View>
         
         <Text style={styles.supportText}>
-          Sorun devam ederse, lütfen başka bir ödeme yöntemi deneyin veya destek ekibimizle iletişime geçin.
+          If the problem persists, please try another payment method or contact our support team.
         </Text>
       </ScrollView>
     </SafeAreaView>

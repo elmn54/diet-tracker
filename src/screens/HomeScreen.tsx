@@ -490,7 +490,7 @@ const HomeScreen = () => {
                     styles.subscriptionBadge, 
                     { 
                       backgroundColor: isSubscribed 
-                        ? (activePlanId === 'premium' 
+                        ? (activePlanId.includes('premium')
                             ? theme.colors.primary 
                             : theme.dark ? '#686868' : theme.colors.surfaceVariant)
                         : theme.dark ? '#585858' : 'rgba(255, 255, 255, 0.8)',
@@ -501,7 +501,7 @@ const HomeScreen = () => {
                   ]}
                 >
                   {isSubscribed 
-                    ? (activePlanId === 'premium' 
+                    ? (activePlanId.includes('premium')
                         ? 'Premium' 
                         : 'Basic')
                     : 'Free'}

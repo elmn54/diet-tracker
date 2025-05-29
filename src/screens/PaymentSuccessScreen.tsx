@@ -22,6 +22,10 @@ const PaymentSuccessScreen = () => {
   // Seçilen planı bul
   const selectedPlan = plans.find(plan => plan.id === planId);
   
+  // Check if the plan is yearly
+  const isYearlyPlan = planId.includes('yearly');
+  const billingPeriod = isYearlyPlan ? 'year' : 'month';
+  
   // Ana sayfaya dön
   const handleGoHome = () => {
     navigation.reset({
@@ -63,13 +67,13 @@ const PaymentSuccessScreen = () => {
             </View>
             
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Subscription Planı:</Text>
+              <Text style={styles.detailLabel}>Subscription Plan:</Text>
               <Text style={styles.detailValue}>{selectedPlan?.name}</Text>
             </View>
             
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Amount:</Text>
-              <Text style={styles.detailValue}>{selectedPlan?.price} Dollar / month</Text>
+              <Text style={styles.detailValue}>{selectedPlan?.price} Dollar / {billingPeriod}</Text>
             </View>
             
             <View style={styles.detailRow}>

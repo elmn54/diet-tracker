@@ -1,7 +1,7 @@
 // src/screens/PricingScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert } from 'react-native';
-import { Text, useTheme, Card, IconButton, Badge, Divider } from 'react-native-paper';
+import { Text, useTheme, Card, IconButton, Badge, Divider, SegmentedButtons } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,8 +9,14 @@ import Button from '../components/Button';
 import { useSubscriptionStore, SubscriptionPlan } from '../store/subscriptionStore';
 import { spacing, typography } from '../constants/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import FreeVsPremiumCard from '../components/FreeVsPremiumCard';
 
 type PricingScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Pricing'>;
+
+type PlanDuration = 'monthly' | 'yearly';
+
+// Define the PlanId type to match the subscription store
+type PlanId = 'free' | 'basic' | 'premium' | 'basic_yearly' | 'premium_yearly';
 
 const PricingScreen = () => {
   const theme = useTheme();
@@ -22,17 +28,21 @@ const PricingScreen = () => {
     isSubscribed, 
     setSelectedPlanForPaymentLocally,
     cancelUserSubscription,
-    // Deneme sürümüyle ilgili kısımlar kaldırıldı
-    // isTrialActive, 
-    // getRemainingTrialDays,
-    // startTrial,
   } = useSubscriptionStore();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [planDuration, setPlanDuration] = useState<PlanDuration>('monthly');
   
   useEffect(() => {
     if (isSubscribed && plans.some(p => p.id === activePlanId)) {
       setSelectedPlanForPaymentLocally(activePlanId);
+      
+      // Set the initial plan duration based on the active plan
+      if (activePlanId.includes('yearly')) {
+        setPlanDuration('yearly');
+      } else if (activePlanId !== 'free') {
+        setPlanDuration('monthly');
+      }
     } else if (!plans.some(p => p.id === selectedPlanForPayment)) {
       setSelectedPlanForPaymentLocally('basic');
     }
@@ -50,19 +60,16 @@ const PricingScreen = () => {
         </View>
       );
     }
-    // Deneme sürümüyle ilgili kısım kaldırıldı
-    // if (isTrialActive) { ... }
     
-    // Deneme sürümü butonu yerine standart mesaj
     return (
       <View style={[styles.statusContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
         <IconButton
-          icon="information-outline" // information-outline daha uygun olabilir
+          icon="information-outline"
           size={24}
           iconColor={theme.colors.onSurfaceVariant}
         />
         <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>
-          Şu anda aktif aboneliğiniz bulunmuyor.
+          You currently don't have an active subscription.
         </Text>
       </View>
     );
@@ -94,6 +101,19 @@ const PricingScreen = () => {
       </View>
     ));
   };
+
+  const filteredPlans = plans.filter(plan => {
+    // Exclude free plan
+    if (plan.id === 'free') return false;
+    
+    // For monthly view, show only non-yearly plans
+    if (planDuration === 'monthly') {
+      return !plan.isYearlyPlan;
+    }
+    
+    // For yearly view, show only yearly plans
+    return !!plan.isYearlyPlan;
+  });
   
   return (
     <SafeAreaView 
@@ -111,11 +131,35 @@ const PricingScreen = () => {
         </View>
     
         {renderSubscriptionStatus()}
+
+        {/* Plan Duration Toggle */}
+        <View style={styles.toggleContainer}>
+          <SegmentedButtons
+            value={planDuration}
+            onValueChange={(value) => setPlanDuration(value as PlanDuration)}
+            buttons={[
+              {
+                value: 'monthly',
+                label: 'Monthly',
+                style: planDuration === 'monthly' ? { backgroundColor: theme.colors.primaryContainer } : undefined
+              },
+              {
+                value: 'yearly',
+                label: 'Yearly',
+                style: planDuration === 'yearly' ? { backgroundColor: theme.colors.primaryContainer } : undefined
+              },
+            ]}
+          />
+          {planDuration === 'yearly' && (
+            <View style={styles.savingBadge}>
+              <Text style={styles.savingText}>Save 30%</Text>
+            </View>
+          )}
+        </View>
         
         <View style={styles.plansContainer}>
-          {plans.map((plan) => {
-            if (plan.id === 'free') return null;
-            const isPremiumCard = plan.id === 'premium';
+          {filteredPlans.map((plan) => {
+            const isPremiumCard = plan.id === 'premium' || plan.id === 'premium_yearly';
             const isSelectedForPayment = selectedPlanForPayment === plan.id;
             
             return (
@@ -151,7 +195,7 @@ const PricingScreen = () => {
                         styles.planName, 
                         isPremiumCard && { color: theme.colors.primary }
                       ]}>
-                        {plan.name}
+                        {plan.name.replace('_yearly', '')}
                       </Text>
                     </View>
                     
@@ -162,8 +206,16 @@ const PricingScreen = () => {
                       ]}>
                         {plan.price.toFixed(2)} $
                       </Text>
-                      <Text style={styles.pricePeriod}>/ month</Text>
+                      <Text style={styles.pricePeriod}>
+                        {planDuration === 'monthly' ? '/ month' : '/ year'}
+                      </Text>
                     </View>
+                    
+                    {planDuration === 'yearly' && plan.monthlyCost && (
+                      <Text style={styles.monthlyCost}>
+                        ({plan.monthlyCost.toFixed(2)} $ / month)
+                      </Text>
+                    )}
                     
                     <Divider style={styles.divider} />
                     
@@ -173,7 +225,11 @@ const PricingScreen = () => {
                     
                     {(!isSubscribed || activePlanId !== plan.id) && (
                       <Button
-                        title={isSubscribed ? (activePlanId === 'basic' && plan.id === 'premium' ? "Upgrade to Premium" : "Switch to this Plan") : "Subscribe"}
+                        title={isSubscribed 
+                          ? (activePlanId.includes('basic') && plan.id.includes('premium') 
+                            ? "Upgrade to Premium" 
+                            : "Switch to this Plan") 
+                          : "Subscribe"}
                         onPress={() => handleProceedToPayment(plan)}
                         style={styles.planButton}
                         variant={isPremiumCard || isSelectedForPayment ? "primary" : "outline"}
@@ -191,6 +247,9 @@ const PricingScreen = () => {
             );
           })}
         </View>
+        
+        {/* Feature Comparison Card */}
+        <FreeVsPremiumCard />
         
         {isSubscribed && activePlanId !== 'free' && (
           <View style={styles.subscribeButtonContainer}>
@@ -235,7 +294,7 @@ const PricingScreen = () => {
         
         <View style={[styles.infoContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
           <Text style={[styles.infoTitle, { color: theme.colors.onSurface }]}>About Subscriptions:</Text>
-          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Subscriptions are billed monthly</Text>
+          <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Subscriptions are billed {planDuration === 'monthly' ? 'monthly' : 'yearly'}</Text>
           <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Automatically renews unless canceled</Text>
           <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• Managed through {Platform.OS === 'ios' ? 'App Store' : 'Google Play'}</Text>
           <Text style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>• You can cancel your subscription anytime</Text>
@@ -246,7 +305,6 @@ const PricingScreen = () => {
   );
 };
 
-// Styles (styles.trialButtonContainer kaldırıldı, statusContainer'daki ikon değişti)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -276,11 +334,30 @@ const styles = StyleSheet.create({
     padding: spacing.s,
     borderRadius: 8,
   },
-  // trialButtonContainer kaldırıldı
   statusText: {
     fontSize: typography.fontSize.medium,
     fontWeight: '500',
     marginLeft: spacing.xs,
+  },
+  toggleContainer: {
+    marginBottom: spacing.l,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  savingBadge: {
+    position: 'absolute',
+    right: 0,
+    top: -10,
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: spacing.s,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: 12,
+    zIndex: 1,
+  },
+  savingText: {
+    color: 'white',
+    fontSize: typography.fontSize.small,
+    fontWeight: 'bold',
   },
   plansContainer: {
     marginBottom: spacing.l,
@@ -328,7 +405,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'center',
-    marginBottom: spacing.m,
+    marginBottom: spacing.xs,
     marginTop: spacing.xs,
   },
   price: {
@@ -339,6 +416,12 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.medium,
     marginLeft: spacing.xs,
     color: '#666'
+  },
+  monthlyCost: {
+    fontSize: typography.fontSize.small,
+    textAlign: 'center',
+    color: '#666',
+    marginBottom: spacing.s,
   },
   divider: {
     marginVertical: spacing.m,

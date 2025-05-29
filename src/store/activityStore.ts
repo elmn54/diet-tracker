@@ -119,7 +119,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     );
 
     const { activePlanId } = useSubscriptionStore.getState();
-    if (activePlanId === 'premium') {
+    if (activePlanId.includes('premium')) {
       await syncItemUpstream('activities', newActivity);
     }
 
@@ -150,7 +150,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     );
 
     const { activePlanId } = useSubscriptionStore.getState();
-    if (activePlanId === 'premium') {
+    if (activePlanId.includes('premium')) {
       await deleteItemFromFirestore('activities', id);
     }
   },
@@ -187,7 +187,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     );
 
     const { activePlanId } = useSubscriptionStore.getState();
-    if (activePlanId === 'premium') {
+    if (activePlanId.includes('premium')) {
       await syncItemUpstream('activities', activityWithTimestamp);
     }
   },

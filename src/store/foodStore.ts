@@ -110,7 +110,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     await setItem(storageKey, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
 
     const { activePlanId } = useSubscriptionStore.getState();
-    if (activePlanId === 'premium') {
+    if (activePlanId.includes('premium')) {
       await syncItemUpstream('meals', newFoodItem);
     }
     return newFoodItem;
@@ -132,7 +132,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     await setItem(storageKey, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
 
     const { activePlanId } = useSubscriptionStore.getState();
-    if (activePlanId === 'premium') {
+    if (activePlanId.includes('premium')) {
       await deleteItemFromFirestore('meals', id);
     }
   },
@@ -159,7 +159,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     await setItem(storageKey, newFoods.map(f => ({...f, createdAt: (f.createdAt instanceof Date ? f.createdAt.toISOString() : f.createdAt), updatedAt: (f.updatedAt instanceof Date ? f.updatedAt.toISOString() : f.updatedAt) })) );
 
     const { activePlanId } = useSubscriptionStore.getState();
-    if (activePlanId === 'premium') {
+    if (activePlanId.includes('premium')) {
       await syncItemUpstream('meals', foodWithTimestamp);
     }
   },

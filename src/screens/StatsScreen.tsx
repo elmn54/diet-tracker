@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
-import { Text, Divider, SegmentedButtons, useTheme, MD3Theme, Card } from 'react-native-paper';
+import { Text, Divider, SegmentedButtons, useTheme, MD3Theme, Card, Button } from 'react-native-paper';
 import { useFoodStore } from '../store/foodStore';
 import { useActivityStore } from '../store/activityStore';
 import { useCalorieGoalStore } from '../store/calorieGoalStore';
+import { useSubscriptionStore } from '../store/subscriptionStore';
+import { useNavigation } from '@react-navigation/native';
 import NutritionChart from '../components/NutritionChart';
 import { format, subDays, isSameDay, startOfWeek, addDays, eachDayOfInterval, endOfWeek } from 'date-fns';
 import { enUS } from 'date-fns/locale';
@@ -23,6 +25,7 @@ interface ChartData {
 const StatsScreen = () => {
   const theme = useTheme();
   const styles = makeStyles(theme);
+  const navigation = useNavigation();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('day');
   const [weeklyData, setWeeklyData] = useState<ChartData>({ 
@@ -37,6 +40,13 @@ const StatsScreen = () => {
   const { calculateDailyNutrients, calculateDailyCalories, foods } = useFoodStore();
   const { calculateDailyBurnedCalories, activities } = useActivityStore();
   const { calorieGoal, nutrientGoals } = useCalorieGoalStore();
+  const { activePlanId, isSubscribed } = useSubscriptionStore();
+  
+  // Check if user has access to statistics (basic or premium subscribers only)
+  const hasStatsAccess = isSubscribed && (
+    activePlanId.includes('basic') || 
+    activePlanId.includes('premium')
+  );
   
   // Günlük besin değerlerini hesapla
   const dailyNutrients = calculateDailyNutrients(selectedDate.toISOString());
@@ -304,6 +314,32 @@ const StatsScreen = () => {
       </View>
     );
   };
+  
+  // If user is not subscribed, show subscription message
+  if (!hasStatsAccess) {
+    return (
+      <View style={[styles.container, styles.subscriptionContainer]}>
+        <Text style={styles.header}>Statistics</Text>
+        <Card style={styles.subscriptionCard}>
+          <Card.Content>
+            <Text style={styles.subscriptionTitle}>
+              Subscribe to Access Statistics
+            </Text>
+            <Text style={styles.subscriptionMessage}>
+              Detailed statistics, charts and nutrition insights are available for Basic and Premium subscribers.
+            </Text>
+            <Button 
+              mode="contained" 
+              style={styles.subscribeButton}
+              onPress={() => navigation.navigate('Pricing' as never)}
+            >
+              View Subscription Plans
+            </Button>
+          </Card.Content>
+        </Card>
+      </View>
+    );
+  }
   
   return (
     <ScrollView style={styles.container}>
@@ -590,6 +626,33 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     fontSize: 14,
     textAlign: 'right',
     color: theme.colors.onSurface,
+  },
+  subscriptionContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 30,
+  },
+  subscriptionCard: {
+    width: '90%',
+    marginTop: 20,
+    borderRadius: 12,
+  },
+  subscriptionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  subscriptionMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: theme.colors.onSurfaceVariant,
+    lineHeight: 22,
+  },
+  subscribeButton: {
+    marginTop: 10,
   },
 });
 

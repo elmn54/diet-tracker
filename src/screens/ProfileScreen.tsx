@@ -67,10 +67,12 @@ const ProfileScreen = () => {
       return theme.dark ? '#585858' : 'rgba(255, 255, 255, 0.8)';
     }
     
-    switch (activePlanId) {
-      case 'premium': return theme.colors.primary;
-      case 'basic': return theme.dark ? '#686868' : theme.colors.surfaceVariant;
-      default: return theme.dark ? '#686868' : theme.colors.surfaceVariant;
+    if (activePlanId.includes('premium')) {
+      return theme.colors.primary;
+    } else if (activePlanId.includes('basic')) {
+      return theme.dark ? '#686868' : theme.colors.surfaceVariant;
+    } else {
+      return theme.dark ? '#686868' : theme.colors.surfaceVariant;
     }
   };
   
@@ -79,10 +81,12 @@ const ProfileScreen = () => {
       return 'Free';
     }
     
-    switch (activePlanId) {
-      case 'premium': return 'Premium';
-      case 'basic': return 'Basic';
-      default: return activePlanId; // Fallback to plan ID if unknown
+    if (activePlanId.includes('premium')) {
+      return 'Premium';
+    } else if (activePlanId.includes('basic')) {
+      return 'Basic';
+    } else {
+      return activePlanId; // Fallback to plan ID if unknown
     }
   };
   
@@ -190,7 +194,7 @@ const ProfileScreen = () => {
                       { 
                         color: !isSubscribed
                           ? theme.dark ? '#FFFFFF' : '#7F7F7F'
-                          : (activePlanId === 'premium' 
+                          : (activePlanId.includes('premium')
                               ? theme.colors.primary 
                               : theme.dark ? '#FFFFFF' : getSubscriptionColor()) 
                       }

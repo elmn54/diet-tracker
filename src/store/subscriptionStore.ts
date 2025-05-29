@@ -8,26 +8,29 @@ const ACTIVE_PLAN_ID_KEY = 'active_plan_id';
 const SUBSCRIPTION_END_DATE_KEY = 'subscription_end_date';
 
 export interface SubscriptionPlan {
-  id: 'free' | 'basic' | 'premium';
+  id: 'free' | 'basic' | 'premium' | 'basic_yearly' | 'premium_yearly';
   name: string;
   price: number;
   features: string[];
   isAdFree: boolean;
   cloudSyncEnabled: boolean;
+  isYearlyPlan?: boolean;
+  monthlyCost?: number;
+  savePercentage?: number;
 }
 
 interface SubscriptionState {
   plans: SubscriptionPlan[];
-  activePlanId: 'free' | 'basic' | 'premium';
-  selectedPlanForPayment: 'free' | 'basic' | 'premium';
+  activePlanId: 'free' | 'basic' | 'premium' | 'basic_yearly' | 'premium_yearly';
+  selectedPlanForPayment: 'free' | 'basic' | 'premium' | 'basic_yearly' | 'premium_yearly';
   subscriptionEndDate: Date | null;
   isSubscriptionLoading: boolean;
   isSubscribed: boolean;
   
   loadUserSubscription: () => Promise<void>;
-  updateSubscriptionInFirestore: (planId: 'free' | 'basic' | 'premium', endDate?: Date | null) => Promise<void>;
-  setSelectedPlanForPaymentLocally: (planId: 'free' | 'basic' | 'premium') => void; 
-  activateSubscribedPlan: (planId: 'free' | 'basic' | 'premium', endDate?: Date | null) => Promise<void>;
+  updateSubscriptionInFirestore: (planId: 'free' | 'basic' | 'premium' | 'basic_yearly' | 'premium_yearly', endDate?: Date | null) => Promise<void>;
+  setSelectedPlanForPaymentLocally: (planId: 'free' | 'basic' | 'premium' | 'basic_yearly' | 'premium_yearly') => void; 
+  activateSubscribedPlan: (planId: 'free' | 'basic' | 'premium' | 'basic_yearly' | 'premium_yearly', endDate?: Date | null) => Promise<void>;
   cancelUserSubscription: () => Promise<void>;
   isFeatureAvailable: (featureKey: keyof Pick<SubscriptionPlan, 'isAdFree' | 'cloudSyncEnabled'>) => boolean;
   reset: () => Promise<void>;
@@ -42,6 +45,7 @@ const DEFAULT_PLANS: SubscriptionPlan[] = [
       'Unlimited usage',
       'Basic diet tracking',
       'Local data storage',
+      'Ad-supported experience',
     ],
     isAdFree: false,
     cloudSyncEnabled: false,
@@ -49,13 +53,14 @@ const DEFAULT_PLANS: SubscriptionPlan[] = [
   {
     id: 'basic',
     name: 'Basic',
-    price: 1.25,
+    price: 2.99,
     features: [
       'Unlimited usage',
       'Ad-free experience',
       'Basic diet tracking',
       'Local data storage',
       'Daily and weekly reports',
+      'Advanced Statistics',
     ],
     isAdFree: true,
     cloudSyncEnabled: false,
@@ -63,7 +68,7 @@ const DEFAULT_PLANS: SubscriptionPlan[] = [
   {
     id: 'premium',
     name: 'Premium',
-    price: 4.25,
+    price: 5.99,
     features: [
       'Unlimited usage',
       'Ad-free experience',
@@ -71,9 +76,51 @@ const DEFAULT_PLANS: SubscriptionPlan[] = [
       'Data cloud storage',
       'Device-to-device sync',
       'Daily and weekly reports',
+      'Advanced Statistics',
+      'Priority support',
     ],
     isAdFree: true,
     cloudSyncEnabled: true,
+  },
+  {
+    id: 'basic_yearly',
+    name: 'Basic Yearly',
+    price: 24.99,
+    monthlyCost: 2.08,
+    savePercentage: 30,
+    features: [
+      'Unlimited usage',
+      'Ad-free experience',
+      'Basic diet tracking',
+      'Local data storage',
+      'Daily and weekly reports',
+      'Advanced Statistics',
+      'Save 30% with yearly plan',
+    ],
+    isAdFree: true,
+    cloudSyncEnabled: false,
+    isYearlyPlan: true,
+  },
+  {
+    id: 'premium_yearly',
+    name: 'Premium Yearly',
+    price: 49.99,
+    monthlyCost: 4.17,
+    savePercentage: 30,
+    features: [
+      'Unlimited usage',
+      'Ad-free experience',
+      'All diet tracking features',
+      'Data cloud storage',
+      'Device-to-device sync',
+      'Daily and weekly reports',
+      'Advanced Statistics',
+      'Priority support',
+      'Save 30% with yearly plan',
+    ],
+    isAdFree: true,
+    cloudSyncEnabled: true,
+    isYearlyPlan: true,
   }
 ];
 
@@ -94,13 +141,13 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         const userDocRef = doc(firebaseFirestore, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
-        let currentActivePlanId: 'free' | 'basic' | 'premium' = 'free';
+        let currentActivePlanId: 'free' | 'basic' | 'premium' | 'basic_yearly' | 'premium_yearly' = 'free';
         let currentSubscriptionEndDate: Date | null = null;
         let currentIsSubscribed = false;
 
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          currentActivePlanId = (userData?.activePlanId as 'free' | 'basic' | 'premium') || 'free';
+          currentActivePlanId = (userData?.activePlanId as 'free' | 'basic' | 'premium' | 'basic_yearly' | 'premium_yearly') || 'free';
           
           if (userData?.subscriptionEndDate && userData.subscriptionEndDate instanceof Timestamp) {
             currentSubscriptionEndDate = userData.subscriptionEndDate.toDate();
@@ -133,7 +180,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         set({ isSubscriptionLoading: false, activePlanId: 'free', subscriptionEndDate: null, isSubscribed: false, selectedPlanForPayment: 'free' });
       }
     } else {
-      const storedPlanId = (await AsyncStorage.getItem(ACTIVE_PLAN_ID_KEY) as 'free' | 'basic' | 'premium' | null) || 'free';
+      const storedPlanId = (await AsyncStorage.getItem(ACTIVE_PLAN_ID_KEY) as 'free' | 'basic' | 'premium' | 'basic_yearly' | 'premium_yearly' | null) || 'free';
       const storedEndDateStr = await AsyncStorage.getItem(SUBSCRIPTION_END_DATE_KEY);
       const storedEndDate = storedEndDateStr ? new Date(storedEndDateStr) : null;
       let isLocallySubscribed = false;

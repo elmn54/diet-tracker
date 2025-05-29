@@ -26,6 +26,10 @@ const PaymentScreen = () => {
   const [cvv, setCvv] = useState('');
   const [cardHolderName, setCardHolderName] = useState('');
   
+  // Check if the plan is yearly
+  const isYearlyPlan = planId.includes('yearly');
+  const billingPeriod = isYearlyPlan ? 'year' : 'month';
+  
   const formatCardNumber = (text: string) => {
     const numbers = text.replace(/\D/g, '');
     const truncated = numbers.slice(0, 16);
@@ -48,7 +52,7 @@ const PaymentScreen = () => {
       return;
     }
     
-    const validPlanId = planId as 'free' | 'basic' | 'premium';
+    const validPlanId = planId as 'free' | 'basic' | 'premium' | 'basic_yearly' | 'premium_yearly';
     if (!plans.some(p => p.id === validPlanId)) {
         Alert.alert("Error", "Invalid subscription plan selected.");
         return;
@@ -66,7 +70,12 @@ const PaymentScreen = () => {
       
       if (isSuccess) {
         const newEndDate = new Date();
-        newEndDate.setMonth(newEndDate.getMonth() + 1);
+        // Set end date based on plan type
+        if (isYearlyPlan) {
+          newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+        } else {
+          newEndDate.setMonth(newEndDate.getMonth() + 1);
+        }
         
         try {
           await activateSubscribedPlan(validPlanId, newEndDate);
@@ -154,7 +163,7 @@ const PaymentScreen = () => {
             </View>
             <View style={styles.summaryRow}>
               <Text>Amount:</Text>
-              <Text style={[styles.summaryValue, styles.priceValue]}>{price.toFixed(2)} Dollar / month</Text>
+              <Text style={[styles.summaryValue, styles.priceValue]}>{price.toFixed(2)} Dollar / {billingPeriod}</Text>
             </View>
           </Card.Content>
         </Card>
@@ -208,7 +217,7 @@ const PaymentScreen = () => {
         </Card>
         
         <Button
-          title={`${price.toFixed(2)} Dollar / month`}
+          title={`${price.toFixed(2)} Dollar / ${billingPeriod}`}
           onPress={handlePayment}
           loading={isProcessing}
           disabled={isProcessing}

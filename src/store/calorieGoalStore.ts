@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { syncUserSettingsUpstream } from '../services/syncService';
 import { useSubscriptionStore } from './subscriptionStore';
-import { firebaseAuth } from '../firebase/firebase.config';
+import { firebaseAuth, firebaseFirestore } from '../firebase/firebase.config';
+import { doc, updateDoc, serverTimestamp } from '@react-native-firebase/firestore';
 
 // Key'leri dinamik oluşturmak için yardımcı fonksiyonlar
 const getCalorieGoalStorageKey = (userId?: string | null) => {
@@ -85,11 +85,17 @@ export const useCalorieGoalStore = create<CalorieGoalState>((set, get) => ({
     const { activePlanId } = useSubscriptionStore.getState();
     const { nutrientGoals } = get();
     
-    if (activePlanId === 'premium' && userId) {
-      await syncUserSettingsUpstream(userId, {
-        calorieGoal: newGoal,
-        nutrientGoals
-      });
+    if (activePlanId.includes('premium') && userId) {
+      // Update in Firestore
+      try {
+        const userDoc = doc(firebaseFirestore, 'users', userId);
+        await updateDoc(userDoc, {
+          'userSettings.calorieGoal': newGoal,
+          'userSettings.updatedAt': serverTimestamp(),
+        });
+      } catch (error) {
+        console.error('Error updating calorie goal in Firestore:', error);
+      }
     }
   },
   
@@ -108,11 +114,17 @@ export const useCalorieGoalStore = create<CalorieGoalState>((set, get) => ({
     const { activePlanId } = useSubscriptionStore.getState();
     const { calorieGoal } = get();
     
-    if (activePlanId === 'premium' && userId) {
-      await syncUserSettingsUpstream(userId, {
-        calorieGoal,
-        nutrientGoals: newGoals
-      });
+    if (activePlanId.includes('premium') && userId) {
+      // Update in Firestore
+      try {
+        const userDoc = doc(firebaseFirestore, 'users', userId);
+        await updateDoc(userDoc, {
+          'userSettings.nutrientGoals': newGoals,
+          'userSettings.updatedAt': serverTimestamp(),
+        });
+      } catch (error) {
+        console.error('Error updating nutrient goals in Firestore:', error);
+      }
     }
   },
   
