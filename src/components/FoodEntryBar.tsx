@@ -967,7 +967,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     } : {}),
   },
   containerExpanded: {
-    paddingBottom: 30,
+    paddingBottom: 16,
   },
   inputContainer: {
     flexDirection: 'row',
